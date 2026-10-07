@@ -25,7 +25,6 @@ const io = new Server<ClientToServerEvents, ServerToClientEvents>(app.server, {
 
 io.on("connection", (socket) => {
   app.log.info({ socketId: socket.id }, "Client connected");
-  socket.emit("hello", { message: "Hello from the ScamGPT server." });
   socket.on("disconnect", (reason) => {
     app.log.info({ socketId: socket.id, reason }, "Client disconnected");
   });

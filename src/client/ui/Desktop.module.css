@@ -1,0 +1,34 @@
+/* Fills whatever the desktop is put in. The 16:9 screen sits in the middle with black bars
+   around it. */
+.host {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: #000000;
+  container-type: size;
+}
+
+/* The screen is a size container too, so everything inside can size itself in cqh/cqw
+   (hundredths of the screen's height/width) and scale with it. On the screen itself, cq
+   units still measure the host, so its own sizes are worked out from --screen-height. */
+.screen {
+  --screen-height: min(100cqh, 100cqw / var(--desktop-aspect));
+
+  position: relative;
+  width: calc(var(--screen-height) * var(--desktop-aspect));
+  height: var(--screen-height);
+  overflow: hidden;
+  background: var(--wallpaper);
+  font-family: var(--font-ui);
+  /* 1.9% of the screen's height, i.e. 1.9cqh for everything inside. */
+  font-size: calc(var(--screen-height) * 0.019);
+  color: var(--text);
+  container-type: size;
+}
+
+.wallpaper {
+  position: absolute;
+  inset: 0;
+}

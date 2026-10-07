@@ -1,0 +1,54 @@
+.window {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  pointer-events: auto;
+}
+
+.titleBar {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 0.6cqh;
+  height: calc(var(--title-bar-height) * 100cqh);
+  padding: 0 0.4cqh 0 0.8cqh;
+  background: linear-gradient(to right, var(--title-inactive), var(--title-inactive-fade));
+  color: var(--title-text);
+  cursor: default;
+  user-select: none;
+  /* Touch drags move the window instead of scrolling the page. */
+  touch-action: none;
+}
+
+.focused .titleBar {
+  background: linear-gradient(to right, var(--title-active), var(--title-active-fade));
+}
+
+.title {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  font-size: calc(var(--title-bar-height) * 100cqh * 0.55);
+  font-weight: bold;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.close {
+  display: grid;
+  place-items: center;
+  height: 78%;
+  aspect-ratio: 1;
+  padding: 0;
+  font-size: calc(var(--title-bar-height) * 100cqh * 0.45);
+  font-weight: bold;
+  line-height: 1;
+}
+
+.content {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  padding: calc(var(--content-padding) * 100cqw);
+  overflow: hidden;
+}

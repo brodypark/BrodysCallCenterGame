@@ -1,0 +1,22 @@
+.page {
+  flex: 1;
+  min-height: 0;
+  padding: 1.4cqh 1.8cqh;
+  overflow-y: auto;
+  background: var(--field);
+}
+
+.title {
+  margin: 0 0 1.2cqh;
+  font-size: 2.6cqh;
+}
+
+.lines {
+  display: flex;
+  flex-direction: column;
+  gap: 1.2cqh;
+  margin: 0;
+  padding-left: 2.4cqh;
+  font-size: 2cqh;
+  line-height: 1.35;
+}

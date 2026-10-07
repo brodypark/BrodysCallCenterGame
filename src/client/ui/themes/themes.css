@@ -1,0 +1,64 @@
+/* Desktop themes: sets of CSS variables picked with data attributes on a desktop's screen,
+   so each desktop can have its own. The Shop's window themes and wallpapers (step 7) add
+   more sets here. Sizes live in ui/layout.ts instead. */
+
+/* Shared by every theme. */
+[data-desktop-screen] {
+  /* The only pixel-sized parts of the UI; everything else scales with the desktop. */
+  --bevel-width: 2px;
+
+  --font-ui: Tahoma, Verdana, "Segoe UI", sans-serif;
+  --font-mono: "Courier New", ui-monospace, monospace;
+  --font-display: ui-rounded, "Arial Rounded MT Bold", "Trebuchet MS", sans-serif;
+
+  /* Labels under desktop icons, with a shadow so they show on any wallpaper. */
+  --icon-text: #ffffff;
+  --icon-text-shadow: rgb(0 0 0 / 60%);
+
+  /* Desktop layers, back to front. */
+  --layer-icons: 1;
+  --layer-windows: 2;
+  --layer-clock-in: 3;
+  --layer-taskbar: 4;
+  --layer-start-menu: 5;
+  --layer-overlay: 6;
+}
+
+/* Window themes. */
+
+[data-theme="classic"] {
+  /* Grey faces, and the 3D bevels on windows, buttons and the taskbar. */
+  --face: #c0c0c0;
+  --bevel-light: #ffffff;
+  --bevel-shadow: #808080;
+
+  /* Title bars fade from the first color to the second. */
+  --title-active: #000080;
+  --title-active-fade: #1084d0;
+  --title-inactive: #808080;
+  --title-inactive-fade: #c0c0c0;
+  --title-text: #ffffff;
+
+  --text: #000000;
+  --text-muted: #606060;
+  --text-disabled: #808080;
+  /* Text boxes, status lines and other white fields. */
+  --field: #ffffff;
+  /* Hovered start menu items. */
+  --selection: #000080;
+  --selection-text: #ffffff;
+
+  /* The Phone app's LCD screen. */
+  --lcd: #aac878;
+  --lcd-text: #1e3214;
+
+  --success-text: #008000;
+  --error-text: #b00000;
+  --xp-fill: #000080;
+}
+
+/* Wallpapers. */
+
+[data-wallpaper="teal"] {
+  --wallpaper: #008080;
+}

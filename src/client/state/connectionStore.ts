@@ -1,23 +1,18 @@
-// Connection status and the server's last hello, kept outside React so any component can
-// read it with useConnection().
+// Whether the client is connected to the game server, kept outside React so any component
+// can read it with useConnection().
 
 import { useSyncExternalStore } from "react";
 import { socket } from "@client/net/socket";
-import type { HelloPayload } from "@shared/events";
 
 export type ConnectionStatus = "connecting" | "connected" | "disconnected";
 
 export interface ConnectionState {
   status: ConnectionStatus;
-  serverMessage: string | null;
 }
 
 // Starts from the socket's real state, since in development Vite can re-run this module
 // while the socket is already connected.
-let state: ConnectionState = {
-  status: socket.connected ? "connected" : "connecting",
-  serverMessage: null,
-};
+let state: ConnectionState = { status: socket.connected ? "connected" : "connecting" };
 const listeners = new Set<() => void>();
 
 function update(changes: Partial<ConnectionState>): void {
@@ -43,29 +38,19 @@ function onConnect(): void {
 }
 
 function onDisconnect(): void {
-  update({ status: "disconnected", serverMessage: null });
-}
-
-function onConnectError(): void {
   update({ status: "disconnected" });
-}
-
-function onHello(payload: HelloPayload): void {
-  update({ serverMessage: payload.message });
 }
 
 socket.on("connect", onConnect);
 socket.on("disconnect", onDisconnect);
-socket.on("connect_error", onConnectError);
-socket.on("hello", onHello);
+socket.on("connect_error", onDisconnect);
 
 // When Vite hot-reloads this module in development, remove the old copy's socket listeners
 // so they don't pile up.
 import.meta.hot?.dispose(() => {
   socket.off("connect", onConnect);
   socket.off("disconnect", onDisconnect);
-  socket.off("connect_error", onConnectError);
-  socket.off("hello", onHello);
+  socket.off("connect_error", onDisconnect);
 });
 
 /** The current connection state; re-renders the component when it changes. */

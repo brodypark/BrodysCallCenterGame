@@ -1,0 +1,5 @@
+.message {
+  margin: 0;
+  padding: 1cqh;
+  color: var(--error-text);
+}

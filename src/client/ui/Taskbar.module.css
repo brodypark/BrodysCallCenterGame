@@ -1,0 +1,79 @@
+.taskbar {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: var(--layer-taskbar);
+  display: flex;
+  align-items: center;
+  gap: 0.6cqh;
+  height: calc(var(--taskbar-height) * 100cqh);
+  padding: 0 0.4cqh;
+  border-right: none;
+  border-bottom: none;
+  border-left: none;
+}
+
+.start {
+  display: flex;
+  align-items: center;
+  gap: 0.6cqh;
+  height: 76%;
+  padding: 0 1cqh;
+  font-weight: bold;
+  line-height: 1;
+}
+
+.windowButtons {
+  display: flex;
+  flex: 1;
+  gap: 0.5cqh;
+  min-width: 0;
+  height: 76%;
+}
+
+/* Each takes up to about a quarter of the space, and they shrink to share it. */
+.windowButton {
+  flex: 0 1 24%;
+  min-width: 0;
+  padding-block: 0;
+  overflow: hidden;
+  line-height: 1;
+  text-align: left;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.focusedButton {
+  font-weight: bold;
+  background: var(--field);
+}
+
+.tray {
+  display: flex;
+  align-items: center;
+  gap: 1.6cqh;
+  height: 76%;
+  padding: 0 1.2cqh;
+  font-size: 1.7cqh;
+  white-space: nowrap;
+}
+
+/* Server connection: grey while connecting, green when connected, red when not. */
+.dot {
+  width: 1.1cqh;
+  height: 1.1cqh;
+  border-radius: 50%;
+}
+
+.connecting {
+  background: var(--text-disabled);
+}
+
+.connected {
+  background: var(--success-text);
+}
+
+.disconnected {
+  background: var(--error-text);
+}

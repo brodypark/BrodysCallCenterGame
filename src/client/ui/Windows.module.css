@@ -1,0 +1,8 @@
+/* Covers the desktop but lets clicks through to the icons and wallpaper, except where a
+   window is. */
+.layer {
+  position: absolute;
+  inset: 0;
+  z-index: var(--layer-windows);
+  pointer-events: none;
+}

@@ -1,0 +1,36 @@
+.table {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  justify-content: space-around;
+  margin: 0;
+  padding: 0.6cqh 1cqh;
+  background: var(--field);
+}
+
+.row {
+  display: flex;
+  justify-content: space-between;
+  gap: 1cqh;
+  font-size: 1.7cqh;
+}
+
+.row dt {
+  color: var(--text-muted);
+}
+
+.row dd {
+  margin: 0;
+  font-weight: bold;
+}
+
+.xpTrack {
+  height: 2cqh;
+  background: var(--field);
+}
+
+.xpFill {
+  width: 0;
+  height: 100%;
+  background: var(--xp-fill);
+}

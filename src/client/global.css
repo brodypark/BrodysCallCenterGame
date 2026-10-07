@@ -1,13 +1,4 @@
-/* Page-wide styles. Desktop themes (step 1) bring their own variables. */
-
-:root {
-  --color-background: #008080;
-  --color-text: #ffffff;
-  --color-text-muted: #d8f0f0;
-  --color-good: #a8ffb0;
-  --color-bad: #ffb0a8;
-  --font-ui: Tahoma, Verdana, "Segoe UI", sans-serif;
-}
+/* Page-wide styles. The desktop's look lives in ui/themes. */
 
 *,
 *::before,
@@ -18,7 +9,6 @@
 html,
 body {
   margin: 0;
-  background: var(--color-background);
-  color: var(--color-text);
-  font-family: var(--font-ui);
+  overflow: hidden;
+  background: #000000;
 }

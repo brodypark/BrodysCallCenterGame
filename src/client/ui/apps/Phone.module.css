@@ -1,0 +1,58 @@
+.phone {
+  display: flex;
+  flex-direction: column;
+  gap: 1cqh;
+  height: 100%;
+}
+
+/* An old phone's green LCD. */
+.screen {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.8cqh;
+  padding: 1cqh;
+  background: var(--lcd);
+  font-family: var(--font-mono);
+  color: var(--lcd-text);
+  text-align: center;
+}
+
+.screen p {
+  margin: 0;
+}
+
+.status {
+  font-size: 2.6cqh;
+  font-weight: bold;
+}
+
+.caller {
+  font-size: 2cqh;
+}
+
+.hint {
+  font-size: 1.6cqh;
+}
+
+.buttons {
+  display: flex;
+  gap: 1cqh;
+}
+
+.answer,
+.decline {
+  flex: 1;
+  padding: 1cqh;
+  font-weight: bold;
+}
+
+.answer:enabled {
+  color: var(--success-text);
+}
+
+.decline:enabled {
+  color: var(--error-text);
+}

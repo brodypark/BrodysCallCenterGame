@@ -1,0 +1,187 @@
+/* The Call window's own look: a dark phone app, the same in every desktop theme, so its
+   colors live here instead of in the themes. */
+.call {
+  --call-background: #0a1018;
+  --call-panel: #121a24;
+  --call-panel-border: #555f69;
+  --call-text: #f0f0f0;
+  --call-text-muted: #828c96;
+  --call-name-band: #263038;
+  --call-status-band: #0c121a;
+  --call-status: #ffd640;
+  --call-face-background: #608c8c;
+  --call-face-grid: #7da8a8;
+  --call-trust-track: #060a10;
+  --call-trusting: #5ad26e;
+  --call-input: #0c121a;
+  --call-hang-up: #cd3e3e;
+  --call-action: #348c4e;
+  --call-action-off: #464e58;
+  --call-button-text: #ffffff;
+
+  display: flex;
+  flex-direction: column;
+  gap: 1cqh;
+  height: 100%;
+  padding: 0.8cqh;
+  background: var(--call-background);
+  font-family: var(--font-display);
+  color: var(--call-text);
+}
+
+.panel {
+  overflow: hidden;
+  border: 0.25cqh solid var(--call-panel-border);
+  border-radius: 1.2cqh;
+  background: var(--call-panel);
+}
+
+.trust {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  gap: 0.6cqh;
+  padding: 0.8cqh 1.2cqh;
+}
+
+.trustHeader {
+  display: flex;
+  justify-content: space-between;
+  font-size: 1.7cqh;
+}
+
+.trustTitle {
+  color: var(--call-text-muted);
+}
+
+.trustWord {
+  font-weight: bold;
+}
+
+.trustTrack {
+  height: 1.4cqh;
+  overflow: hidden;
+  border-radius: 0.7cqh;
+  background: var(--call-trust-track);
+}
+
+.trustFill {
+  width: 0;
+  height: 100%;
+  background: var(--call-trusting);
+}
+
+.caller {
+  display: flex;
+  flex: 0 0 38%;
+  flex-direction: column;
+}
+
+.nameBand {
+  padding: 0.6cqh;
+  background: var(--call-name-band);
+  font-size: 2.2cqh;
+  text-align: center;
+}
+
+/* Where the cartoon face goes (step 11), on a faint grid. */
+.faceArea {
+  display: grid;
+  flex: 1;
+  place-items: center;
+  background-color: var(--call-face-background);
+  background-image:
+    linear-gradient(var(--call-face-grid) 1px, transparent 1px),
+    linear-gradient(90deg, var(--call-face-grid) 1px, transparent 1px);
+  background-size: 12.5% 16.66%;
+}
+
+.noFace {
+  font-size: 9cqh;
+  color: var(--call-text);
+  opacity: 0.8;
+}
+
+/* What's happening on the call, including whose turn it is. */
+.statusBand {
+  padding: 0.6cqh;
+  background: var(--call-status-band);
+  font-size: 1.7cqh;
+  color: var(--call-status);
+  text-align: center;
+}
+
+.chat {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  justify-content: center;
+  min-height: 0;
+  padding: 1cqh;
+}
+
+.chatHint {
+  margin: 0;
+  font-size: 1.6cqh;
+  color: var(--call-text-muted);
+  text-align: center;
+}
+
+.inputRow {
+  display: flex;
+  gap: 0.8cqh;
+}
+
+.input {
+  flex: 1;
+  min-width: 0;
+  padding: 0.8cqh 1cqh;
+  border: 0.25cqh solid var(--call-panel-border);
+  border-radius: 1cqh;
+  background: var(--call-input);
+  font: inherit;
+  font-size: 1.7cqh;
+  color: var(--call-text);
+}
+
+.input::placeholder {
+  color: var(--call-text-muted);
+}
+
+.button {
+  border: none;
+  border-radius: 1cqh;
+  background: var(--call-action);
+  font: inherit;
+  color: var(--call-button-text);
+  cursor: pointer;
+}
+
+.button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.send {
+  padding: 0 1.4cqh;
+  font-size: 1.7cqh;
+}
+
+.buttonRow {
+  display: flex;
+  gap: 0.8cqh;
+  height: 5cqh;
+}
+
+.hangUp {
+  flex: 1;
+  background: var(--call-hang-up);
+  font-size: 2cqh;
+}
+
+.round {
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: var(--call-action-off);
+  font-size: 2.2cqh;
+}

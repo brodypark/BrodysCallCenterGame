@@ -1,32 +1,6 @@
+/* The desktop's container: the whole browser window. */
 .page {
-  display: grid;
-  place-content: center;
-  gap: 0.5rem;
-  min-height: 100vh;
-  text-align: center;
-}
-
-.title {
-  margin: 0;
-  font-size: 2.5rem;
-}
-
-.status {
-  margin: 0;
-  font-size: 1.25rem;
-  font-weight: bold;
-  color: var(--color-text-muted);
-}
-
-.status[data-status="connected"] {
-  color: var(--color-good);
-}
-
-.status[data-status="disconnected"] {
-  color: var(--color-bad);
-}
-
-.message {
-  margin: 0;
-  color: var(--color-text-muted);
+  width: 100vw;
+  height: 100vh;
+  height: 100dvh;
 }

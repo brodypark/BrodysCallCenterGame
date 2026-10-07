@@ -1,0 +1,35 @@
+.tabs {
+  display: flex;
+  gap: 0.5cqh;
+}
+
+.tab {
+  flex: 1;
+}
+
+.items {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 0.8cqh;
+  min-height: 0;
+  margin: 0;
+  padding: 1cqh;
+  overflow-y: auto;
+  background: var(--field);
+  list-style: none;
+}
+
+.item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1cqh;
+  padding-bottom: 0.8cqh;
+  border-bottom: 1px solid var(--bevel-shadow);
+  font-size: 1.7cqh;
+}
+
+.name {
+  font-weight: bold;
+}

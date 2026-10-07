@@ -1,0 +1,48 @@
+/* Layout pieces shared by the grey apps (everything except Call and Phone's screen). */
+
+.app {
+  display: flex;
+  flex-direction: column;
+  gap: 1cqh;
+  height: 100%;
+}
+
+/* A bold banner across the top, e.g. "CARD REDEEMER 2000". */
+.heading {
+  margin: 0;
+  font-size: 2.2cqh;
+  font-weight: bold;
+  text-align: center;
+  letter-spacing: 0.05em;
+}
+
+/* A label above a text box. */
+.formRow {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4cqh;
+}
+
+.mono {
+  font-family: var(--font-mono);
+  font-weight: bold;
+}
+
+/* The white line saying what's happening, at the bottom of an app. */
+.status {
+  margin-top: auto;
+  padding: 0.6cqh 0.8cqh;
+  background: var(--field);
+  font-size: 1.7cqh;
+}
+
+.muted {
+  color: var(--text-muted);
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1cqh;
+}

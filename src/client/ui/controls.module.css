@@ -1,0 +1,54 @@
+/* Retro building blocks shared by the desktop and its apps. Colors come from the theme. */
+
+/* Light on the top-left, dark on the bottom-right: windows, buttons, the taskbar. */
+.raised {
+  border: var(--bevel-width) solid;
+  border-color: var(--bevel-light) var(--bevel-shadow) var(--bevel-shadow) var(--bevel-light);
+  background: var(--face);
+}
+
+/* The other way round: text boxes, the tray, pressed buttons. */
+.sunken {
+  border: var(--bevel-width) solid;
+  border-color: var(--bevel-shadow) var(--bevel-light) var(--bevel-light) var(--bevel-shadow);
+}
+
+.button {
+  composes: raised;
+  padding: 0.5cqh 1.2cqh;
+  font: inherit;
+  color: var(--text);
+  cursor: pointer;
+}
+
+.button:active:not(:disabled),
+.pressed {
+  border-color: var(--bevel-shadow) var(--bevel-light) var(--bevel-light) var(--bevel-shadow);
+}
+
+.button:disabled {
+  color: var(--text-disabled);
+  cursor: default;
+}
+
+.button:focus-visible {
+  outline: 1px dotted var(--text);
+  outline-offset: -0.6cqh;
+}
+
+.field {
+  composes: sunken;
+  min-width: 0;
+  padding: 0.5cqh 0.8cqh;
+  background: var(--field);
+  font: inherit;
+  color: var(--text);
+}
+
+.field:disabled {
+  color: var(--text-disabled);
+}
+
+.field::placeholder {
+  color: var(--text-disabled);
+}

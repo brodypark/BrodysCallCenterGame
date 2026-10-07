@@ -1,0 +1,62 @@
+.menu {
+  position: absolute;
+  bottom: calc(var(--taskbar-height) * 100cqh);
+  left: 0;
+  z-index: var(--layer-start-menu);
+  display: flex;
+  width: calc(var(--start-menu-width) * 100cqw);
+  height: calc(var(--start-menu-height) * 100cqh);
+}
+
+/* The blue strip down the left, with the OS name reading bottom to top. */
+.banner {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  width: 16%;
+  padding-bottom: 1cqh;
+  background: linear-gradient(to top, var(--title-active), var(--title-active-fade));
+  color: var(--title-text);
+}
+
+.bannerText {
+  font-size: 2.6cqh;
+  font-weight: bold;
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+}
+
+.items {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.row {
+  display: flex;
+  flex: 1;
+}
+
+.item {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: 1cqh;
+  padding: 0 1.2cqh;
+  border: none;
+  background: transparent;
+  font: inherit;
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+}
+
+.item:hover,
+.item:focus-visible {
+  outline: none;
+  background: var(--selection);
+  color: var(--selection-text);
+}

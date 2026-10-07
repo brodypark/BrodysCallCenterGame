@@ -1,0 +1,76 @@
+/* Covers the desktop but lets clicks through to the wallpaper between icons. */
+.layer {
+  position: absolute;
+  inset: 0;
+  z-index: var(--layer-icons);
+  pointer-events: none;
+}
+
+.icon {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5cqh;
+  /* How much of the icon's height the colored tile takes, and how much of the tile the
+     glyph fills. */
+  --tile-share: 0.62;
+  --glyph-share: 0.6;
+
+  width: calc(var(--icon-width) * 100%);
+  height: calc(var(--icon-height) * 100%);
+  padding: 0;
+  border: none;
+  background: none;
+  font: inherit;
+  color: var(--icon-text);
+  cursor: pointer;
+  user-select: none;
+  pointer-events: auto;
+  /* Touch drags move the icon instead of scrolling the page. */
+  touch-action: none;
+  /* A dropped icon slides into its grid cell. */
+  transition:
+    left calc(var(--icon-snap-seconds) * 1s) ease-out,
+    top calc(var(--icon-snap-seconds) * 1s) ease-out;
+}
+
+.dragging {
+  z-index: 1;
+  cursor: grabbing;
+  transition: none;
+}
+
+/* The colored square, with the app's glyph filling the middle of it. */
+.tile {
+  display: grid;
+  place-items: center;
+  height: calc(var(--tile-share) * 100%);
+  aspect-ratio: 1;
+  border-radius: 10%;
+  font-size: calc(var(--icon-height) * var(--tile-share) * var(--glyph-share) * 100cqh);
+  line-height: 1;
+}
+
+.label {
+  font-size: 1.6cqh;
+  line-height: 1.15;
+  text-align: center;
+  text-shadow:
+    0.15cqh 0.15cqh 0 var(--icon-text-shadow),
+    0 0 0.4cqh var(--icon-text-shadow);
+}
+
+.icon:focus-visible {
+  outline: none;
+}
+
+.icon:focus-visible .label {
+  outline: 1px dotted var(--icon-text);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .icon {
+    transition: none;
+  }
+}

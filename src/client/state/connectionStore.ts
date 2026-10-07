@@ -1,10 +1,11 @@
-// Whether the client is connected to the game server, kept outside React so any component
-// can read it with useConnection().
+// Whether the client is connected to the game server, or has been replaced by another tab.
 
-import { useSyncExternalStore } from "react";
 import { socket } from "@client/net/socket";
+import { createStore, useStore } from "@client/state/createStore";
 
-export type ConnectionStatus = "connecting" | "connected" | "disconnected";
+// Replaced: the game was opened in another tab, which took over. This tab stays
+// disconnected until the player chooses to play here again.
+export type ConnectionStatus = "connecting" | "connected" | "disconnected" | "replaced";
 
 export interface ConnectionState {
   status: ConnectionStatus;
@@ -12,38 +13,29 @@ export interface ConnectionState {
 
 // Starts from the socket's real state, since in development Vite can re-run this module
 // while the socket is already connected.
-let state: ConnectionState = { status: socket.connected ? "connected" : "connecting" };
-const listeners = new Set<() => void>();
-
-function update(changes: Partial<ConnectionState>): void {
-  state = { ...state, ...changes };
-  for (const listener of listeners) {
-    listener();
-  }
-}
-
-function subscribe(listener: () => void): () => void {
-  listeners.add(listener);
-  return () => {
-    listeners.delete(listener);
-  };
-}
-
-function getSnapshot(): ConnectionState {
-  return state;
-}
+const connection = createStore<ConnectionState>({
+  status: socket.connected ? "connected" : "connecting",
+});
 
 function onConnect(): void {
-  update({ status: "connected" });
+  connection.set({ status: "connected" });
 }
 
 function onDisconnect(): void {
-  update({ status: "disconnected" });
+  // Being replaced ends with a disconnect too; keep showing why.
+  if (connection.get().status !== "replaced") {
+    connection.set({ status: "disconnected" });
+  }
+}
+
+function onReplaced(): void {
+  connection.set({ status: "replaced" });
 }
 
 socket.on("connect", onConnect);
 socket.on("disconnect", onDisconnect);
 socket.on("connect_error", onDisconnect);
+socket.on("session:replaced", onReplaced);
 
 // When Vite hot-reloads this module in development, remove the old copy's socket listeners
 // so they don't pile up.
@@ -51,9 +43,15 @@ import.meta.hot?.dispose(() => {
   socket.off("connect", onConnect);
   socket.off("disconnect", onDisconnect);
   socket.off("connect_error", onDisconnect);
+  socket.off("session:replaced", onReplaced);
 });
 
 /** The current connection state; re-renders the component when it changes. */
 export function useConnection(): ConnectionState {
-  return useSyncExternalStore(subscribe, getSnapshot);
+  return useStore(connection);
+}
+
+/** Connecting again after being replaced takes this tab back from the other one. */
+export function markReconnecting(): void {
+  connection.set({ status: "connecting" });
 }

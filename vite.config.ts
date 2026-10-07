@@ -3,6 +3,7 @@ import react from "@vitejs/plugin-react";
 import { loadEnv } from "vite";
 import { defineConfig } from "vitest/config";
 import { ServerConfig } from "./src/server/config.ts";
+import { ApiPrefix } from "./src/shared/api.ts";
 
 function fromRoot(relativePath: string): string {
   return fileURLToPath(new URL(relativePath, import.meta.url));
@@ -31,8 +32,15 @@ export default defineConfig(({ mode }) => {
     },
     server: {
       proxy: {
+        // Both keep the browser's Host header (changeOrigin: false), so the server's same-site
+        // checks compare the page's origin with the host it was loaded from.
+        [ApiPrefix]: {
+          target: `http://localhost:${serverPort}`,
+          changeOrigin: false,
+        },
         "/socket.io": {
           target: `http://localhost:${serverPort}`,
+          changeOrigin: false,
           ws: true,
         },
       },

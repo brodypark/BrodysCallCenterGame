@@ -11,4 +11,19 @@ export const ServerConfig = {
   ClientBuildDir: "../client",
   // On SIGINT/SIGTERM, how long to wait for open requests to finish before exiting anyway.
   ShutdownTimeoutMs: 5000,
+  // The biggest Socket.IO message a client may send. Game events are tiny; voice clips go
+  // over HTTP instead (step 10).
+  MaxSocketMessageBytes: 16 * 1024,
+
+  PlayerCookie: {
+    Name: "scamgpt_player",
+    // A year. Every visit starts it again.
+    MaxAgeSeconds: 365 * 24 * 60 * 60,
+    // Signs the cookie in development when COOKIE_SECRET isn't set, so restarting the dev
+    // server keeps your player id. Never used in production, which refuses to start without
+    // a real secret.
+    DevSecret: "scamgpt-development-only-cookie-secret",
+    // The shortest COOKIE_SECRET production accepts.
+    MinSecretLength: 32,
+  },
 } as const;

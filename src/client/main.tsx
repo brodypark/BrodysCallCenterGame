@@ -3,7 +3,7 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { App } from "@client/App";
-import { socket } from "@client/net/socket";
+import { startConnection } from "@client/net/session";
 import "@client/global.css";
 
 const rootElement = document.getElementById("root");
@@ -17,4 +17,4 @@ createRoot(rootElement).render(
   </StrictMode>,
 );
 
-socket.connect();
+startConnection();

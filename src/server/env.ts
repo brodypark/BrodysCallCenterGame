@@ -7,6 +7,10 @@ export interface ServerEnv {
   port: number;
   host: string;
   isProduction: boolean;
+  // Signs the player id cookie.
+  cookieSecret: string;
+  // True when COOKIE_SECRET wasn't set and the development fallback is in use.
+  usingDevCookieSecret: boolean;
   // Not needed until the AI (step 8) and voice (steps 9-10) arrive, so they may be missing.
   geminiApiKey: string | undefined;
   elevenLabsApiKey: string | undefined;
@@ -31,12 +35,21 @@ function optionalString(value: string | undefined): string | undefined {
   return trimmed === undefined || trimmed === "" ? undefined : trimmed;
 }
 
-/** Builds the typed server settings from a set of environment variables. */
+/** Builds the typed server settings from a set of environment variables. Throws if
+ * production is missing something it needs. */
 export function readServerEnv(env: NodeJS.ProcessEnv): ServerEnv {
+  const isProduction = env.NODE_ENV === "production";
+  const cookieSecret = optionalString(env.COOKIE_SECRET);
+  const { MinSecretLength, DevSecret } = ServerConfig.PlayerCookie;
+  if (isProduction && (cookieSecret === undefined || cookieSecret.length < MinSecretLength)) {
+    throw new Error(`COOKIE_SECRET must be set to at least ${MinSecretLength} characters.`);
+  }
   return {
     port: parsePort(env.PORT, ServerConfig.DefaultPort),
     host: optionalString(env.HOST) ?? ServerConfig.DefaultHost,
-    isProduction: env.NODE_ENV === "production",
+    isProduction,
+    cookieSecret: cookieSecret ?? DevSecret,
+    usingDevCookieSecret: cookieSecret === undefined,
     geminiApiKey: optionalString(env.GEMINI_API_KEY),
     elevenLabsApiKey: optionalString(env.ELEVENLABS_API_KEY),
   };

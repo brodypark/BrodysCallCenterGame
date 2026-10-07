@@ -1,16 +1,26 @@
 // Server entry point: Fastify for HTTP, Socket.IO for game events. In production it also
-// serves the built client; in development Vite does that and forwards /socket.io here.
+// serves the built client; in development Vite does that and forwards /api and /socket.io
+// here.
 
 import path from "node:path";
+import fastifyCookie from "@fastify/cookie";
 import fastifyStatic from "@fastify/static";
 import Fastify from "fastify";
-import { Server } from "socket.io";
 import { ServerConfig } from "@server/config";
 import { loadServerEnv } from "@server/env";
-import type { ClientToServerEvents, ServerToClientEvents } from "@shared/events";
+import { playerIdFromCookieHeader, registerSessionRoute } from "@server/net/playerSession";
+import { startGameServer } from "@server/net/socketServer";
+import { AllScenarios } from "@server/scenarios/all";
+import { createScenarioRegistry } from "@server/scenarios/ScenarioRegistry";
 
 const env = loadServerEnv();
 const app = Fastify({ logger: true });
+
+if (env.usingDevCookieSecret) {
+  app.log.warn("COOKIE_SECRET isn't set, so the development fallback is signing cookies.");
+}
+await app.register(fastifyCookie, { secret: env.cookieSecret });
+registerSessionRoute(app, { secure: env.isProduction });
 
 if (env.isProduction) {
   await app.register(fastifyStatic, {
@@ -18,22 +28,18 @@ if (env.isProduction) {
   });
 }
 
-const io = new Server<ClientToServerEvents, ServerToClientEvents>(app.server, {
-  // The client bundles socket.io-client itself.
-  serveClient: false,
+// Checks every scenario now, so a broken one stops the server with a clear message.
+const scenarios = createScenarioRegistry(AllScenarios);
+const game = startGameServer(app.server, {
+  scenarios,
+  readPlayerId: (cookieHeader) => playerIdFromCookieHeader(app, cookieHeader),
+  log: app.log,
 });
 
-io.on("connection", (socket) => {
-  app.log.info({ socketId: socket.id }, "Client connected");
-  socket.on("disconnect", (reason) => {
-    app.log.info({ socketId: socket.id, reason }, "Client disconnected");
-  });
-});
-
-// Close the open socket connections before Fastify closes the HTTP server, or it would wait
-// on them forever. Clients see a dropped connection and reconnect when the server is back.
+// Close the game (timers and open connections) before Fastify closes the HTTP server, or it
+// would wait on the connections forever. Clients reconnect when the server is back.
 app.addHook("preClose", (done) => {
-  io.engine.close();
+  game.close();
   done();
 });
 

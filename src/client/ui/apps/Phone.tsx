@@ -1,24 +1,70 @@
-// Phone app: shows who's calling, with Answer and Decline buttons. Placeholder until calls
-// arrive (step 2): it shows the off-duty screen and the buttons don't work yet.
+// Phone app: shows who's calling, with Answer and Decline buttons, and how the last call
+// ended. It opens by itself when the phone rings.
 
 import type { ReactElement } from "react";
+import type { CallEndReason, CallSnapshot } from "@shared/types";
+import { answerCall, declineCall } from "@client/net/callActions";
+import { useCall } from "@client/state/callStore";
+import { useConnection } from "@client/state/connectionStore";
 import { cx } from "@client/ui/classNames";
 import controls from "@client/ui/controls.module.css";
 import styles from "@client/ui/apps/Phone.module.css";
 
+// The screen's top line after each way a call can end.
+const OutcomeText: Record<CallEndReason, string> = {
+  playerHungUp: "CALL ENDED",
+  declined: "CALL DECLINED",
+  missed: "MISSED CALL",
+};
+
+interface ScreenText {
+  status: string;
+  caller: string;
+  hint: string;
+}
+
+function screenText(call: CallSnapshot): ScreenText {
+  const caller = `CALLER: ${call.caller ?? "---"}`;
+  switch (call.status) {
+    case "ringing":
+      return { status: "INCOMING CALL", caller, hint: "Answer before it stops ringing!" };
+    case "inCall":
+      return { status: "ON A CALL", caller, hint: "Talk to them in the Call window." };
+    case "idle":
+      return call.lastOutcome
+        ? { status: OutcomeText[call.lastOutcome], caller, hint: "The next call is coming soon..." }
+        : { status: "NO INCOMING CALLS", caller, hint: "Waiting for the phone to ring..." };
+  }
+}
+
 export function Phone(): ReactElement {
+  const call = useCall();
+  const online = useConnection().status === "connected";
+  const ringing = call.status === "ringing";
+  const text = screenText(call);
+
   return (
     <div className={styles.phone}>
-      <div className={cx(controls.sunken, styles.screen)}>
-        <p className={styles.status}>OFF DUTY</p>
-        <p className={styles.caller}>CALLER: ---</p>
-        <p className={styles.hint}>Clock in to start taking calls.</p>
+      <div className={cx(controls.sunken, styles.screen)} aria-live="polite">
+        <p className={cx(styles.status, ringing && styles.ringing)}>{text.status}</p>
+        <p className={styles.caller}>{text.caller}</p>
+        <p className={styles.hint}>{text.hint}</p>
       </div>
       <div className={styles.buttons}>
-        <button type="button" className={cx(controls.button, styles.answer)} disabled>
+        <button
+          type="button"
+          className={cx(controls.button, styles.answer)}
+          disabled={!ringing || !online}
+          onClick={answerCall}
+        >
           Answer
         </button>
-        <button type="button" className={cx(controls.button, styles.decline)} disabled>
+        <button
+          type="button"
+          className={cx(controls.button, styles.decline)}
+          disabled={!ringing || !online}
+          onClick={declineCall}
+        >
           Decline
         </button>
       </div>

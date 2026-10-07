@@ -6,5 +6,5 @@ import type { ClientToServerEvents, ServerToClientEvents } from "@shared/events"
 
 export type GameSocket = Socket<ServerToClientEvents, ClientToServerEvents>;
 
-// Connects when main.tsx calls connect(), after the stores have added their listeners.
+// Connects when net/session.ts says so, once the player has a cookie.
 export const socket: GameSocket = io({ autoConnect: false });

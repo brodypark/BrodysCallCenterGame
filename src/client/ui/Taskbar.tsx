@@ -74,6 +74,7 @@ const ConnectionLabels: Record<ConnectionStatus, string> = {
   connecting: "Connecting to the server",
   connected: "Connected to the server",
   disconnected: "Not connected to the server",
+  replaced: "Open in another tab",
 };
 
 function ConnectionDot(): ReactElement {

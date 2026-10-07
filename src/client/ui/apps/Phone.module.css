@@ -29,6 +29,26 @@
   font-weight: bold;
 }
 
+/* The top line blinks while the phone rings. */
+.ringing {
+  animation: blink 0.8s steps(2, jump-none) infinite;
+}
+
+@keyframes blink {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0.25;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ringing {
+    animation: none;
+  }
+}
+
 .caller {
   font-size: 2cqh;
 }

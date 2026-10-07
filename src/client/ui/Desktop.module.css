@@ -28,6 +28,13 @@
   container-type: size;
 }
 
+/* Everything but the session overlay, so it can all be switched off at once. It doesn't
+   set a z-index, so the layers inside still stack against the overlay. */
+.layers {
+  position: absolute;
+  inset: 0;
+}
+
 .wallpaper {
   position: absolute;
   inset: 0;

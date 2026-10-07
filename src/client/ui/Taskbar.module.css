@@ -59,14 +59,16 @@
   white-space: nowrap;
 }
 
-/* Server connection: grey while connecting, green when connected, red when not. */
+/* Server connection: green when connected, red when not, grey while connecting or while
+   another tab has the game. */
 .dot {
   width: 1.1cqh;
   height: 1.1cqh;
   border-radius: 50%;
 }
 
-.connecting {
+.connecting,
+.replaced {
   background: var(--text-disabled);
 }
 

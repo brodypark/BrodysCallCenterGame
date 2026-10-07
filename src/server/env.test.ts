@@ -27,21 +27,34 @@ describe("readServerEnv", () => {
       port: ServerConfig.DefaultPort,
       host: ServerConfig.DefaultHost,
       isProduction: false,
+      cookieSecret: ServerConfig.PlayerCookie.DevSecret,
+      usingDevCookieSecret: true,
       geminiApiKey: undefined,
       elevenLabsApiKey: undefined,
     });
   });
 
   it("reads production mode and keys", () => {
+    const secret = "s".repeat(ServerConfig.PlayerCookie.MinSecretLength);
     const env = readServerEnv({
       NODE_ENV: "production",
       PORT: "4000",
+      COOKIE_SECRET: secret,
       GEMINI_API_KEY: "gemini-test",
       ELEVENLABS_API_KEY: "eleven-test",
     });
     expect(env.isProduction).toBe(true);
     expect(env.port).toBe(4000);
+    expect(env.cookieSecret).toBe(secret);
+    expect(env.usingDevCookieSecret).toBe(false);
     expect(env.geminiApiKey).toBe("gemini-test");
     expect(env.elevenLabsApiKey).toBe("eleven-test");
+  });
+
+  it("refuses to run production without a long enough cookie secret", () => {
+    expect(() => readServerEnv({ NODE_ENV: "production" })).toThrow(/COOKIE_SECRET/);
+    expect(() => readServerEnv({ NODE_ENV: "production", COOKIE_SECRET: "short" })).toThrow(
+      /COOKIE_SECRET/,
+    );
   });
 });

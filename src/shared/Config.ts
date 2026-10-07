@@ -22,6 +22,23 @@ export const Config = {
     ReconnectGraceSeconds: 30,
   },
 
+  Turn: {
+    // Fake "thinking" time before a scripted reply. AI replies (step 8) take as long as the
+    // AI does instead.
+    ThinkingSeconds: 1.5,
+    // How long a victim line "takes" when there's no voice to play: this many seconds per
+    // character, kept between Min and Max. MinSpeakingSeconds is also the soonest the server
+    // accepts that a line has been said, so skipping can't rush the call.
+    SpeakingSecondsPerCharacter: 0.05,
+    MinSpeakingSeconds: 1.5,
+    MaxSpeakingSeconds: 10,
+    // How long the server waits for the client to finish saying a line before moving on
+    // anyway: this many seconds per character, plus SafetyExtraSeconds. Only matters if the
+    // client never reports back.
+    SafetySecondsPerCharacter: 0.15,
+    SafetyExtraSeconds: 5,
+  },
+
   Connection: {
     // When the server turns the connection down (e.g. the player cookie is missing), how
     // long the client waits before getting a new cookie and trying again.

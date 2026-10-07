@@ -4,6 +4,7 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { App } from "@client/App";
 import { startConnection } from "@client/net/session";
+import { startVictimVoice } from "@client/voice/VictimVoice";
 import "@client/global.css";
 
 const rootElement = document.getElementById("root");
@@ -17,4 +18,5 @@ createRoot(rootElement).render(
   </StrictMode>,
 );
 
+startVictimVoice();
 startConnection();

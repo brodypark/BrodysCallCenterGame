@@ -26,4 +26,12 @@ describe("client event schemas", () => {
     expect(send.safeParse({ text: "x".repeat(limit) }).success).toBe(true);
     expect(send.safeParse({ text: "x".repeat(limit + 1) }).success).toBe(false);
   });
+
+  it("takes a positive whole line id for finished speaking", () => {
+    const finished = ClientEventSchemas["call:finishedSpeaking"];
+    expect(finished.safeParse({ lineId: 3 }).success).toBe(true);
+    expect(finished.safeParse({ lineId: 0 }).success).toBe(false);
+    expect(finished.safeParse({ lineId: 1.5 }).success).toBe(false);
+    expect(finished.safeParse({ lineId: "3" }).success).toBe(false);
+  });
 });

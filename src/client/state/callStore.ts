@@ -5,9 +5,19 @@ import type { CallSnapshot } from "@shared/types";
 import { socket } from "@client/net/socket";
 import { createStore, useStore } from "@client/state/createStore";
 
-const NoCalls: CallSnapshot = { status: "idle", caller: null, transcript: null, lastOutcome: null };
+const NoCalls: CallSnapshot = {
+  status: "idle",
+  caller: null,
+  turn: null,
+  playerTurns: 0,
+  transcript: null,
+  lastOutcome: null,
+};
 
 const calls = createStore<CallSnapshot>(NoCalls);
+
+/** The latest snapshot, and changes to it, for code outside React (e.g. VictimVoice). */
+export const callStore: Pick<typeof calls, "get" | "subscribe"> = calls;
 
 function onSnapshot(snapshot: CallSnapshot): void {
   calls.set(snapshot);

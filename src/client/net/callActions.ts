@@ -29,3 +29,12 @@ export function sendMessage(text: string): void {
     socket.emit("call:send", { text });
   }
 }
+
+/** Tells the server the victim's line `lineId` has been said. Returns whether it was sent. */
+export function finishedSpeaking(lineId: number): boolean {
+  if (!socket.connected) {
+    return false;
+  }
+  socket.emit("call:finishedSpeaking", { lineId });
+  return true;
+}

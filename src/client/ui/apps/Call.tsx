@@ -1,8 +1,8 @@
 // Call app: the conversation with the victim, styled as a dark phone app that looks the same
 // in every desktop theme. From the top: the Caller Trust bar, the caller (name, face and a
-// status line), the chat log, the typed message box, and Hang Up, speaker and hold-to-talk
-// buttons. It opens by itself when a call is answered. The trust bar arrives in step 4, the
-// turn indicator in step 3, voice in steps 9-10 and the face in step 11.
+// status line saying whose turn it is), the chat log, the typed message box, and Hang Up,
+// speaker and hold-to-talk buttons. It opens by itself when a call is answered. The trust
+// bar arrives in step 4, voice in steps 9-10 and the face in step 11.
 
 import { type FormEvent, type ReactElement, useEffect, useRef, useState } from "react";
 import { Config } from "@shared/Config";
@@ -21,15 +21,23 @@ const OutcomeText: Record<CallEndReason, string> = {
   missed: "Missed call",
 };
 
+// The yellow line under the face: what's happening on the call right now.
 function statusText(call: CallSnapshot): string {
-  switch (call.status) {
-    case "ringing":
-      return "Incoming call...";
-    case "inCall":
-      return "On the line";
-    case "idle":
-      return call.lastOutcome ? OutcomeText[call.lastOutcome] : "Not on a call";
+  const name = (call.caller ?? "The caller").toUpperCase();
+  switch (call.turn) {
+    case "playerTurn":
+      return `YOUR TURN · TURN ${call.playerTurns + 1}`;
+    case "processing":
+      return `${name} IS THINKING...`;
+    case "victimTurn":
+      return `${name} IS TALKING...`;
+    case null:
+      break;
   }
+  if (call.status === "ringing") {
+    return "INCOMING CALL - ANSWER IN THE PHONE";
+  }
+  return call.lastOutcome ? OutcomeText[call.lastOutcome].toUpperCase() : "WAITING FOR A CALL...";
 }
 
 export function Call(): ReactElement {
@@ -42,6 +50,11 @@ export function Call(): ReactElement {
   const inCall = call.status === "inCall";
   // Only usable while connected: anything sent offline would be dropped.
   const canAct = inCall && online;
+  // Typing (and talking) is only for the player's turn.
+  const canType = canAct && call.turn === "playerTurn";
+  // Puts the cursor back in the message box when the player's turn comes: after answering,
+  // and after sending a message from the box.
+  const wantsFocus = useRef(false);
 
   // A half-typed message doesn't carry over into the next call.
   const [wasInCall, setWasInCall] = useState(inCall);
@@ -54,7 +67,7 @@ export function Call(): ReactElement {
   const transcript = call.transcript;
   const messages = transcript?.messages ?? [];
   const callerName = call.caller ?? transcript?.callerName ?? "No caller";
-  const canSend = canAct && cleanMessage(draft) !== null;
+  const canSend = canType && cleanMessage(draft) !== null;
 
   // Keep the newest message (or the line saying how the call ended) in view.
   const endReason = transcript?.endReason ?? null;
@@ -65,21 +78,33 @@ export function Call(): ReactElement {
     }
   }, [messages.length, endReason]);
 
-  // Ready to type as soon as a call is answered.
   useEffect(() => {
     if (inCall) {
-      inputRef.current?.focus();
+      wantsFocus.current = true;
     }
   }, [inCall]);
+
+  useEffect(() => {
+    if (!canType || !wantsFocus.current) {
+      return;
+    }
+    wantsFocus.current = false;
+    // Only if the player hasn't moved on to something else, like typing in another app.
+    const active = document.activeElement;
+    if (active === null || active === document.body || active === inputRef.current) {
+      inputRef.current?.focus();
+    }
+  }, [canType]);
 
   function submit(event: FormEvent<HTMLFormElement>): void {
     event.preventDefault();
     const text = cleanMessage(draft);
-    if (!canAct || text === null) {
+    if (!canType || text === null) {
       return;
     }
     sendMessage(text);
     setDraft("");
+    wantsFocus.current = true;
   }
 
   return (
@@ -133,7 +158,7 @@ export function Call(): ReactElement {
           maxLength={Config.Call.MaxTypedMessageLength}
           placeholder={inCall ? "Type a message..." : "Not on a call"}
           aria-label="Message"
-          disabled={!canAct}
+          disabled={!canType}
           onChange={(event) => setDraft(event.target.value)}
         />
         <button type="submit" className={cx(styles.button, styles.send)} disabled={!canSend}>

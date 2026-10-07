@@ -15,6 +15,10 @@ const clientEventSchemas = {
   "call:send": z.strictObject({
     text: z.string().max(Config.Call.MaxTypedMessageLength * MaxUnitsPerCharacter),
   }),
+  // The victim's line `lineId` has been said, so the turn can move on.
+  "call:finishedSpeaking": z.strictObject({
+    lineId: z.number().int().positive(),
+  }),
 } satisfies Record<string, z.ZodType>;
 
 export type ClientEventName = keyof typeof clientEventSchemas;

@@ -128,6 +128,9 @@ export function startGameServer(httpServer: HttpServer, options: GameServerOptio
     listen(socket, "call:decline", log, () => calls.decline(playerId));
     listen(socket, "call:hangUp", log, () => calls.hangUp(playerId));
     listen(socket, "call:send", log, ({ text }) => calls.sendMessage(playerId, text));
+    listen(socket, "call:finishedSpeaking", log, ({ lineId }) =>
+      calls.finishedSpeaking(playerId, lineId),
+    );
 
     socket.on("disconnect", (reason) => {
       log.info({ playerId, socketId: socket.id, reason }, "Player disconnected");

@@ -1,0 +1,19 @@
+# Dependencies and build output
+node_modules/
+dist/
+coverage/
+*.tsbuildinfo
+
+# Secrets: copy .env.example to .env
+.env
+.env.*
+!.env.example
+
+# SQLite saves
+data/
+
+# Personal Claude Code settings (shared settings and agents in .claude/ are committed)
+.claude/settings.local.json
+
+# macOS
+.DS_Store

@@ -1,0 +1,10 @@
+{
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.node.tsbuildinfo",
+    "types": ["node"],
+    // vite.config.ts imports with a .ts extension so Vite's native config loader can read it.
+    "allowImportingTsExtensions": true
+  },
+  "include": ["vite.config.ts"]
+}

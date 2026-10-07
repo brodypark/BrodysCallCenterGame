@@ -1,0 +1,6 @@
+dist
+data
+coverage
+package-lock.json
+# Hand-written docs and agent prompts keep their own wrapping.
+*.md

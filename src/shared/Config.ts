@@ -20,6 +20,9 @@ export const Config = {
     // After a player's connection drops (or they refresh), how long their call waits for
     // them to come back before everything about them is cleared.
     ReconnectGraceSeconds: 30,
+    // Player turns before the victim can reveal the code at all, however convinced they
+    // are. Stops a player from tricking the AI into an instant reveal.
+    MinTurnsBeforeReveal: 3,
   },
 
   Turn: {
@@ -43,6 +46,9 @@ export const Config = {
     // When the server turns the connection down (e.g. the player cookie is missing), how
     // long the client waits before getting a new cookie and trying again.
     RetrySeconds: 2,
+    // How long the client waits for the server to answer a request (e.g. redeeming a code)
+    // before saying it couldn't get through.
+    RequestTimeoutSeconds: 5,
   },
 
   Suspicion: {
@@ -50,12 +56,41 @@ export const Config = {
     // value, hang-up threshold and trust level inside this range.
     Min: 0,
     Max: 100,
+    // Largest change a reply may make in one turn. Rises are capped lower than drops, so
+    // one awkward line can't end a call on its own.
+    MaxDropPerTurn: 25,
+    MaxRisePerTurn: 15,
+  },
+
+  // The Caller Trust bar. Trust runs from full (no suspicion) to empty (the victim hangs
+  // up). The word over it depends on how close suspicion is to the hang-up threshold (0 to
+  // 1); below the trust level it's always TRUSTING.
+  Trust: {
+    WaryAt: 0.5,
+    AngryAt: 0.75,
+  },
+
+  Redeem: {
+    // Wrong tries allowed per code before the card locks.
+    TriesPerCode: 3,
+    // Longest text the Redeem app sends, in characters. Anything longer is turned away
+    // without costing a try.
+    MaxCodeInputLength: 40,
   },
 
   Code: {
-    // Fake codes look like PRE-XXX, e.g. GMA-7QZ: the scenario's prefix (exactly this many
-    // capitals or digits), then random characters.
+    // Fake codes look like PRE-XXX, e.g. GMA-7QZ: the scenario's prefix (exactly
+    // PrefixLength capitals or digits), then GroupCount dash-separated groups of
+    // GroupLength random characters. 6 characters in all.
     PrefixLength: 3,
+    GroupCount: 1,
+    GroupLength: 3,
+    // No 0/O or 1/I, so codes are easy to read aloud and type. No vowels, Y, 3 (E) or 4
+    // (A), so a random code can't spell a word, even in leetspeak.
+    Characters: "BCDFGHJKLMNPQRSTVWXZ256789",
+    // Picks to try for a code the player doesn't already have before giving up. A player
+    // would need thousands of cards with one prefix to get anywhere near this.
+    MaxGenerateAttempts: 1000,
   },
 
   Card: {

@@ -82,7 +82,9 @@ scenario twice in a row.
   - Raises suspicion: contradictions, pushiness, asking for the code too early, weird or
     off-topic requests.
 - There's no automatic creep over time. The shift timer provides the pressure.
-- The Call window shows this as **Caller Trust** (trust = 100 − suspicion).
+- The Call window shows this as **Caller Trust**, measured towards the scenario's hang-up
+  threshold: full at 0 suspicion, empty exactly when the victim hangs up. A marker shows where
+  trust has to climb past (the trust level) before they'll read out the code.
 
 ## Code reveal
 

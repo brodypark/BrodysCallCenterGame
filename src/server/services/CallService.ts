@@ -1,7 +1,6 @@
 // Rings calls and runs each player's calls, keyed by player id, so more players just means
 // more entries. Ported from the Roblox CallService. For now the victim answers with their
-// scenario's next scripted reply; suspicion and codes (step 4) and the AI (step 8) build on
-// this.
+// scenario's next scripted reply; the AI (step 8) will slot in where that reply is taken.
 //
 // A call: idle -> ringing -> (answered) inCall -> idle, or ringing -> (declined or missed)
 // idle. The next call rings a few seconds after one ends. Every change sends the player a
@@ -11,6 +10,11 @@
 // victimTurn -> (victim finished speaking) playerTurn. A call starts with the victim's
 // greeting. The client reports when it has finished saying each victim line; a safety timer
 // moves on if it never does.
+//
+// Every reply moves the victim's suspicion. Reaching the scenario's threshold makes them hang
+// up. Below the trust level, after a few turns, a reply that offers the code gets it read
+// out; the server makes the code and puts it in the line, so the client only ever sees it
+// there. Replies only suggest; the server decides.
 
 import { Config } from "@shared/Config";
 import { cleanMessage } from "@shared/messageText";
@@ -23,8 +27,10 @@ import type {
   ChatMessage,
   TurnState,
 } from "@shared/types";
+import { matchTestWord } from "@server/prompts/DebugReplies";
 import type { ScenarioRegistry } from "@server/scenarios/ScenarioRegistry";
 import type { AIReply, Scenario } from "@server/scenarios/scenarioSchema";
+import { applySuspicionChange, trustMeter } from "@server/services/suspicion";
 
 // Until levels exist (step 7), everyone is level 1.
 const DefaultLevel = 1;
@@ -40,6 +46,12 @@ interface PlayerCall {
   turn: TurnState;
   // Messages the player has sent this call.
   playerTurns: number;
+  // From Config.Suspicion.Min (fooled) to Max. Starts at the scenario's startingSuspicion.
+  suspicion: number;
+  // This call's code, once the victim has read it out. null before that.
+  code: string | null;
+  // Set while the victim says their last line: how the call ends once they finish.
+  endAfterLine: CallEndReason | null;
   // Index of the next scripted reply.
   nextReply: number;
   // Goes up by one for every victim line (never reset), so a late "finished speaking" for an
@@ -47,7 +59,9 @@ interface PlayerCall {
   lineId: number;
   // When the current victim line was sent (Date.now()), so a client can't end it early.
   lineStartedAt: number;
-  // The call in progress, or the last one answered.
+  // The call in progress, or the last one answered: what the player sees, codes included.
+  // The AI (step 8) must get its own history without the codes, saying only that one was
+  // read out, so a prompt trick can never get it to repeat or change one.
   transcript: {
     callerName: string;
     messages: ChatMessage[];
@@ -59,8 +73,23 @@ interface PlayerCall {
   timer: ReturnType<typeof setTimeout> | null;
 }
 
+/** What CallService needs from RedeemService: making codes and making them redeemable. */
+export interface CodeIssuer {
+  generateCode: (playerId: string, prefix: string) => string;
+  registerGiftCard: (playerId: string, code: string, value: number) => void;
+}
+
+// What the victim says next, and how the call ends after it (if it does).
+interface Line {
+  text: string;
+  endAfter: CallEndReason | null;
+}
+
 export interface CallServiceOptions {
   scenarios: ScenarioRegistry;
+  codes: CodeIssuer;
+  // Whether the test words (!reveal, !sus, !calm) work. Never in production.
+  allowTestWords: boolean;
   // Sends a player their latest snapshot. Called after every change.
   send: (playerId: string, snapshot: CallSnapshot) => void;
   // A random number from 0 up to 1. Tests pass a predictable one.
@@ -70,11 +99,15 @@ export interface CallServiceOptions {
 export class CallService {
   private readonly calls = new Map<string, PlayerCall>();
   private readonly scenarios: ScenarioRegistry;
+  private readonly codes: CodeIssuer;
+  private readonly allowTestWords: boolean;
   private readonly send: CallServiceOptions["send"];
   private readonly random: () => number;
 
   constructor(options: CallServiceOptions) {
     this.scenarios = options.scenarios;
+    this.codes = options.codes;
+    this.allowTestWords = options.allowTestWords;
     this.send = options.send;
     this.random = options.random ?? Math.random;
   }
@@ -91,6 +124,9 @@ export class CallService {
       scenario: null,
       turn: "playerTurn",
       playerTurns: 0,
+      suspicion: 0,
+      code: null,
+      endAfterLine: null,
       nextReply: 0,
       lineId: 0,
       lineStartedAt: 0,
@@ -143,7 +179,7 @@ export class CallService {
     call.status = "inCall";
     call.playerTurns = 0;
     call.transcript = { callerName: call.scenario.persona.name, messages: [], endReason: null };
-    this.speak(playerId, call, greeting);
+    this.speak(playerId, call, { text: greeting, endAfter: null });
   }
 
   decline(playerId: string): void {
@@ -173,6 +209,7 @@ export class CallService {
     }
     const scenario = call.scenario;
     const callId = call.callId;
+    const testReply = this.allowTestWords ? matchTestWord(cleaned) : null;
     call.playerTurns += 1;
     this.addMessage(call, { speaker: "player", text: cleaned });
     call.turn = "processing";
@@ -184,8 +221,12 @@ export class CallService {
       if (call.callId !== callId || call.status !== "inCall" || call.turn !== "processing") {
         return;
       }
-      const reply = this.takeFallbackReply(call, scenario);
-      this.speak(playerId, call, reply.reply);
+      const reply = testReply ?? this.takeFallbackReply(call, scenario);
+      this.speak(
+        playerId,
+        call,
+        this.decideLine(playerId, call, scenario, reply, testReply !== null),
+      );
     });
   }
 
@@ -216,6 +257,9 @@ export class CallService {
     call.scenario = this.scenarios.pick(DefaultLevel, call.scenario?.id ?? null, this.random);
     call.status = "ringing";
     call.nextReply = 0;
+    call.suspicion = call.scenario.startingSuspicion;
+    call.code = null;
+    call.endAfterLine = null;
     call.lastOutcome = null;
     this.startTimer(call, Config.Call.RingSeconds, () => this.endCall(playerId, call, "missed"));
     this.publish(playerId, call);
@@ -232,22 +276,67 @@ export class CallService {
     this.publish(playerId, call);
   }
 
+  /** Applies a reply's suspicion change and decides what the victim says: the reply, plus
+   * the code, an angry hang-up or a "not yet". The server makes every one of these calls; a
+   * reply can only suggest a reveal. Test words skip Config.Call.MinTurnsBeforeReveal. */
+  private decideLine(
+    playerId: string,
+    call: PlayerCall,
+    scenario: Scenario,
+    reply: AIReply,
+    isTest: boolean,
+  ): Line {
+    const { lines } = scenario;
+    // Clamped to the per-turn limits and the range inside.
+    call.suspicion = applySuspicionChange(call.suspicion, reply.suspicionChange);
+    if (call.suspicion >= scenario.suspicionThreshold) {
+      return { text: `${reply.reply} ${lines.hangUpLine}`, endAfter: "victimHungUp" };
+    }
+    if (!reply.revealsCode) {
+      return { text: reply.reply, endAfter: null };
+    }
+    // Reading the code out the first time needs enough trust, and not too early in the
+    // call. Once it's out, they'll happily read the same code again.
+    const trusting =
+      call.suspicion < scenario.trustLevel &&
+      (isTest || call.playerTurns >= Config.Call.MinTurnsBeforeReveal);
+    if (call.code === null && !trusting) {
+      return { text: `${reply.reply} ${lines.notReadyLine}`, endAfter: null };
+    }
+    if (call.code === null) {
+      call.code = this.codes.generateCode(playerId, scenario.codePrefix);
+      this.codes.registerGiftCard(playerId, call.code, scenario.cardValue);
+    }
+    return {
+      text: `${reply.reply} ${lines.revealLine.replaceAll("{code}", call.code)}`,
+      endAfter: null,
+    };
+  }
+
   /** Adds a victim line to the call and starts the victim's turn, which ends in
    * finishVictimTurn when the client reports back, or when the safety timer runs out. */
-  private speak(playerId: string, call: PlayerCall, text: string): void {
+  private speak(playerId: string, call: PlayerCall, line: Line): void {
     call.lineId += 1;
     const lineId = call.lineId;
     call.lineStartedAt = Date.now();
     call.turn = "victimTurn";
-    this.addMessage(call, { speaker: "victim", text, lineId });
-    this.startTimer(call, safetySeconds(text), () => this.finishVictimTurn(playerId, call, lineId));
+    call.endAfterLine = line.endAfter;
+    this.addMessage(call, { speaker: "victim", text: line.text, lineId });
+    this.startTimer(call, safetySeconds(line.text), () =>
+      this.finishVictimTurn(playerId, call, lineId),
+    );
     this.publish(playerId, call);
   }
 
   /** The one way the victim's turn ends: the victim has finished saying line `lineId`, so
-   * the turn goes back to the player. Step 9 calls this when real audio finishes. */
+   * the turn goes back to the player, or the call ends if that was their last line. Step 9
+   * calls this when real audio finishes. */
   private finishVictimTurn(playerId: string, call: PlayerCall, lineId: number): void {
     if (call.status !== "inCall" || call.turn !== "victimTurn" || call.lineId !== lineId) {
+      return;
+    }
+    if (call.endAfterLine !== null) {
+      this.endCall(playerId, call, call.endAfterLine);
       return;
     }
     this.cancelTimer(call);
@@ -296,11 +385,17 @@ export class CallService {
 
   private makeSnapshot(call: PlayerCall): CallSnapshot {
     const onCall = call.status !== "idle";
+    const inCall = call.status === "inCall" && call.scenario !== null;
     return {
       status: call.status,
       caller: onCall && call.scenario ? call.scenario.persona.name : null,
       turn: call.status === "inCall" ? call.turn : null,
       playerTurns: call.playerTurns,
+      trust:
+        inCall && call.scenario
+          ? trustMeter(call.suspicion, call.scenario.suspicionThreshold, call.scenario.trustLevel)
+          : null,
+      codeRevealed: inCall && call.code !== null,
       transcript: call.transcript && {
         ...call.transcript,
         messages: [...call.transcript.messages],

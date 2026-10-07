@@ -1,6 +1,6 @@
 // The bar along the bottom of the desktop: the start button, a button for each open window,
 // and a tray with the shift timer, earnings vs. quota, the server connection and a clock.
-// The shift and earnings are placeholders until shifts arrive (step 5).
+// The shift timer and quota are placeholders until shifts arrive (step 5).
 
 import { type ReactElement, useEffect, useState } from "react";
 import { Apps } from "@client/ui/appList";
@@ -8,6 +8,7 @@ import { cx } from "@client/ui/classNames";
 import controls from "@client/ui/controls.module.css";
 import { useDesktop, useDesktopState } from "@client/ui/DesktopContext";
 import { type ConnectionStatus, useConnection } from "@client/state/connectionStore";
+import { useShift } from "@client/state/shiftStore";
 import styles from "@client/ui/Taskbar.module.css";
 
 // How often the clock is redrawn.
@@ -18,6 +19,7 @@ const clockFormat = new Intl.DateTimeFormat(undefined, { hour: "numeric", minute
 export function Taskbar(): ReactElement {
   const { store } = useDesktop();
   const { openOrder, stackOrder, startMenuOpen } = useDesktopState();
+  const { earnings } = useShift();
   const focused = stackOrder.at(-1);
 
   return (
@@ -62,7 +64,7 @@ export function Taskbar(): ReactElement {
 
       <div className={cx(controls.sunken, styles.tray)}>
         <span>Off duty</span>
-        <span>$0 / $—</span>
+        <span>${earnings} / $—</span>
         <ConnectionDot />
         <TrayClock />
       </div>

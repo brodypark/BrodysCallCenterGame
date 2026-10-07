@@ -1,18 +1,38 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { Config } from "@shared/Config";
 import { safetySeconds } from "@shared/speechTiming";
 import { secondsToMs } from "@shared/time";
 import type { CallSnapshot } from "@shared/types";
+import { Config } from "@shared/Config";
+import { AllScenarios } from "@server/scenarios/all";
 import { grandma } from "@server/scenarios/grandma";
-import { createScenarioRegistry } from "@server/scenarios/ScenarioRegistry";
+import { createScenarioRegistry, type ScenarioRegistry } from "@server/scenarios/ScenarioRegistry";
+import type { AIReply, ScenarioInput } from "@server/scenarios/scenarioSchema";
 import { CallService } from "@server/services/CallService";
+import { RedeemService } from "@server/services/RedeemService";
 
 const scenarios = createScenarioRegistry([grandma]);
 const { fallbackReplies, greetings } = grandma.lines;
 const PlayerId = "player-1";
+const CodeShape = new RegExp(`GMA-[${Config.Code.Characters}]{${Config.Code.GroupLength}}`);
+
+/** Grandma, but every scripted reply is `reply`. */
+function grandmaAlwaysSaying(reply: AIReply): ScenarioRegistry {
+  const variant: ScenarioInput = {
+    ...grandma,
+    lines: { ...grandma.lines, fallbackReplies: [reply] },
+  };
+  return createScenarioRegistry([variant]);
+}
+
+interface SetupOptions {
+  registry?: ScenarioRegistry;
+  allowTestWords?: boolean;
+}
 
 interface TestCall {
   service: CallService;
+  redeem: RedeemService;
+  earnings: number[];
   sent: CallSnapshot[];
   latest: () => CallSnapshot;
   // The id of the newest victim line.
@@ -27,10 +47,14 @@ function advanceSeconds(seconds: number): void {
   vi.advanceTimersByTime(secondsToMs(seconds));
 }
 
-function setup(): TestCall {
+function setup(options: SetupOptions = {}): TestCall {
   const sent: CallSnapshot[] = [];
+  const earnings: number[] = [];
+  const redeem = new RedeemService({ onRedeemed: (_playerId, value) => earnings.push(value) });
   const service = new CallService({
-    scenarios,
+    scenarios: options.registry ?? scenarios,
+    codes: redeem,
+    allowTestWords: options.allowTestWords ?? true,
     send: (_playerId, snapshot) => sent.push(snapshot),
     // Always the first greeting.
     random: () => 0,
@@ -56,20 +80,20 @@ function setup(): TestCall {
     advanceSeconds(Config.Turn.ThinkingSeconds);
     finishLine();
   };
-  return { service, sent, latest, lastLineId, finishLine, say };
+  return { service, redeem, earnings, sent, latest, lastLineId, finishLine, say };
 }
 
 /** Adds the player and waits for the first call to ring. */
-function ringing(): TestCall {
-  const test = setup();
+function ringing(options: SetupOptions = {}): TestCall {
+  const test = setup(options);
   test.service.addPlayer(PlayerId);
   advanceSeconds(Config.Call.FirstCallDelaySeconds);
   return test;
 }
 
 /** A call that's been answered, with the greeting said: the player's turn. */
-function playerTurn(): TestCall {
-  const test = ringing();
+function playerTurn(options: SetupOptions = {}): TestCall {
+  const test = ringing(options);
   test.service.answer(PlayerId);
   test.finishLine();
   return test;
@@ -297,6 +321,158 @@ describe("CallService: turns", () => {
     service.finishedSpeaking(PlayerId, lastLineId());
     expect(latest().turn).toBe("playerTurn");
   });
+});
+
+describe("CallService: suspicion", () => {
+  it("starts each call at the scenario's starting suspicion", () => {
+    const { latest } = playerTurn();
+    // 40 of Grandma's 100: 60% trust, and not yet below her trust level of 30.
+    expect(latest().trust).toEqual({ percent: 60, word: "unsure", revealAt: 70 });
+    expect(latest().codeRevealed).toBe(false);
+  });
+
+  it("moves with each reply, within the per-turn limit", () => {
+    const { latest, say } = playerTurn();
+    say("hello");
+    // The first scripted reply lowers suspicion by 5.
+    expect(latest().trust?.percent).toBe(65);
+
+    say("!sus");
+    expect(latest().trust?.percent).toBe(65 - Config.Suspicion.MaxRisePerTurn);
+  });
+
+  // (Replies that aren't numbers are covered in suspicion.test.ts; the scenario check
+  // won't even accept one in a scripted reply.)
+  it("clamps a reply that goes too far", () => {
+    const { latest, say } = playerTurn({
+      registry: grandmaAlwaysSaying({ reply: "Calm.", suspicionChange: -1000, revealsCode: false }),
+    });
+    say("hi");
+    expect(latest().trust?.percent).toBe(60 + Config.Suspicion.MaxDropPerTurn);
+  });
+
+  it("hangs up once the victim finishes their line at the threshold", () => {
+    const { service, latest, say, finishLine } = playerTurn();
+    // 40 + 15 + 15 + 15 = 85: angry, but still on the line.
+    say("!sus");
+    say("!sus");
+    say("!sus");
+    expect(latest().trust?.word).toBe("angry");
+
+    service.sendMessage(PlayerId, "!sus");
+    advanceSeconds(Config.Turn.ThinkingSeconds);
+    expect(latest().transcript?.messages.at(-1)?.text).toContain(grandma.lines.hangUpLine);
+    expect(latest().status).toBe("inCall");
+
+    finishLine();
+    expect(latest()).toMatchObject({
+      status: "idle",
+      lastOutcome: "victimHungUp",
+      transcript: { endReason: "victimHungUp" },
+    });
+  });
+});
+
+describe("CallService: the code", () => {
+  it("reads the code out inside the victim's line, and makes it redeemable", () => {
+    const { latest, say, redeem, earnings } = playerTurn();
+    say("!reveal");
+    const line = latest().transcript?.messages.at(-1)?.text ?? "";
+    const code = CodeShape.exec(line)?.[0] ?? "";
+    expect(code).not.toBe("");
+    expect(line).toContain(grandma.lines.revealLine.replace("{code}", code));
+    expect(latest().codeRevealed).toBe(true);
+
+    expect(redeem.redeem(PlayerId, code).success).toBe(true);
+    expect(earnings).toEqual([grandma.cardValue]);
+  });
+
+  it("only ever sends the code inside the line it's read out in", () => {
+    const { latest, say } = playerTurn();
+    say("!reveal");
+    const snapshot = JSON.stringify(latest());
+    const code = CodeShape.exec(snapshot)?.[0] ?? "";
+    expect(snapshot.split(code)).toHaveLength(2);
+  });
+
+  it("reads the same code again if asked twice", () => {
+    const { latest, say } = playerTurn();
+    say("!reveal");
+    say("!reveal");
+    const codes = (latest().transcript?.messages ?? [])
+      .map((message) => CodeShape.exec(message.text)?.[0])
+      .filter((code) => code !== undefined);
+    expect(codes).toHaveLength(2);
+    expect(new Set(codes).size).toBe(1);
+  });
+
+  it("isn't read out before enough turns, even when trusting", () => {
+    const registry = grandmaAlwaysSaying({
+      reply: "Here!",
+      suspicionChange: -25,
+      revealsCode: true,
+    });
+    const { latest, say } = playerTurn({ registry });
+    for (let turn = 1; turn < Config.Call.MinTurnsBeforeReveal; turn++) {
+      say(`turn ${turn}`);
+      expect(latest().transcript?.messages.at(-1)?.text).toBe(
+        `Here! ${grandma.lines.notReadyLine}`,
+      );
+    }
+    say("last try");
+    expect(latest().codeRevealed).toBe(true);
+  });
+
+  it("isn't read out while the victim is still too suspicious", () => {
+    const registry = grandmaAlwaysSaying({ reply: "Hmm.", suspicionChange: 0, revealsCode: true });
+    const { latest, say } = playerTurn({ registry });
+    for (let turn = 0; turn < Config.Call.MinTurnsBeforeReveal + 2; turn++) {
+      say(`turn ${turn}`);
+    }
+    expect(latest().codeRevealed).toBe(false);
+    expect(latest().transcript?.messages.at(-1)?.text).toBe(`Hmm. ${grandma.lines.notReadyLine}`);
+  });
+
+  it("treats test words as normal messages when they're switched off", () => {
+    const { latest, say } = playerTurn({ allowTestWords: false });
+    say("!reveal");
+    expect(latest().transcript?.messages.at(-1)?.text).toBe(fallbackReplies[0]?.reply);
+    expect(latest().codeRevealed).toBe(false);
+  });
+
+  it("starts the next call with a fresh code and suspicion", () => {
+    const { service, latest, say, finishLine } = playerTurn();
+    say("!reveal");
+    service.hangUp(PlayerId);
+    advanceSeconds(Config.Call.SecondsBetweenCalls);
+    service.answer(PlayerId);
+    finishLine();
+    expect(latest()).toMatchObject({ codeRevealed: false, trust: { percent: 60 } });
+  });
+});
+
+describe("Scenario fallback replies", () => {
+  // CLAUDE.md: tuned so suspicion drifts below the trust level and the code comes out around
+  // turn 9-10, without ever reaching the hang-up threshold.
+  it.each(AllScenarios.map((scenario) => [scenario.id, scenario] as const))(
+    "%s reveals the code around turn 9-10 without hanging up",
+    (_id, scenario) => {
+      const { latest, say } = playerTurn({
+        registry: createScenarioRegistry([scenario]),
+        allowTestWords: false,
+      });
+      let revealedOn = 0;
+      for (let turn = 1; turn <= scenario.lines.fallbackReplies.length && !revealedOn; turn++) {
+        say(`message ${turn}`);
+        expect(latest().status).toBe("inCall");
+        if (latest().codeRevealed) {
+          revealedOn = turn;
+        }
+      }
+      expect(revealedOn).toBeGreaterThanOrEqual(9);
+      expect(revealedOn).toBeLessThanOrEqual(10);
+    },
+  );
 });
 
 describe("CallService: messages", () => {

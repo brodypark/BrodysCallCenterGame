@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 import { Config } from "@shared/Config";
-import { ClientEventSchemas } from "@shared/events";
+import {
+  ClientEventSchemas,
+  ClientRequestResponseSchemas,
+  ClientRequestSchemas,
+} from "@shared/events";
 import { MaxUnitsPerCharacter } from "@shared/messageText";
 
 describe("client event schemas", () => {
@@ -33,5 +37,22 @@ describe("client event schemas", () => {
     expect(finished.safeParse({ lineId: 0 }).success).toBe(false);
     expect(finished.safeParse({ lineId: 1.5 }).success).toBe(false);
     expect(finished.safeParse({ lineId: "3" }).success).toBe(false);
+  });
+
+  it("checks a redeem answer's shape", () => {
+    const answer = ClientRequestResponseSchemas["redeem:code"];
+    const good = { success: true, payout: 50, triesRemaining: 3, message: "Ka-ching! +$50" };
+    expect(answer.safeParse(good).success).toBe(true);
+    expect(answer.safeParse({ ...good, triesRemaining: null }).success).toBe(true);
+    expect(answer.safeParse({ ...good, payout: "50" }).success).toBe(false);
+  });
+
+  it("takes a code of limited length to redeem", () => {
+    const redeem = ClientRequestSchemas["redeem:code"];
+    expect(redeem.safeParse({ code: "GMA-7QZ" }).success).toBe(true);
+    expect(
+      redeem.safeParse({ code: "x".repeat(Config.Redeem.MaxCodeInputLength + 1) }).success,
+    ).toBe(false);
+    expect(redeem.safeParse({ code: 7 }).success).toBe(false);
   });
 });

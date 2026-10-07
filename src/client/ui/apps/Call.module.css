@@ -12,7 +12,12 @@
   --call-face-background: #608c8c;
   --call-face-grid: #7da8a8;
   --call-trust-track: #060a10;
+  /* The trust bar's colour for each trust word. */
   --call-trusting: #5ad26e;
+  --call-unsure: #f5d246;
+  --call-wary: #f59632;
+  --call-angry: #eb4646;
+  --call-trust-marker: #f0f0f0;
   /* Chat bubbles: the caller's on the left, the player's on the right. */
   --call-victim-bubble: #1e4287;
   --call-victim-text: #afd0ff;
@@ -63,9 +68,27 @@
 
 .trustWord {
   font-weight: bold;
+  color: var(--trust-color, var(--call-text-muted));
+}
+
+.trusting {
+  --trust-color: var(--call-trusting);
+}
+
+.unsure {
+  --trust-color: var(--call-unsure);
+}
+
+.wary {
+  --trust-color: var(--call-wary);
+}
+
+.angry {
+  --trust-color: var(--call-angry);
 }
 
 .trustTrack {
+  position: relative;
   height: 1.4cqh;
   overflow: hidden;
   border-radius: 0.7cqh;
@@ -73,9 +96,24 @@
 }
 
 .trustFill {
-  width: 0;
   height: 100%;
-  background: var(--call-trusting);
+  background: var(--trust-color, var(--call-trusting));
+  transition: width 0.4s ease-out;
+}
+
+/* Trust has to climb past this line before the caller reads out the code. */
+.trustMarker {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 0.3cqh;
+  background: var(--call-trust-marker);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .trustFill {
+    transition: none;
+  }
 }
 
 .caller {

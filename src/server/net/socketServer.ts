@@ -1,7 +1,7 @@
 // Socket.IO for game events. Only pages from this site with a valid player cookie may
-// connect. Every client event is parsed with its Zod schema and passed to the services,
-// which check it against the player's state; bad events are ignored, and a failing handler
-// is logged rather than crashing the server.
+// connect. Every client event and request is parsed with its Zod schema and passed to the
+// services, which check it against the player's state; bad ones are ignored, and a failing
+// handler is logged rather than crashing the server.
 
 import type { Server as HttpServer } from "node:http";
 import type { FastifyBaseLogger } from "fastify";
@@ -10,6 +10,10 @@ import {
   type ClientEventName,
   type ClientEventPayload,
   ClientEventSchemas,
+  type ClientRequestName,
+  type ClientRequestPayload,
+  type ClientRequestResponses,
+  ClientRequestSchemas,
   type IncomingClientEvents,
   type ServerToClientEvents,
 } from "@shared/events";
@@ -18,6 +22,8 @@ import { isAllowedOrigin } from "@server/net/origin";
 import type { ScenarioRegistry } from "@server/scenarios/ScenarioRegistry";
 import { CallService } from "@server/services/CallService";
 import { PlayerService } from "@server/services/PlayerService";
+import { RedeemService } from "@server/services/RedeemService";
+import { ShiftService } from "@server/services/ShiftService";
 
 interface SocketData {
   playerId: string;
@@ -34,6 +40,8 @@ export interface GameServerOptions {
   scenarios: ScenarioRegistry;
   // The player id in a request's Cookie header, if it's there and correctly signed.
   readPlayerId: (cookieHeader: string | undefined) => string | undefined;
+  // Whether the test words (!reveal, !sus, !calm) work. Never in production.
+  allowTestWords: boolean;
   log: FastifyBaseLogger;
 }
 
@@ -68,6 +76,33 @@ function listen<E extends ClientEventName>(
   });
 }
 
+/** Parses one client request's payload, hands it to `handle` if it's valid, and sends the
+ * client the answer. A request without a way to answer it is ignored. */
+function answer<R extends ClientRequestName>(
+  socket: GameSocket,
+  request: R,
+  log: FastifyBaseLogger,
+  handle: (payload: ClientRequestPayload<R>) => ClientRequestResponses[R],
+): void {
+  const schema = ClientRequestSchemas[request];
+  const name: ClientRequestName = request;
+  socket.on(name, (...args: unknown[]) => {
+    const reply = args[1];
+    const parsed = schema.safeParse(args[0]);
+    if (typeof reply !== "function" || !parsed.success) {
+      log.debug({ request, playerId: socket.data.playerId }, "Ignored a malformed client request");
+      return;
+    }
+    // Checked to be a function just above; Socket.IO passes the client's answer callback.
+    const respond = reply as (response: ClientRequestResponses[R]) => void;
+    Promise.resolve()
+      .then(() => respond(handle(parsed.data)))
+      .catch((error: unknown) => {
+        log.error({ err: error, request, playerId: socket.data.playerId }, "Client request failed");
+      });
+  });
+}
+
 export function startGameServer(httpServer: HttpServer, options: GameServerOptions): GameServer {
   const { log } = options;
   const io = new Server<
@@ -92,11 +127,23 @@ export function startGameServer(httpServer: HttpServer, options: GameServerOptio
     },
     onPlayerGone: (playerId) => {
       calls.removePlayer(playerId);
+      redeem.removePlayer(playerId);
+      shifts.removePlayer(playerId);
       log.info({ playerId }, "Player didn't come back; cleared their game");
     },
   });
+  const shifts = new ShiftService({
+    send: (playerId, snapshot) => {
+      players.activeSocket(playerId)?.emit("shift:snapshot", snapshot);
+    },
+  });
+  const redeem = new RedeemService({
+    onRedeemed: (playerId, value) => shifts.addEarnings(playerId, value),
+  });
   const calls = new CallService({
     scenarios: options.scenarios,
+    codes: redeem,
+    allowTestWords: options.allowTestWords,
     send: (playerId, snapshot) => {
       players.activeSocket(playerId)?.emit("call:snapshot", snapshot);
     },
@@ -123,6 +170,7 @@ export function startGameServer(httpServer: HttpServer, options: GameServerOptio
     if (snapshot) {
       socket.emit("call:snapshot", snapshot);
     }
+    socket.emit("shift:snapshot", shifts.snapshot(playerId));
 
     listen(socket, "call:answer", log, () => calls.answer(playerId));
     listen(socket, "call:decline", log, () => calls.decline(playerId));
@@ -131,6 +179,7 @@ export function startGameServer(httpServer: HttpServer, options: GameServerOptio
     listen(socket, "call:finishedSpeaking", log, ({ lineId }) =>
       calls.finishedSpeaking(playerId, lineId),
     );
+    answer(socket, "redeem:code", log, ({ code }) => redeem.redeem(playerId, code));
 
     socket.on("disconnect", (reason) => {
       log.info({ playerId, socketId: socket.id, reason }, "Player disconnected");
@@ -141,6 +190,8 @@ export function startGameServer(httpServer: HttpServer, options: GameServerOptio
   return {
     close: () => {
       calls.removeAll();
+      redeem.removeAll();
+      shifts.removeAll();
       players.shutdown();
       // Drops every connection; clients reconnect when the server is back.
       io.engine.close();

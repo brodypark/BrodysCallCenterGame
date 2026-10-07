@@ -5,7 +5,7 @@
 import { z } from "zod";
 import { Config } from "@shared/Config";
 import { MaxUnitsPerCharacter } from "@shared/messageText";
-import type { CallSnapshot } from "@shared/types";
+import type { CallSnapshot, RedeemResult, ShiftSnapshot } from "@shared/types";
 
 const clientEventSchemas = {
   "call:answer": z.undefined(),
@@ -32,19 +32,61 @@ export const ClientEventSchemas: {
   readonly [E in ClientEventName]: z.ZodType<ClientEventPayload<E>>;
 } = clientEventSchemas;
 
-/** Client events as the client sends them. */
+// Requests: client events the server answers (a Socket.IO acknowledgement).
+const clientRequestSchemas = {
+  "redeem:code": z.strictObject({ code: z.string().max(Config.Redeem.MaxCodeInputLength) }),
+} satisfies Record<string, z.ZodType>;
+
+export type ClientRequestName = keyof typeof clientRequestSchemas;
+
+export type ClientRequestPayload<R extends ClientRequestName> = z.output<
+  (typeof clientRequestSchemas)[R]
+>;
+
+/** What the server answers each request with. */
+export interface ClientRequestResponses {
+  "redeem:code": RedeemResult;
+}
+
+/** The shape of each answer, so the client can check what it got back. */
+export const ClientRequestResponseSchemas: {
+  readonly [R in ClientRequestName]: z.ZodType<ClientRequestResponses[R]>;
+} = {
+  "redeem:code": z.strictObject({
+    success: z.boolean(),
+    payout: z.number(),
+    triesRemaining: z.number().nullable(),
+    message: z.string(),
+  }),
+};
+
+/** The schema for each client request's payload. */
+export const ClientRequestSchemas: {
+  readonly [R in ClientRequestName]: z.ZodType<ClientRequestPayload<R>>;
+} = clientRequestSchemas;
+
+/** Client events and requests as the client sends them. */
 export type ClientToServerEvents = {
   [E in ClientEventName]: ClientEventPayload<E> extends undefined
     ? () => void
     : (payload: ClientEventPayload<E>) => void;
+} & {
+  [R in ClientRequestName]: (
+    payload: ClientRequestPayload<R>,
+    answer: (response: ClientRequestResponses[R]) => void,
+  ) => void;
 };
 
 /** Client events as the server receives them: anything at all, until it's been parsed. */
-export type IncomingClientEvents = Record<ClientEventName, (...args: unknown[]) => void>;
+export type IncomingClientEvents = Record<
+  ClientEventName | ClientRequestName,
+  (...args: unknown[]) => void
+>;
 
 /** Events the server sends to one player's client. */
 export interface ServerToClientEvents {
   "call:snapshot": (snapshot: CallSnapshot) => void;
+  "shift:snapshot": (snapshot: ShiftSnapshot) => void;
   // The player opened the game in another tab, which took over. This tab is disconnected
   // and doesn't reconnect by itself.
   "session:replaced": () => void;

@@ -10,6 +10,8 @@ const NoCalls: CallSnapshot = {
   caller: null,
   turn: null,
   playerTurns: 0,
+  trust: null,
+  codeRevealed: false,
   transcript: null,
   lastOutcome: null,
 };

@@ -1,13 +1,13 @@
 // Call app: the conversation with the victim, styled as a dark phone app that looks the same
 // in every desktop theme. From the top: the Caller Trust bar, the caller (name, face and a
 // status line saying whose turn it is), the chat log, the typed message box, and Hang Up,
-// speaker and hold-to-talk buttons. It opens by itself when a call is answered. The trust
-// bar arrives in step 4, voice in steps 9-10 and the face in step 11.
+// speaker and hold-to-talk buttons. It opens by itself when a call is answered. Voice
+// arrives in steps 9-10 and the face in step 11.
 
 import { type FormEvent, type ReactElement, useEffect, useRef, useState } from "react";
 import { Config } from "@shared/Config";
 import { cleanMessage } from "@shared/messageText";
-import type { CallEndReason, CallSnapshot, ChatMessage } from "@shared/types";
+import type { CallEndReason, CallSnapshot, ChatMessage, TrustMeter } from "@shared/types";
 import { hangUp, sendMessage } from "@client/net/callActions";
 import { useCall } from "@client/state/callStore";
 import { useConnection } from "@client/state/connectionStore";
@@ -17,6 +17,7 @@ import styles from "@client/ui/apps/Call.module.css";
 // The status line after each way a call can end, also shown at the end of its chat.
 const OutcomeText: Record<CallEndReason, string> = {
   playerHungUp: "You hung up",
+  victimHungUp: "They hung up on you",
   declined: "Call declined",
   missed: "Missed call",
 };
@@ -26,7 +27,9 @@ function statusText(call: CallSnapshot): string {
   const name = (call.caller ?? "The caller").toUpperCase();
   switch (call.turn) {
     case "playerTurn":
-      return `YOUR TURN · TURN ${call.playerTurns + 1}`;
+      return call.codeRevealed
+        ? "GOT THE CODE! HANG UP AND REDEEM IT"
+        : `YOUR TURN · TURN ${call.playerTurns + 1}`;
     case "processing":
       return `${name} IS THINKING...`;
     case "victimTurn":
@@ -109,22 +112,7 @@ export function Call(): ReactElement {
 
   return (
     <div className={styles.call}>
-      <section className={cx(styles.panel, styles.trust)} aria-label="Caller trust">
-        <div className={styles.trustHeader}>
-          <span className={styles.trustTitle}>CALLER TRUST</span>
-          <span className={styles.trustWord}>--</span>
-        </div>
-        <div
-          className={styles.trustTrack}
-          role="progressbar"
-          aria-label="Caller trust"
-          aria-valuemin={0}
-          aria-valuemax={100}
-          aria-valuetext="Unknown"
-        >
-          <div className={styles.trustFill} />
-        </div>
-      </section>
+      <TrustBar trust={call.trust} />
 
       <section className={cx(styles.panel, styles.caller)} aria-label="Caller">
         <div className={styles.nameBand}>{callerName}</div>
@@ -209,5 +197,35 @@ function Bubble({
       <span className={styles.tag}>{fromPlayer ? "You" : callerName}</span>
       <span>{message.text}</span>
     </div>
+  );
+}
+
+/** How much the caller trusts the player, the word for it, and the line trust must climb
+ * past before they'll read out the code. All worked out on the server. */
+function TrustBar({ trust }: { trust: TrustMeter | null }): ReactElement {
+  return (
+    <section
+      className={cx(styles.panel, styles.trust, trust && styles[trust.word])}
+      aria-label="Caller trust"
+    >
+      <div className={styles.trustHeader}>
+        <span className={styles.trustTitle}>CALLER TRUST</span>
+        <span className={styles.trustWord}>
+          {trust ? `${trust.word.toUpperCase()} · ${trust.percent}%` : "--"}
+        </span>
+      </div>
+      <div
+        className={styles.trustTrack}
+        role="progressbar"
+        aria-label="Caller trust"
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-valuenow={trust?.percent}
+        aria-valuetext={trust ? `${trust.percent}%, ${trust.word}` : "No caller"}
+      >
+        <div className={styles.trustFill} style={{ width: `${trust?.percent ?? 0}%` }} />
+        {trust && <div className={styles.trustMarker} style={{ left: `${trust.revealAt}%` }} />}
+      </div>
+    </section>
   );
 }

@@ -33,6 +33,7 @@ const scenarios = createScenarioRegistry(AllScenarios);
 const game = startGameServer(app.server, {
   scenarios,
   readPlayerId: (cookieHeader) => playerIdFromCookieHeader(app, cookieHeader),
+  allowTestWords: !env.isProduction,
   log: app.log,
 });
 

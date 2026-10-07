@@ -7,6 +7,8 @@ const talking: CallSnapshot = {
   caller: "Grandma Gertrude",
   turn: "victimTurn",
   playerTurns: 1,
+  trust: { percent: 60, word: "unsure", revealAt: 70 },
+  codeRevealed: false,
   transcript: {
     callerName: "Grandma Gertrude",
     messages: [

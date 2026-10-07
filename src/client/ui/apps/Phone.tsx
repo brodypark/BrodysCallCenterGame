@@ -13,6 +13,7 @@ import styles from "@client/ui/apps/Phone.module.css";
 // The screen's top line after each way a call can end.
 const OutcomeText: Record<CallEndReason, string> = {
   playerHungUp: "CALL ENDED",
+  victimHungUp: "THEY HUNG UP",
   declined: "CALL DECLINED",
   missed: "MISSED CALL",
 };

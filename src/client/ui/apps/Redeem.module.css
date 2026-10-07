@@ -1,0 +1,13 @@
+/* The result line turns green for a payout and red for a problem. */
+.success {
+  color: var(--success-text);
+  font-weight: bold;
+}
+
+.error {
+  color: var(--error-text);
+}
+
+.idle {
+  color: var(--text);
+}

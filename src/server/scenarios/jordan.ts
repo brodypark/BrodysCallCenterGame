@@ -64,15 +64,14 @@ export const jordan: ScenarioInput = {
     similarityBoost: 0.75,
     style: 0.45,
   },
-  // Short black hair and a thin mustache.
+  // White guy with blonde hair.
   face: {
-    skin: "#c68642",
-    hair: "#1c1c1c",
+    skin: "#f1c27d",
+    hair: "#e5c158",
     hairStyle: "Short",
     glasses: false,
     earrings: false,
     blush: false,
-    facialHair: "Mustache",
   },
   // Suspicion starts at 55 and his trust level is 20. With the AI off, these replies drift
   // below 20 and he reads the code out on turn 9.

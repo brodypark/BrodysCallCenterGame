@@ -29,6 +29,7 @@ import type {
 import { hangUp, sendMessage } from "@client/net/callActions";
 import { useCall } from "@client/state/callStore";
 import { useConnection } from "@client/state/connectionStore";
+import { useGameMode } from "@client/state/savesStore";
 import { useShift } from "@client/state/shiftStore";
 import { cx } from "@client/ui/classNames";
 import { Stamp } from "@client/ui/Effects";
@@ -54,8 +55,9 @@ const OutcomeText: Record<CallEndReason, string> = {
   missed: "Missed call",
 };
 
-// The yellow line under the face: what's happening on the call right now.
-function statusText(call: CallSnapshot, shift: ShiftStatus): string {
+// The yellow line under the face: what's happening on the call right now. Sandbox has no
+// shifts, and its calls only ring from the Control Panel.
+function statusText(call: CallSnapshot, shift: ShiftStatus, sandbox: boolean): string {
   const name = (call.caller ?? "The caller").toUpperCase();
   switch (call.turn) {
     case "playerTurn":
@@ -75,6 +77,11 @@ function statusText(call: CallSnapshot, shift: ShiftStatus): string {
   if (call.status === "ringing") {
     return "INCOMING CALL - ANSWER IN THE PHONE";
   }
+  if (sandbox) {
+    return call.lastOutcome
+      ? `${OutcomeText[call.lastOutcome].toUpperCase()} · RING ANOTHER IN THE CONTROL PANEL`
+      : "RING A CALL IN THE CONTROL PANEL";
+  }
   if (shift === "offShift") {
     return "OFF DUTY - CLOCK IN FIRST";
   }
@@ -87,6 +94,7 @@ function statusText(call: CallSnapshot, shift: ShiftStatus): string {
 export function Call(): ReactElement {
   const call = useCall();
   const shift = useShift().snapshot.status;
+  const sandbox = useGameMode() === "sandbox";
   const online = useConnection().status === "connected";
   const [draft, setDraft] = useState("");
   const muted = useVictimMuted();
@@ -208,7 +216,7 @@ export function Call(): ReactElement {
           )}
         </div>
         <div className={styles.statusBand} aria-live="polite">
-          {statusText(call, shift)}
+          {statusText(call, shift, sandbox)}
         </div>
       </section>
 
@@ -322,9 +330,18 @@ function Bubble({
   callerName: string;
 }): ReactElement {
   const fromPlayer = message.speaker === "player";
+  // Replies from the script rather than the AI say so.
+  const scripted = message.speaker === "victim" && message.scripted === true;
   return (
     <div className={cx(styles.bubble, fromPlayer ? styles.playerBubble : styles.victimBubble)}>
-      <span className={styles.tag}>{fromPlayer ? "You" : callerName}</span>
+      <span className={styles.tags}>
+        <span className={styles.tag}>{fromPlayer ? "You" : callerName}</span>
+        {scripted && (
+          <span className={cx(styles.tag, styles.scripted)} title="A scripted reply, not the AI">
+            SCRIPTED
+          </span>
+        )}
+      </span>
       <span>{message.text}</span>
     </div>
   );

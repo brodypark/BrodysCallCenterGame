@@ -3,6 +3,7 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import Database from "better-sqlite3";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { Config } from "@shared/Config";
 import type { PlayerStats, SavesSnapshot } from "@shared/types";
 import { DataService } from "@server/services/DataService";
 import { SaveService } from "@server/services/SaveService";
@@ -162,5 +163,49 @@ describe("SaveService: a damaged save", () => {
 
     saves.deleteSlot(PlayerId, 1);
     expect(data.readSlot(PlayerId, 1).state).toBe("empty");
+  });
+});
+
+describe("SaveService: Sandbox", () => {
+  it("plays the hidden Sandbox slot, reporting the mode", () => {
+    expect(saves.modeOf(PlayerId)).toBeNull();
+    saves.enterSandbox(PlayerId);
+    expect(saves.modeOf(PlayerId)).toBe("sandbox");
+    const snapshot = saves.snapshot(PlayerId);
+    expect(snapshot).toMatchObject({ activeSlot: Config.Saves.SandboxSlot, mode: "sandbox" });
+    // The Campaign picker never shows it.
+    expect(snapshot.slots.every((slot) => slot.state === "empty")).toBe(true);
+  });
+
+  it("keeps Sandbox and Campaign saves apart", () => {
+    saves.newGame(PlayerId, 1);
+    expect(saves.modeOf(PlayerId)).toBe("campaign");
+    stats.update(PlayerId, (current) => {
+      current.money = 300;
+    });
+    saves.leave(PlayerId);
+
+    saves.enterSandbox(PlayerId);
+    expect(stats.get(PlayerId).money).toBe(0);
+    stats.update(PlayerId, (current) => {
+      current.upgrades = { smoothTalker: 3 };
+      current.money = 99;
+    });
+    saves.leave(PlayerId);
+
+    const campaign = data.readSlot(PlayerId, 1);
+    expect(campaign.state === "ready" && campaign.stats).toMatchObject({
+      money: 300,
+      upgrades: {},
+    });
+    // Back in Sandbox, its own purchases are still there.
+    saves.enterSandbox(PlayerId);
+    expect(stats.get(PlayerId).upgrades).toEqual({ smoothTalker: 3 });
+  });
+
+  it("doesn't switch to Sandbox in the middle of a Campaign save", () => {
+    saves.newGame(PlayerId, 1);
+    saves.enterSandbox(PlayerId);
+    expect(saves.modeOf(PlayerId)).toBe("campaign");
   });
 });

@@ -1,9 +1,12 @@
 // Each player's save slots: picking one to play, starting a fresh save in an empty one, and
 // deleting one. A session plays one slot at a time; until one is picked, nothing starts.
+// Sandbox mode plays its own hidden slot (Config.Saves.SandboxSlot), which the Campaign
+// slots never touch, so the game mode is just which kind of slot is being played.
 // Refreshing within the reconnect grace period keeps the session (and its slot), so the
 // picker only comes back for a new visit, or when the player switches saves off shift.
 
 import { Config } from "@shared/Config";
+import type { GameMode } from "@shared/sandbox";
 import type { PlayerStats, SaveSlotSummary, SavesSnapshot } from "@shared/types";
 import type { DataService } from "@server/services/DataService";
 import { defaultStats, type StatsService } from "@server/services/StatsService";
@@ -39,7 +42,34 @@ export class SaveService {
       stats: save.state === "ready" ? save.stats : null,
       updatedAt: save.state === "empty" ? null : save.updatedAt,
     }));
-    return { slots, activeSlot: this.activeSlot(playerId) };
+    return { slots, activeSlot: this.activeSlot(playerId), mode: this.modeOf(playerId) };
+  }
+
+  /** Which way the player is playing, or null while no save is picked. */
+  modeOf(playerId: string): GameMode | null {
+    const slot = this.active.get(playerId);
+    if (slot === undefined) {
+      return null;
+    }
+    return slot === Config.Saves.SandboxSlot ? "sandbox" : "campaign";
+  }
+
+  /** Plays the player's Sandbox save, making it the first time. Only when no save is being
+   * played. A damaged Sandbox save just starts over: it holds nothing earned. */
+  enterSandbox(playerId: string): void {
+    if (this.active.has(playerId)) {
+      return;
+    }
+    const slot = Config.Saves.SandboxSlot;
+    const save = this.options.data.readSlot(playerId, slot);
+    if (save.state === "ready") {
+      this.start(playerId, slot, save.stats);
+      return;
+    }
+    // How to Play describes Campaign shifts, so it doesn't pop up in Sandbox.
+    const stats = { ...defaultStats(), tutorialSeen: true };
+    this.options.data.writeSlot(playerId, slot, stats);
+    this.start(playerId, slot, stats);
   }
 
   /** Plays the save in `slot`. Only when no save is being played, and the slot is ready. */

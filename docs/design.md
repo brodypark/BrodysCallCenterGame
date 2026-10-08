@@ -130,9 +130,10 @@ A bonus way to earn on top of the gift card.
 
 - **Side problem:** on about **35%** of calls (`Config.Card.SideProblemChance`), the victim also
   has a second problem at home, and mentions it early in passing. Grandma's computer box is full
-  of pop-ups, Zorp's "car" navigator says "please return to orbit", Barnacle Bill's fish finder
-  only finds boots, Chad's fitness watch counts reps as naps, Gary's fridge hums at night, and
-  Inspector Hawk's printer prints upside down.
+  of pop-ups, Hudson's microwave popcorn button sets off the smoke alarm, Sarah's laptop
+  autocorrects everything to "boba", Pete's smart scale says he weighs three pounds, Brody's smart
+  fridge locks itself at night, Uncle Mike's smart TV only shows Georgia's worst losses, Evan's phone sends
+  his half-written texts to CJ's sister, and CJ's PC fans sound like a jet engine on stream.
 - **The pitch:** the player offers to fix it for a small fee. Asking for money makes the victim
   more careful, so the fix has to sound believable. Asking how much they can pay is suspicious.
 - **Wobblebucks Card:** if they agree, they read out their Wobblebucks Card, a made-up card with
@@ -141,8 +142,8 @@ A bonus way to earn on top of the gift card.
   decides the reveal with the same rules as the gift card code (suspicion below the trust
   level, not too early).
 - **Wobblebucks Machine app:** type the card and an amount to charge. Each victim's card has a
-  hidden **spending limit** (Grandma $40, Zorp $50, Barnacle Bill $70, Chad $80, Gary $100,
-  Inspector Hawk $120), kept on the server. Charging within it pays that amount; charging over
+  hidden **spending limit** (Grandma $40, Hudson $50, Sarah $70, Pete $80, Brody $100,
+  Uncle Mike $120, Evan $140, CJ $160), kept on the server. Charging within it pays that amount; charging over
   it is **declined** and uses a try. **2 tries per card**, then it's frozen. Each card can be
   charged once.
 - A charge adds to shift earnings and gives **5 XP**, but doesn't count as a successful call (the
@@ -154,7 +155,7 @@ A bonus way to earn on top of the gift card.
 ## Economy
 
 - **Payout = the scenario's card value.** Each scenario sets its own value, from $50 (Grandma)
-  to $150 (Inspector Hawk). Harder scenarios have bigger cards.
+  to $200 (CJ). Harder scenarios have bigger cards.
 - **Quota:** fixed per shift. Starting value: **$150** (3 Grandma successes out of ~4–5 calls).
 - **Shift earnings vs. bank:** money earned during a shift is held as shift earnings. It moves to
   the bank only if the shift is passed. Upgrades are paid from the bank.
@@ -228,13 +229,13 @@ scripted lines, an optional side problem, and the XP level that unlocks it.
 
 Every persona also has:
 
-- **Obsession:** a running gag that comes up only now and then (Grandma's cat, Sir
-  Fluffington). Most replies are normal. The server decides each turn whether this reply may
+- **Obsession:** a running gag (Grandma's cat, Sir Fluffington). Every greeting opens with it,
+  so the player meets it straight away; after that it comes up only now and then. Most replies are normal. The server decides each turn whether this reply may
   mention it (a 20% chance, `Config.AI.ObsessionChance`) and tells the AI, because left to
   itself the AI overdoes running gags.
 - **Catchphrases:** signature lines, used every few replies at most.
 - **Likes and dislikes:** what calms or annoys this person in particular, so each victim needs a
-  different approach. They win over the general suspicion rules when the two disagree (Gary
+  different approach. They win over the general suspicion rules when the two disagree (CJ
   distrusts anyone who sounds like an official help line).
 - **Several greetings**, one picked at random, so calls open differently.
 - **A face** drawn as SVG from shapes, with optional extras: hats (tricorn, tinfoil,
@@ -251,14 +252,17 @@ gap and shrink the second, and pay more.
 | Lvl | Scenario | Diff | Card | Prefix | Start | Threshold | Trust | To convince | Room for mistakes |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | 1 | Grandma Gertrude | Easy | $50 | `GMA` | 40 | 100 | 30 | 10 | 60 |
-| 3 | Zorp the Alien | Easy | $60 | `ZRP` | 35 | 100 | 25 | 10 | 65 |
-| 5 | Captain Barnacle Bill | Medium | $80 | `BRN` | 45 | 90 | 25 | 20 | 45 |
-| 7 | Chad Thunderflex | Medium | $100 | `FLX` | 35 | 80 | 15 | 20 | 45 |
-| 9 | Conspiracy Gary | Hard | $125 | `SQR` | 60 | 90 | 25 | 35 | 30 |
-| 11 | Inspector Doris Hawk | Hard | $150 | `HWK` | 55 | 85 | 20 | 35 | 30 |
+| 3 | Hudson | Easy | $60 | `HDS` | 35 | 100 | 25 | 10 | 65 |
+| 5 | Sarah | Medium | $80 | `SRH` | 45 | 90 | 25 | 20 | 45 |
+| 7 | Pete | Medium | $100 | `PTF` | 35 | 80 | 15 | 20 | 45 |
+| 9 | Brody | Hard | $125 | `BRZ` | 60 | 90 | 25 | 35 | 30 |
+| 11 | Uncle Mike | Hard | $150 | `MKE` | 55 | 85 | 20 | 35 | 30 |
+| 13 | Evan | Hard | $175 | `EVN` | 50 | 85 | 20 | 30 | 35 |
+| 15 | CJ | Hard | $200 | `CJZ` | 65 | 85 | 20 | 45 | 20 |
 
 Prefixes are never real words, since the AI's replies are cleaned of anything shaped like a code
-with the scenario's prefix.
+with the scenario's prefix. Grandma is ported from the Roblox version; the other seven are new to
+the browser version.
 
 **Grandma Gertrude (Easy, level 1):** a sweet, confused grandma who can't figure out how to
 redeem the Pudding Palace card her grandson Timmy sent. Obsession: Sir Fluffington, her fat,
@@ -266,37 +270,49 @@ judgmental cat. Likes patience, good manners and questions about the cat; hates 
 computer words and bossy orders. The most forgiving scenario: she never hangs up unless you're
 really rude.
 
-**Zorp the Alien (Easy, level 3):** a cheerful alien tourist whose Cosmic Snack Shack voucher
-only makes the machine beep. Obsession: Earth cows, which he believes rule the planet. Likes
-Earth things explained kindly and being told he's great at being human; hates shouting, any
-mention of labs, and being called an alien ("Zorp is a normal Earth human"). Green, bald, with
-glowing antennae. As forgiving as Grandma, but needs a little more convincing (trust 25) and
-pays a bit more. A gentle step up.
+**Hudson (Easy, level 3):** a super chill movie fan whose Kernel Kingdom Cinemas card says "card
+not recognised". Obsession: popcorn (butter ratios, microwave timing, the kernels at the
+bottom). Rates everything out of ten. Likes a relaxed, friendly tone and snack talk; hates being
+rushed, stiff scripted talk and anyone dissing popcorn. Short brown hair. As forgiving as
+Grandma, but needs a little more convincing (trust 25) and pays a bit more.
 
-**Captain Barnacle Bill (Medium, level 5):** a boastful retired pirate who thinks his Barnacle
-Buffet voucher is cursed. Obsession: his rival Captain Saltbeard, who he blames for everything.
-Likes being called Captain, pirate talk and hearing Saltbeard insulted; hates "Bill", the navy,
-paperwork and being interrupted. Beard, eyepatch, gold earrings and a tricorn hat. The first
-real test: twice Grandma's gap to convince, and a 90 threshold means bossing him around adds up.
+**Sarah (Medium, level 5):** a bubbly college student walking to class whose Bubble Bliss Tea
+card says "invalid balance". Obsession: boba tea; she ranks every flavor in a spreadsheet. She's
+sat through a phone-scam lecture, so she starts warier (45). Likes a genuine, casual tone and
+being asked about her boba order; hates being talked down to, robotic help-line phrases and
+"bubble juice". Long black hair, earrings, rosy cheeks.
 
-**Chad Thunderflex (Medium, level 7):** a hyped-up gym bro whose Mega Muscle Smoothie card
-says "not found". Obsession: leg day; he does squats and counts reps all call. Likes hype,
-compliments on his biceps (Thunder and Lightning) and gym talk; hates slow explanations, being
-called Chadwick and anyone doubting his strength. Red headband. He starts friendly (35) but his
-trust level is very low (15) and his fuse is short (80), so you have to keep the energy up.
+**Pete (Medium, level 7):** a high-energy personal trainer doing push-ups all call, whose Iron
+Temple Supplements card says "card not found". Obsession: working out (reps, macros, never
+skipping leg day). Likes hype, confident coach-like instructions and being called strong; hates
+slow explanations and junk-food talk. Blue headband. Starts friendly (35) but his trust level is
+very low (15) and his fuse short (80), so you have to keep the energy up.
 
-**Conspiracy Gary (Hard, level 9):** a paranoid conspiracy fan who's sure squirrels broke his
-Nutty Nook Café card. Obsession: squirrels are spies. The twist: sounding like an official help
-line makes him *more* suspicious; whispering, code words and agreeing about the squirrels win
-him over. Tinfoil hat, mustache and glasses. Starts very suspicious (60), so it takes at least
-two great turns to get him to 25, with little room for mistakes.
+**Brody (Hard, level 9):** a big foodie who called right before dinner and is always mid-bite,
+whose Mega Munch Burger Barn card says "card already used". Obsession: eating (his next meal,
+his last meal, snack combos). He starts hangry and suspicious (60); talking food with him and
+letting him finish his bite win him over, while rushing him through dinner or telling him to
+skip a meal makes it worse. Calls people "chef". Blonde hair and glasses.
 
-**Inspector Doris Hawk (Hard, level 11):** a sharp retired detective investigating why her
-Muffin Emporium card says "invalid". Obsession: the unsolved Great Muffin Heist of '82. She
-asks verification questions, writes everything down and pounces on contradictions. Likes
-consistent, confident answers and being called Inspector; hates vague answers, asking for the
-code too soon and muffin jokes. Glasses and a deerstalker cap. The final boss: the lowest
-threshold (85) and trust level 20 mean you need a story and you have to stick to it.
+**Uncle Mike (Hard, level 11):** a loud, stubborn uncle watching the Georgia game only to
+complain about it, whose End Zone Sports card says "card declined". Obsession: the University of Georgia football
+team and how bad it is. He tests you with questions and pounces on answers that change. Likes
+confidence, straight answers and agreeing that Georgia football stinks; saying "Go Dawgs" or
+defending them sets him off. Bald with a big grey mustache. The lowest threshold (85) and trust
+level 20 mean you need a story and you have to stick to it.
+
+**Evan (Hard, level 13):** a sweet, nervous guy with a hopeless crush on his friend CJ's sister,
+whose Rose & Ribbon Florist card (for flowers for her) says "card not activated". Obsession: the
+crush; he rehearses asking her out mid-call and begs you not to tell CJ. Likes encouragement,
+kindness and (bad) dating advice; hates being teased, pushy talk and anyone saying she's out of
+his league. Short reddish hair, glasses, always blushing.
+
+**CJ (Hard, level 15):** a chronically online gamer streaming the call to his chat, whose Galaxy
+Gamer Gems card says "code already used". Obsession: brainrot (skibidi, sigma, rizz, aura,
+"only in Ohio"), and he rates everything's aura. The twist: formal, official help-line talk makes
+him *more* suspicious; slang and memes win him over. Hates being called "sir" and anything
+urgent ("the scam playbook"). Dyed blue hair, a red headband. The final boss: he starts the most
+suspicious (65) with the least room for mistakes.
 
 **Economy check:** with the fixed $150 quota, two Hard cards nearly pass a shift, but Hard
 victims hang up far more often, so later shifts pay better without being free. Calls still pick
@@ -337,12 +353,14 @@ Moments that should feel especially satisfying:
 - **Shift results:** a report card with calls taken, earnings vs. quota, and a "PROMOTED" or
   "FIRED" stamp.
 
-**Sounds** are files we have the rights to, kept in `public/sounds` and credited in
-`docs/credits.md`. No real operating-system sounds.
+**Sounds** are made in code from tones and noise (retro, cartoonish, nothing to license). A
+recorded file can replace one, as long as we have the rights to it; it goes in
+`public/sounds` and is credited in `docs/credits.md`. No real operating-system sounds.
 
-**Music:** a looping background song the player picks (or turns off) from a ♪ menu in the
-taskbar, with a volume slider. It gets quieter while the victim talks. The choice is a
-per-browser preference, not part of the save.
+**Settings app** (also on the title menu): a master volume over everything, the background
+music (pick a looping song or none, and its volume; it gets quieter while the victim talks),
+and sound effects (on or off, and their volume). They're per-browser preferences, not part
+of the save. Sound effects are made in code, so they need no files.
 
 **Call window:** a dark phone-app look (the same in every desktop theme) with a Caller Trust
 bar, the victim's name, their cartoon face, a status line, chat bubbles, and Hang Up / speaker
@@ -382,13 +400,27 @@ moderation first.
 | Wobblebucks Card tries / XP per charge | 2 / 5 |
 | Grandma: card / start / threshold / trust | $50 / 40 / 100 / 30 |
 
-## Game modes (planned, step 13)
+## Game modes
 
-Picked the first time the game opens, and switchable later between shifts.
+Picked on the title menu (**Campaign** or **Sandbox**); quitting to the title switches. The
+server owns the mode: the client only asks.
 
-- **Career:** the game as described above: shifts, quota, XP, levels, unlocks and the shop.
-- **Sandbox:** pick which scenario calls you, with unlimited money and the whole shop
-  available. Kept separate from Career saves. Cost guards still apply.
+- **Campaign:** the game as described above: shifts, quota, XP, levels, unlocks and the shop,
+  in 3 save slots.
+- **Sandbox:** no shifts, quota, report or XP. Calls never ring by themselves: the player
+  rings each one from the Control Panel.
+  Money is unlimited ($∞): the Shop works as normal but everything is free. Cards can still be
+  redeemed and charged (with all the effects), but nothing is banked. Sandbox has its own hidden
+  save (slot 0) holding only its shop purchases and control panel settings, so it never touches
+  a Campaign slot. Cost guards (per-player AI and voice limits) apply as in Campaign, and matter
+  more here.
+- **Control Panel** (a Sandbox-only app, opens by itself):
+  - Callers: who calls next (any caller, whatever the level, or random), the side problem
+    (random, always, never), and Ring now (the only way a Sandbox call starts).
+  - Live call (on the player's turn): a trust slider, Read the code, Read the card, Make them
+    hang up.
+  - Replies: AI or scripted.
+  - Look: any theme or wallpaper, and Reset Sandbox (clears its purchases and settings).
 
 ## Custom callers (planned, step 14)
 
@@ -430,9 +462,6 @@ decides every reveal and makes every code.
   "Indian scam caller" stereotype, which clashes with the cartoonish tone and would likely
   read as mocking a real group. Decide before step 16; silly character voices (robot,
   chipmunk, posh butler, pirate) are the alternative.
-- **Sandbox details:** does Sandbox have shifts and a quota, and does it earn XP? (Asked at
-  the start of step 13.)
-
 - **Fixed quota vs. bigger cards:** later scenarios pay more, so the fixed quota gets easier.
   Is that okay (progression reward), or should the quota scale a little?
 - **Name:** "GPT" is closely tied to another company's product. Check that the name doesn't

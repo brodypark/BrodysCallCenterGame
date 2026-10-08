@@ -26,6 +26,7 @@ import { PlayerService } from "@server/services/PlayerService";
 import { extraRedeemTries } from "@shared/Upgrades";
 import type { DataService } from "@server/services/DataService";
 import { RedeemService } from "@server/services/RedeemService";
+import { SandboxService } from "@server/services/SandboxService";
 import { matchDevCommand } from "@server/prompts/DevCommands";
 import { endPlayerSession } from "@server/services/playerExit";
 import { SaveService } from "@server/services/SaveService";
@@ -163,8 +164,16 @@ export function startGameServer(httpServer: HttpServer, options: GameServerOptio
   });
   const redeem = new RedeemService({
     onRedeemed: (playerId, card) => shifts.cardRedeemed(playerId, card),
+    onCharged: (playerId, amount) => shifts.cardCharged(playerId, amount),
     onLocked: (playerId) => shifts.cardLocked(playerId),
     extraTries: (playerId) => extraRedeemTries(stats.get(playerId)),
+  });
+  const sandbox = new SandboxService({
+    scenarios: options.scenarios,
+    stats,
+    isSandbox: (playerId) => saves.modeOf(playerId) === "sandbox",
+    aiAvailable: options.replies !== undefined,
+    send: (playerId, snapshot) => toPlayer(playerId)?.emit("sandbox:snapshot", snapshot),
   });
   const calls = new CallService({
     scenarios: options.scenarios,
@@ -182,13 +191,15 @@ export function startGameServer(httpServer: HttpServer, options: GameServerOptio
         },
     send: (playerId, snapshot) => toPlayer(playerId)?.emit("call:snapshot", snapshot),
     replies: options.replies,
+    sandbox,
   });
   const shifts: ShiftService = new ShiftService({
     calls,
     cards: redeem,
     stats,
     lengthSeconds: options.shiftSecondsOverride,
-    canClockIn: (playerId) => saves.activeSlot(playerId) !== null,
+    // Only Campaign has shifts.
+    canClockIn: (playerId) => saves.modeOf(playerId) === "campaign",
     unlockedBetween: (fromLevel, toLevel) =>
       options.scenarios.unlockedBetween(fromLevel, toLevel).map((scenario) => scenario.displayName),
     send: (playerId, snapshot) => toPlayer(playerId)?.emit("shift:snapshot", snapshot),
@@ -198,7 +209,12 @@ export function startGameServer(httpServer: HttpServer, options: GameServerOptio
     data: options.data,
     stats,
     isBusy: (playerId) => shifts.isOnShift(playerId),
-    onLeave: (playerId) => shifts.resultSeen(playerId),
+    onLeave: (playerId) => {
+      shifts.resultSeen(playerId);
+      // Leaving Sandbox stops its calls; its cards (no shift to clear them) go too.
+      sandbox.leave(playerId);
+      redeem.clearCards(playerId);
+    },
     send: (playerId, snapshot) => toPlayer(playerId)?.emit("saves:snapshot", snapshot),
   });
   const shop = new ShopService({
@@ -209,7 +225,9 @@ export function startGameServer(httpServer: HttpServer, options: GameServerOptio
       }
       return shifts.isOnShift(playerId) ? "onShift" : null;
     },
+    isFree: (playerId) => saves.modeOf(playerId) === "sandbox",
   });
+  sandbox.setCalls(calls);
   const exitServices = { shifts, calls, cards: redeem, stats, saves };
   calls.setListener({
     callEnded: (playerId, reason) => shifts.callEnded(playerId, reason),
@@ -246,6 +264,10 @@ export function startGameServer(httpServer: HttpServer, options: GameServerOptio
     } catch (error) {
       log.error({ err: error, playerId }, "Couldn't read the player's save slots");
     }
+    const sandboxSnapshot = sandbox.snapshot(playerId);
+    if (sandboxSnapshot) {
+      socket.emit("sandbox:snapshot", sandboxSnapshot);
+    }
     const report = shifts.unseenResult(playerId);
     if (report) {
       socket.emit("shift:ended", report);
@@ -269,6 +291,16 @@ export function startGameServer(httpServer: HttpServer, options: GameServerOptio
       shifts.abandon(playerId, true);
       saves.leave(playerId);
     });
+    listen(socket, "sandbox:enter", log, () => {
+      saves.enterSandbox(playerId);
+      sandbox.enter(playerId);
+    });
+    listen(socket, "sandbox:settings", log, (change) => sandbox.update(playerId, change));
+    listen(socket, "sandbox:ringNow", log, () => sandbox.ringNow(playerId));
+    listen(socket, "sandbox:trust", log, ({ percent }) => sandbox.setTrust(playerId, percent));
+    listen(socket, "sandbox:cheat", log, ({ cheat }) => sandbox.cheat(playerId, cheat));
+    listen(socket, "sandbox:wear", log, ({ id }) => sandbox.wear(playerId, id));
+    listen(socket, "sandbox:reset", log, () => sandbox.reset(playerId));
     // Nothing starts until a save is picked (ShiftService checks).
     listen(socket, "shift:clockIn", log, () => shifts.clockIn(playerId));
     listen(socket, "shift:resultSeen", log, () => shifts.resultSeen(playerId));
@@ -280,6 +312,9 @@ export function startGameServer(httpServer: HttpServer, options: GameServerOptio
       calls.finishedSpeaking(playerId, lineId),
     );
     answer(socket, "redeem:code", log, ({ code }) => redeem.redeem(playerId, code));
+    answer(socket, "wobblebucks:charge", log, ({ card, amount }) =>
+      redeem.charge(playerId, card, amount),
+    );
     answer(socket, "shop:buy", log, ({ id }) => {
       const result = shop.buy(playerId, id);
       sendShift();

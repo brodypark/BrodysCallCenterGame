@@ -366,3 +366,17 @@
     animation-iteration-count: 1;
   }
 }
+
+/* The name tag, plus SCRIPTED on replies that didn't come from the AI. */
+.tags {
+  display: flex;
+  gap: 0.4cqh;
+}
+
+.playerBubble .tags {
+  align-self: flex-end;
+}
+
+.scripted {
+  background: var(--call-action-off);
+}

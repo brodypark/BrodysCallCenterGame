@@ -93,3 +93,9 @@
   font-weight: bold;
   color: var(--error-text);
 }
+
+/* In place of the shift timer in Sandbox. */
+.sandbox {
+  font-weight: bold;
+  color: var(--success-text);
+}

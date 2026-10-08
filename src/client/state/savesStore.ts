@@ -1,6 +1,7 @@
 // The client's copy of the player's save slots, and which one this session is playing.
 // null until the server first says.
 
+import type { GameMode } from "@shared/sandbox";
 import type { SavesSnapshot } from "@shared/types";
 import { socket } from "@client/net/socket";
 import { createStore, useStore } from "@client/state/createStore";
@@ -21,4 +22,9 @@ import.meta.hot?.dispose(() => {
 /** The latest save slots, or null before the server has sent them. */
 export function useSaves(): SavesSnapshot | null {
   return useStore(saves);
+}
+
+/** Which way the player is playing (Campaign or Sandbox), or null before they pick. */
+export function useGameMode(): GameMode | null {
+  return useStore(saves)?.mode ?? null;
 }

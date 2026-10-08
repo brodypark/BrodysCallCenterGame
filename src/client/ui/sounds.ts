@@ -1,103 +1,81 @@
-// The game's sound effects. Each is an optional file, public/sounds/<name>.mp3, loaded the
-// first time it's played and kept decoded; a missing or broken file is skipped from then on.
-// Sounds play through the shared audio context, so nothing plays before the player's first
-// click (browsers block it) or while the browser has audio suspended. Playing a sound that's
-// already playing starts it again from the beginning.
+// The game's sound effects. Each is made in code (ui/synthSounds) the first time it's
+// played and kept, unless it's listed in SoundFiles: then public/sounds/<name>.mp3 is used
+// instead (falling back to the made one if the file won't load). Sounds play through the
+// shared audio context, so nothing plays before the player's first click (browsers block
+// it) or while the browser has audio suspended. Playing a sound that's already playing
+// starts it again from the beginning. How loud they are (and whether they play at all)
+// follows the player's sound settings, even for a sound that's already playing.
 
-import { Config } from "@shared/Config";
-import { getAudioContext } from "@client/voice/audioUnlock";
+import { effectsVolume } from "@client/ui/audioSettings";
+import { audioSettingsStore } from "@client/ui/audioSettingsStore";
+import { type SoundName, Sounds } from "@client/ui/soundList";
+import { synthesize } from "@client/ui/synthSounds";
+import { getAudioContext, onAudioRunning } from "@client/voice/audioUnlock";
 
-export type SoundName =
-  | "click"
-  | "window-open"
-  | "window-close"
-  | "ring"
-  | "pick-up"
-  | "dial-tone"
-  | "message-sent"
-  | "ka-ching"
-  | "coins"
-  | "wrong-code"
-  | "suspicion-up"
-  | "suspicion-down"
-  | "clock-in"
-  | "overtime"
-  | "stamp"
-  | "promoted"
-  | "fired"
-  | "level-up";
-
-interface SoundInfo {
-  // From 0 to 1, before Config.Sounds.MasterVolume.
-  volume: number;
-  // Plays until stopSound.
-  loop?: boolean;
-  // Cut off after this many seconds.
-  maxSeconds?: number;
-}
-
-/** Every sound and how it plays. Volumes are the Roblox version's. */
-export const Sounds: Record<SoundName, SoundInfo> = {
-  click: { volume: 0.4 },
-  "window-open": { volume: 0.3 },
-  "window-close": { volume: 0.3 },
-  ring: { volume: 0.6, loop: true },
-  "pick-up": { volume: 0.6 },
-  "dial-tone": { volume: 0.4, maxSeconds: Config.Sounds.DialToneSeconds },
-  "message-sent": { volume: 0.5 },
-  "ka-ching": { volume: 0.7 },
-  coins: { volume: 0.5 },
-  "wrong-code": { volume: 0.5 },
-  "suspicion-up": { volume: 0.4 },
-  "suspicion-down": { volume: 0.4 },
-  "clock-in": { volume: 0.6 },
-  overtime: { volume: 0.4, maxSeconds: Config.Sounds.OvertimeSeconds },
-  stamp: { volume: 0.8 },
-  promoted: { volume: 0.5 },
-  fired: { volume: 0.6 },
-  "level-up": { volume: 0.5 },
-};
+// Sounds replaced by a recorded file in public/sounds/<name>.mp3 (credit each in
+// docs/credits.md). Everything else is made in code.
+const SoundFiles: ReadonlySet<SoundName> = new Set<SoundName>([]);
 
 /** Where a sound's file is served from. */
 export function soundUrl(name: SoundName): string {
   return `${import.meta.env.BASE_URL}sounds/${name}.mp3`;
 }
 
-// Each sound's decoded audio once asked for: null if the file is missing or won't decode.
-// A failed download (e.g. briefly offline) isn't kept, so it's tried again next time.
-const loaded = new Map<SoundName, Promise<AudioBuffer | null>>();
+// Each sound's audio once asked for.
+const loaded = new Map<SoundName, Promise<AudioBuffer>>();
 // The instance of each sound playing right now, so playing it again restarts it.
 const playing = new Map<SoundName, AudioBufferSourceNode>();
 // Looping sounds that should be playing, so one that loads after stopSound stays quiet.
 const wanted = new Set<SoundName>();
 
-async function decode(context: AudioContext, name: SoundName): Promise<AudioBuffer | null> {
-  let data: ArrayBuffer;
+/** `name` made in code, as audio. */
+function synthesized(context: AudioContext, name: SoundName): AudioBuffer {
+  const samples = synthesize(name, context.sampleRate);
+  const buffer = context.createBuffer(1, Math.max(samples.length, 1), context.sampleRate);
+  buffer.copyToChannel(samples, 0);
+  return buffer;
+}
+
+/** `name`'s recorded file, or the made one if it won't load. */
+async function fromFile(context: AudioContext, name: SoundName): Promise<AudioBuffer> {
   try {
     const response = await fetch(soundUrl(name));
     if (!response.ok) {
-      return null;
+      throw new Error(`No file for ${name} (${response.status}).`);
     }
-    data = await response.arrayBuffer();
+    return await context.decodeAudioData(await response.arrayBuffer());
   } catch {
-    loaded.delete(name);
-    return null;
-  }
-  try {
-    // In development a missing file comes back as the page itself, which won't decode.
-    return await context.decodeAudioData(data);
-  } catch {
-    return null;
+    return synthesized(context, name);
   }
 }
 
-function load(context: AudioContext, name: SoundName): Promise<AudioBuffer | null> {
+function load(context: AudioContext, name: SoundName): Promise<AudioBuffer> {
   let buffer = loaded.get(name);
   if (buffer === undefined) {
-    buffer = decode(context, name);
+    buffer = SoundFiles.has(name)
+      ? fromFile(context, name)
+      : Promise.resolve(synthesized(context, name));
     loaded.set(name, buffer);
   }
   return buffer;
+}
+
+// Every sound goes through one volume (the player's sound effects settings) and a limiter,
+// so sounds that land together (ka-ching and coins) never crackle. Made once per context.
+let output: { context: AudioContext; volume: GainNode } | null = null;
+// How quickly volume changes ease in (seconds), so dragging a slider doesn't crackle.
+const VolumeEaseSeconds = 0.015;
+
+function outputFor(context: AudioContext): GainNode {
+  if (output?.context !== context) {
+    const volume = context.createGain();
+    volume.gain.value = effectsVolume(audioSettingsStore.get());
+    const limiter = context.createDynamicsCompressor();
+    volume.connect(limiter);
+    limiter.connect(context.destination);
+    output = { context, volume };
+  }
+  return output.volume;
 }
 
 function stopInstance(name: SoundName): void {
@@ -112,18 +90,24 @@ function stopInstance(name: SoundName): void {
   }
 }
 
-/** Plays a sound, if its file exists and the browser allows sound yet. */
+/** Plays a sound, if the browser allows sound yet. A one-off sound is skipped while sound
+ * effects are off or audio isn't unlocked. A looping one (the ringing) is remembered: it
+ * starts as soon as audio unlocks, and runs silently while effects are off, so turning them
+ * on mid-ring brings it in. */
 export function playSound(name: SoundName): void {
   const context = getAudioContext();
-  if (context?.state !== "running") {
-    return;
-  }
   const info = Sounds[name];
   if (info.loop) {
     wanted.add(name);
   }
+  if (
+    context?.state !== "running" ||
+    (!info.loop && effectsVolume(audioSettingsStore.get()) === 0)
+  ) {
+    return;
+  }
   void load(context, name).then((buffer) => {
-    if (buffer === null || (info.loop && !wanted.has(name))) {
+    if (info.loop && !wanted.has(name)) {
       return;
     }
     stopInstance(name);
@@ -131,9 +115,9 @@ export function playSound(name: SoundName): void {
     source.buffer = buffer;
     source.loop = info.loop === true;
     const gain = context.createGain();
-    gain.gain.value = info.volume * Config.Sounds.MasterVolume;
+    gain.gain.value = info.volume;
     source.connect(gain);
-    gain.connect(context.destination);
+    gain.connect(outputFor(context));
     source.onended = () => {
       if (playing.get(name) === source) {
         playing.delete(name);
@@ -154,3 +138,33 @@ export function stopSound(name: SoundName): void {
   wanted.delete(name);
   stopInstance(name);
 }
+
+// Settings changes (a slider moving, effects switched off) reach sounds already playing.
+const unsubscribeSettings = audioSettingsStore.subscribe(() => {
+  if (output) {
+    output.volume.gain.setTargetAtTime(
+      effectsVolume(audioSettingsStore.get()),
+      output.context.currentTime,
+      VolumeEaseSeconds,
+    );
+  }
+});
+
+// Looping sounds asked for before audio was unlocked (the phone ringing after a refresh,
+// before any click) start once it is.
+const unsubscribeRunning = onAudioRunning(() => {
+  for (const name of wanted) {
+    if (!playing.has(name)) {
+      playSound(name);
+    }
+  }
+});
+
+// When Vite hot-reloads this module in development, stop the old copy.
+import.meta.hot?.dispose(() => {
+  unsubscribeSettings();
+  unsubscribeRunning();
+  for (const name of [...playing.keys()]) {
+    stopSound(name);
+  }
+});

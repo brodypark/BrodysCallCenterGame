@@ -29,6 +29,7 @@ import { useTitleMenuReset, useTitleMenuShown } from "@client/ui/useTitleMenuSho
 import { useTutorialPopup } from "@client/ui/useTutorialPopup";
 import { keepAudioUnlocked, unlockAudio } from "@client/voice/audioUnlock";
 import { Windows } from "@client/ui/Windows";
+import { SuspicionAlert } from "@client/ui/SuspicionAlert";
 import styles from "@client/ui/Desktop.module.css";
 import "@client/ui/fonts.css";
 import "@client/ui/themes/themes.css";
@@ -55,7 +56,15 @@ export function Desktop(): ReactElement {
   // The save's equipped cosmetics (the defaults until a save is picked).
   const { theme, wallpaper } = useStats();
 
-  const activeSlot = useSaves()?.activeSlot ?? null;
+  const saves = useSaves();
+  const activeSlot = saves?.activeSlot ?? null;
+  // Sandbox has no shifts, so no Clock In; its control panel opens by itself instead.
+  const sandbox = saves?.mode === "sandbox";
+  useEffect(() => {
+    if (sandbox) {
+      store.openApp("ControlPanel");
+    }
+  }, [sandbox, store]);
   const { snapshot: shift } = useShift();
 
   return (
@@ -75,7 +84,7 @@ export function Desktop(): ReactElement {
               <div className={styles.wallpaper} onClick={() => store.setStartMenuOpen(false)} />
 
               {/* Floating Clock In button */}
-              {activeSlot !== null && shift.status === "offShift" && !menuShown && (
+              {activeSlot !== null && !sandbox && shift.status === "offShift" && !menuShown && (
                 <div className={styles.clockInWrapper}>
                   <button
                     type="button"
@@ -102,6 +111,7 @@ export function Desktop(): ReactElement {
             <ShiftResults />
             <SavePicker />
           </div>
+          <SuspicionAlert />
           <SessionOverlay />
         </div>
       </div>

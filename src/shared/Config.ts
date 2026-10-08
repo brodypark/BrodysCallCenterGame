@@ -10,6 +10,20 @@ export const Config = {
   Saves: {
     // Save slots each player can keep.
     SlotCount: 3,
+    // The slot that holds a player's Sandbox save (shop purchases and control panel
+    // settings). Campaign slots are 1 to SlotCount, so the two never mix.
+    SandboxSlot: 0,
+  },
+
+  // Sandbox mode (docs/design.md "Game modes"): no shifts, quota or XP, unlimited money,
+  // and a control panel.
+  Sandbox: {
+    // The control panel's "anyone" choice for who calls next.
+    RandomCaller: "random",
+    // Longest caller choice the client may send (scenario ids are short).
+    MaxCallerIdLength: 40,
+    // The trust slider runs from 0 (about to hang up) to this (fully trusting).
+    TrustSliderMax: 100,
   },
 
   Shift: {
@@ -28,6 +42,8 @@ export const Config = {
   XP: {
     // For each gift card cashed in, by the scenario's difficulty.
     PerSuccess: { Easy: 10, Medium: 20, Hard: 30 },
+    // For each Wobblebucks Card charged (a side problem fixed for a fee).
+    PerCharge: 5,
     ShiftPassBonus: 25,
     // Level curve: going from level 1 to 2 costs FirstLevelCost XP, and each level after
     // that costs CostIncreasePerLevel more than the one before (75, 100, 125, ...).
@@ -152,6 +168,8 @@ export const Config = {
     // Every Wobblebucks Card starts with this (e.g. WBK-7QZ), so it can't be mistaken for a
     // gift card. No scenario may use it as its code prefix.
     Prefix: "WBK",
+    // The share of calls where the victim also has a side problem they can pay to have fixed.
+    SideProblemChance: 0.35,
     // Charges over a card's spending limit are declined; this many and the card freezes.
     TriesPerCard: 2,
     // The smallest and biggest amounts the Wobblebucks Machine will charge, in dollars.
@@ -287,18 +305,21 @@ export const Config = {
     LevelUpJingleDelaySeconds: 2.5,
   },
 
-  // Sound effects (ui/sounds). Files missing from public/sounds are skipped.
+  // Sound effects (ui/sounds), made in code (ui/synthSounds) unless a file replaces one.
   Sounds: {
-    // How loud all sound effects are, from 0 to 1, on top of each sound's own volume.
-    MasterVolume: 0.8,
-    // The dial tone and the overtime alarm are cut off after this long.
+    // Where a new player's master volume (over everything) and sound effects volume start,
+    // from 0 to 1. Players change them in Settings.
+    DefaultMasterVolume: 0.8,
+    DefaultEffectsVolume: 0.7,
+    // The dial tone and the overtime alarm are cut off after this long (the ones made in code
+    // are shorter anyway; this is for recorded replacements).
     DialToneSeconds: 2.5,
     OvertimeSeconds: 2,
   },
 
   // Background music (ui/music). The songs are listed in ui/songs.ts.
   Music: {
-    // The volume a new player starts at, from 0 to 1.
+    // The music volume a new player starts at, from 0 to 1 (under the master volume).
     DefaultVolume: 0.35,
     // While the victim talks, the music drops to this fraction of its volume.
     DuckLevel: 0.25,

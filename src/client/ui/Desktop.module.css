@@ -68,9 +68,14 @@
   color: #ffffff;
   border: 0.4cqh solid #1d4a12;
   border-radius: 1cqh;
-  box-shadow: inset 0 0.4cqh 0 rgba(255, 255, 255, 0.4), 0 0.8cqh 0 #1d4a12, 0 1.2cqh 2cqh rgba(0, 0, 0, 0.4);
+  box-shadow:
+    inset 0 0.4cqh 0 rgba(255, 255, 255, 0.4),
+    0 0.8cqh 0 #1d4a12,
+    0 1.2cqh 2cqh rgba(0, 0, 0, 0.4);
   cursor: pointer;
-  transition: transform 0.1s, box-shadow 0.1s;
+  transition:
+    transform 0.1s,
+    box-shadow 0.1s;
 }
 
 .clockInButton:hover {
@@ -80,7 +85,9 @@
 
 .clockInButton:active {
   transform: translateY(0.4cqh);
-  box-shadow: inset 0 0.4cqh 0 rgba(255, 255, 255, 0.4), 0 0.2cqh 0 #1d4a12;
+  box-shadow:
+    inset 0 0.4cqh 0 rgba(255, 255, 255, 0.4),
+    0 0.2cqh 0 #1d4a12;
 }
 
 .clockInTerms {
@@ -93,3 +100,20 @@
   border-radius: 0.8cqh;
 }
 
+.suspicionAlert {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  box-shadow: inset 0 0 15cqh rgba(255, 0, 0, 0.6);
+  animation: pulse-alert 0.8s infinite alternate ease-in-out;
+  z-index: 50;
+}
+
+@keyframes pulse-alert {
+  from {
+    opacity: 0.2;
+  }
+  to {
+    opacity: 0.8;
+  }
+}

@@ -104,3 +104,15 @@ describe("ShopService: closed and no-op requests", () => {
     expect(saves).toBe(0);
   });
 });
+
+describe("ShopService: Sandbox", () => {
+  it("makes everything free while the player is in Sandbox, and only then", () => {
+    let sandbox = true;
+    const free = new ShopService({ stats, closedReason: () => null, isFree: () => sandbox });
+    stats.load(PlayerId, { ...defaultStats(), money: 0 });
+    expect(free.buy(PlayerId, "extraCoffee").success).toBe(true);
+    expect(current()).toMatchObject({ money: 0, upgrades: { extraCoffee: 1 } });
+    sandbox = false;
+    expect(free.buy(PlayerId, "extraCoffee").success).toBe(false);
+  });
+});

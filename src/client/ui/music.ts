@@ -2,29 +2,16 @@
 // gets quieter while the victim talks. It tries to start as soon as the page opens; most
 // browsers only allow that once the player has clicked or pressed a key (Chrome also allows
 // it on sites they've played on before), so it tries again on every input until it's
-// playing. The choice is saved in
-// this browser.
+// playing. The song and volumes come from the player's sound settings
+// (ui/audioSettingsStore).
 
 import { Config } from "@shared/Config";
 import { MsPerSecond } from "@shared/time";
 import { callStore } from "@client/state/callStore";
 import { connectionStore } from "@client/state/connectionStore";
-import { createStore, useStore } from "@client/state/createStore";
-import { type MusicSettings, musicVolume, parseMusicSettings } from "@client/ui/musicSettings";
+import { musicVolume } from "@client/ui/audioSettings";
+import { audioSettingsStore as settings } from "@client/ui/audioSettingsStore";
 import { findSong } from "@client/ui/songs";
-
-const StorageKey = "scamgpt.music";
-
-function loadSettings(): MusicSettings {
-  try {
-    return parseMusicSettings(localStorage.getItem(StorageKey));
-  } catch {
-    // Storage blocked (e.g. a private window): the defaults, unsaved.
-    return parseMusicSettings(null);
-  }
-}
-
-const settings = createStore<MusicSettings>(loadSettings());
 
 let element: HTMLAudioElement | null = null;
 // The volume fade in progress.
@@ -84,31 +71,6 @@ function sync(): void {
   fadeVolume();
 }
 
-/** Picks a song (or null for no music) and saves it. */
-export function setMusicSong(songId: string | null): void {
-  updateSettings({ ...settings.get(), songId });
-}
-
-/** Sets the music volume (0 to 1) and saves it. */
-export function setMusicVolume(volume: number): void {
-  updateSettings({ ...settings.get(), volume: Math.min(Math.max(volume, 0), 1) });
-}
-
-function updateSettings(next: MusicSettings): void {
-  settings.set(next);
-  try {
-    localStorage.setItem(StorageKey, JSON.stringify(next));
-  } catch {
-    // Not saved, but it still plays.
-  }
-  sync();
-}
-
-/** The music settings; re-renders the component when they change. */
-export function useMusicSettings(): MusicSettings {
-  return useStore(settings);
-}
-
 // pointerup too: on touch screens it's the tap that lets a page play sound.
 const InputEvents = ["pointerdown", "pointerup", "keydown"] as const;
 let unsubscribers: (() => void)[] = [];
@@ -125,6 +87,7 @@ export function startMusic(): void {
     unsubscribe();
   }
   unsubscribers = [
+    settings.subscribe(sync),
     callStore.subscribe(fadeVolume),
     connectionStore.subscribe(() => {
       if (connectionStore.get().status === "replaced") {

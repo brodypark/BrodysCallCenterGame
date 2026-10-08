@@ -1,6 +1,7 @@
 // The bar along the bottom of the desktop: the start button, a button for each open window,
-// and a tray with the shift timer, earnings vs. quota (rolling up on a payout), the music
-// picker, the server connection and a clock.
+// and a tray with the shift timer, earnings vs. quota (rolling up on a payout), the server
+// connection and a clock. In Sandbox (no shifts, unlimited money) the timer and earnings
+// become SANDBOX and $∞.
 
 import type { ReactElement } from "react";
 import { formatClock } from "@shared/time";
@@ -9,10 +10,10 @@ import { cx } from "@client/ui/classNames";
 import controls from "@client/ui/controls.module.css";
 import { useDesktop, useDesktopState } from "@client/ui/DesktopContext";
 import { RollingNumber } from "@client/ui/Effects";
-import { MusicPicker } from "@client/ui/MusicPicker";
 import { useNow } from "@client/ui/useNow";
 import { leaveSave } from "@client/net/saveActions";
 import { type ConnectionStatus, useConnection } from "@client/state/connectionStore";
+import { useGameMode } from "@client/state/savesStore";
 import { secondsUntil, type ShiftState, useShift } from "@client/state/shiftStore";
 import styles from "@client/ui/Taskbar.module.css";
 
@@ -25,6 +26,7 @@ export function Taskbar(): ReactElement {
   const { store } = useDesktop();
   const { openOrder, stackOrder, startMenuOpen } = useDesktopState();
   const shift = useShift();
+  const sandbox = useGameMode() === "sandbox";
   const focused = stackOrder.at(-1);
 
   return (
@@ -78,12 +80,20 @@ export function Taskbar(): ReactElement {
       </div>
 
       <div className={cx(controls.sunken, styles.tray)}>
-        <ShiftTimer shift={shift} />
-        <span>
-          <RollingNumber value={shift.snapshot.earnings} format={(value) => `$${value}`} /> / $
-          {shift.snapshot.quota}
-        </span>
-        <MusicPicker />
+        {sandbox ? (
+          <>
+            <span className={styles.sandbox}>SANDBOX</span>
+            <span>$∞</span>
+          </>
+        ) : (
+          <>
+            <ShiftTimer shift={shift} />
+            <span>
+              <RollingNumber value={shift.snapshot.earnings} format={(value) => `$${value}`} /> / $
+              {shift.snapshot.quota}
+            </span>
+          </>
+        )}
         <ConnectionDot />
         <TrayClock />
       </div>

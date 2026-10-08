@@ -8,17 +8,18 @@ import { useStats } from "@client/state/statsStore";
 import { cx } from "@client/ui/classNames";
 import controls from "@client/ui/controls.module.css";
 import app from "@client/ui/apps/appStyles.module.css";
+import { useGameMode } from "@client/state/savesStore";
 import styles from "@client/ui/apps/Stats.module.css";
 
 const Percent = 100;
 
-function rows(stats: PlayerStats): readonly { label: string; value: string }[] {
+function rows(stats: PlayerStats, sandbox: boolean): readonly { label: string; value: string }[] {
   const successRate =
     stats.callsCompleted === 0
       ? "--"
       : `${Math.round((stats.successfulCalls / stats.callsCompleted) * Percent)}%`;
   return [
-    { label: "Money in the bank", value: `$${stats.money}` },
+    { label: "Money in the bank", value: sandbox ? "$∞ (Sandbox)" : `$${stats.money}` },
     { label: "Calls completed", value: String(stats.callsCompleted) },
     { label: "Success rate", value: successRate },
     { label: "Shifts passed / failed", value: `${stats.shiftsPassed} / ${stats.shiftsFailed}` },
@@ -28,13 +29,14 @@ function rows(stats: PlayerStats): readonly { label: string; value: string }[] {
 
 export function Stats(): ReactElement {
   const stats = useStats();
+  const sandbox = useGameMode() === "sandbox";
   const progress = levelProgress(stats.xp);
   const percent = Math.round((progress.xpIntoLevel / progress.xpForNextLevel) * Percent);
 
   return (
     <div className={app.app}>
       <dl className={cx(controls.sunken, styles.table)}>
-        {rows(stats).map((row) => (
+        {rows(stats, sandbox).map((row) => (
           <div key={row.label} className={styles.row}>
             <dt>{row.label}</dt>
             <dd>{row.value}</dd>

@@ -103,3 +103,97 @@ describe("RedeemService", () => {
     );
   });
 });
+
+describe("RedeemService: Wobblebucks Cards", () => {
+  const Card = "WBK-7QZ";
+  const Limit = 40;
+
+  function withCard(): { redeem: RedeemService; charged: number[]; locked: number[] } {
+    const charged: number[] = [];
+    const locked: number[] = [];
+    const redeem = new RedeemService({
+      onRedeemed: () => undefined,
+      onCharged: (_playerId, amount) => charged.push(amount),
+      onLocked: () => locked.push(1),
+    });
+    redeem.registerWobblebucksCard(PlayerId, Card, Limit, "Easy");
+    return { redeem, charged, locked };
+  }
+
+  it("approves a charge within the hidden limit, once", () => {
+    const { redeem, charged } = withCard();
+    expect(redeem.charge(PlayerId, " wbk 7qz ", Limit)).toMatchObject({
+      success: true,
+      payout: Limit,
+    });
+    expect(redeem.charge(PlayerId, Card, 1)).toMatchObject({
+      success: false,
+      message: "You already charged this card.",
+    });
+    expect(charged).toEqual([Limit]);
+  });
+
+  it("declines a charge over the limit, then freezes the card", () => {
+    const { redeem, charged, locked } = withCard();
+    expect(redeem.charge(PlayerId, Card, Limit + 1)).toMatchObject({
+      success: false,
+      triesRemaining: Config.Card.TriesPerCard - 1,
+    });
+    for (let tries = Config.Card.TriesPerCard - 2; tries > 0; tries--) {
+      redeem.charge(PlayerId, Card, Limit + 1);
+    }
+    expect(redeem.charge(PlayerId, Card, Limit + 1)).toMatchObject({
+      triesRemaining: 0,
+      message: "Declined! That card is now frozen.",
+    });
+    // Frozen: even a fair amount is turned away now.
+    expect(redeem.charge(PlayerId, Card, 1)).toMatchObject({ success: false, triesRemaining: 0 });
+    expect(charged).toEqual([]);
+    expect(locked).toHaveLength(1);
+  });
+
+  it("costs a try for a mistyped card", () => {
+    const { redeem } = withCard();
+    expect(redeem.charge(PlayerId, "WBK-7QX", 10)).toMatchObject({
+      success: false,
+      triesRemaining: Config.Card.TriesPerCard - 1,
+    });
+  });
+
+  it("turns away bad amounts without costing a try", () => {
+    const { redeem } = withCard();
+    for (const amount of [0, -5, 2.5, Number.NaN, Config.Card.MaxChargeAmount + 1]) {
+      expect(redeem.charge(PlayerId, Card, amount)).toMatchObject({
+        success: false,
+        triesRemaining: null,
+      });
+    }
+    expect(redeem.charge(PlayerId, Card, Limit)).toMatchObject({ success: true });
+  });
+
+  it("sends each kind of card to its own app without costing a try", () => {
+    const { redeem } = withCard();
+    redeem.registerGiftCard(PlayerId, "GMA-ABC", Grandma);
+    expect(redeem.redeem(PlayerId, Card)).toMatchObject({
+      success: false,
+      triesRemaining: null,
+      message: "That's a Wobblebucks Card. Charge it in the Wobblebucks Machine.",
+    });
+    expect(redeem.charge(PlayerId, "GMA-ABC", 10)).toMatchObject({
+      success: false,
+      triesRemaining: null,
+      message: "That's a gift card code. Cash it in with the Redeem app.",
+    });
+    // Both still have every try.
+    expect(redeem.charge(PlayerId, Card, Limit)).toMatchObject({ success: true });
+    expect(redeem.redeem(PlayerId, "GMA-ABC")).toMatchObject({ success: true });
+  });
+
+  it("never matches a gift card's typo to a Wobblebucks Card, or the other way round", () => {
+    const { redeem } = withCard();
+    expect(redeem.redeem(PlayerId, "GMA-7QZ")).toMatchObject({
+      success: false,
+      message: "No card matches that code.",
+    });
+  });
+});

@@ -1,3 +1,4 @@
+import type { GameMode } from "@shared/sandbox";
 import type { PlayerStats } from "@shared/stats";
 
 // Types the server sends to the client. Anything the player shouldn't see (prompts, codes
@@ -21,6 +22,9 @@ export interface VictimMessage {
   text: string;
   // Which line this is, so the client can say when it has finished speaking it.
   lineId: number;
+  // True when the reply came from the scenario's script (or a test word or Sandbox cheat)
+  // rather than the AI. Greetings are always scripted, so they aren't marked.
+  scripted?: boolean;
 }
 
 export type ChatMessage = PlayerMessage | VictimMessage;
@@ -166,5 +170,8 @@ export interface SaveSlotSummary {
 /** The player's save slots, and the one this session is playing (null: pick one). */
 export interface SavesSnapshot {
   slots: SaveSlotSummary[];
+  // The slot being played (Config.Saves.SandboxSlot in Sandbox), or null on the title menu.
   activeSlot: number | null;
+  // Which way the player is playing, or null before they pick.
+  mode: GameMode | null;
 }

@@ -15,6 +15,11 @@ export const Songs: readonly Song[] = [
     title: "Indian Music Meme",
     file: "sounds/music/indian-music-meme.mp3",
   },
+  {
+    id: "patapim",
+    title: "Patapim",
+    file: "sounds/music/patapim.mp3",
+  },
 ];
 
 /** The song with `id`, or undefined if there isn't one (e.g. it was removed). */

@@ -26,4 +26,13 @@ describe("matchDevCommand", () => {
     matchDevCommand("!money")?.(stats);
     expect(stats.money).toBe(1005);
   });
+
+  it("jumps straight to a level with !level", () => {
+    const stats = PlayerStatsSchema.parse({});
+    matchDevCommand("!level 11")?.(stats);
+    expect(levelOf(stats.xp)).toBe(11);
+    matchDevCommand("!LEVEL 1")?.(stats);
+    expect(levelOf(stats.xp)).toBe(1);
+    expect(matchDevCommand("!level eleven")).toBeNull();
+  });
 });

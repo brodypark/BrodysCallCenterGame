@@ -15,6 +15,7 @@ import type { PlayerStats } from "@shared/stats";
 import type { ShopResult } from "@shared/types";
 import { buyUpgrade, equipCosmetic } from "@client/net/shopActions";
 import { useConnection } from "@client/state/connectionStore";
+import { useGameMode } from "@client/state/savesStore";
 import { useShift } from "@client/state/shiftStore";
 import { useStats } from "@client/state/statsStore";
 import { cx } from "@client/ui/classNames";
@@ -40,7 +41,10 @@ function isEquipped(stats: PlayerStats, upgrade: Upgrade): boolean {
 }
 
 export function Shop(): ReactElement {
-  const stats = useStats();
+  const saved = useStats();
+  // Sandbox money is unlimited (the server makes every purchase free).
+  const sandbox = useGameMode() === "sandbox";
+  const stats = sandbox ? { ...saved, money: Number.POSITIVE_INFINITY } : saved;
   const online = useConnection().status === "connected";
   const open = useShift().snapshot.status === "offShift";
   const [tab, setTab] = useState<UpgradeKind>("perk");
@@ -73,7 +77,7 @@ export function Shop(): ReactElement {
           </button>
         ))}
       </div>
-      <p className={app.muted}>Bank: ${stats.money}</p>
+      <p className={app.muted}>Bank: {sandbox ? "$∞ (Sandbox)" : `$${stats.money}`}</p>
       <ul className={cx(controls.sunken, styles.items)}>
         {upgradesOfKind(tab).map((upgrade) => (
           <ShopItem

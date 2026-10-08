@@ -4,6 +4,7 @@
 
 import { z } from "zod";
 import { DefaultTheme, DefaultWallpaper, ThemeIds, WallpaperIds } from "@shared/cosmetics";
+import { SandboxSettingsSchema } from "@shared/sandbox";
 
 const count = z.number().int().min(0).default(0);
 
@@ -25,6 +26,8 @@ export const PlayerStatsSchema = z.object({
   theme: z.enum(ThemeIds).catch(DefaultTheme).default(DefaultTheme),
   // True once the player has closed How to Play, so it only opens by itself the first time.
   tutorialSeen: z.boolean().default(false),
+  // The Sandbox control panel's settings. Only used in the Sandbox save.
+  sandbox: SandboxSettingsSchema.prefault({}),
 });
 
 export type PlayerStats = z.output<typeof PlayerStatsSchema>;

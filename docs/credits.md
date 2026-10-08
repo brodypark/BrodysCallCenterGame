@@ -10,7 +10,7 @@ Assets the game ships with, and their licenses.
 
 ## Music
 
-Looped background music, picked from the ♪ menu in the taskbar (`src/client/ui/songs.ts`).
+Looped background music, picked in the Settings app (`src/client/ui/songs.ts`).
 
 - **Memememew**: `public/sounds/music/memememew.mp3`. A meme clip downloaded from Voicy
   ("Indian Memememew Memew"). **License unconfirmed**: fine for local testing; confirm the
@@ -18,14 +18,13 @@ Looped background music, picked from the ♪ menu in the taskbar (`src/client/ui
 - **Indian Music Meme**: `public/sounds/music/indian-music-meme.mp3`. A meme clip made with
   Voicemod ("indian-music-meme-original"). **License unconfirmed**: fine for local testing;
   confirm the rights (or replace it) before deploying.
+- **Patapim**: `public/sounds/music/patapim.mp3`. A user-uploaded meme clip. **License unconfirmed**: fine for local testing; confirm the rights before deploying.
 
 ## Sounds
 
-None yet. The game plays these if they're in `public/sounds` (each `<name>.mp3`) and skips
-any that are missing (`src/client/ui/sounds.ts`):
+None: every sound effect (clicks, the ringtone, ka-ching, stamps, jingles...) is made in
+code from tones and noise (`src/client/ui/synthSounds.ts`), so there's nothing to license.
 
-`click`, `window-open`, `window-close`, `ring` (loops), `pick-up`, `dial-tone`,
-`message-sent`, `ka-ching`, `coins`, `wrong-code`, `suspicion-up`, `suspicion-down`,
-`clock-in`, `overtime`, `stamp`, `promoted`, `fired`, `level-up`.
-
-Credit each file here when it's added.
+To replace one with a recorded file, add `public/sounds/<name>.mp3`, list the name in
+`SoundFiles` in `src/client/ui/sounds.ts`, and credit it here. The names are in
+`src/client/ui/soundList.ts`.

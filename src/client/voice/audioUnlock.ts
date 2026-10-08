@@ -3,11 +3,34 @@
 // voices play through it (VictimVoice).
 
 let context: AudioContext | null = null;
+// Told each time the context starts running (after the first click, or after the browser
+// suspended it), e.g. so a phone that started ringing before then can be heard.
+const runningListeners = new Set<() => void>();
+
+function onStateChange(): void {
+  if (context?.state === "running") {
+    for (const listener of runningListeners) {
+      listener();
+    }
+  }
+}
+
+/** Calls `listener` whenever the shared audio context starts running. Returns a function
+ * that stops it. */
+export function onAudioRunning(listener: () => void): () => void {
+  runningListeners.add(listener);
+  return () => runningListeners.delete(listener);
+}
 
 /** Starts (or resumes) the shared audio context. Call it from a click handler. */
 export function unlockAudio(): void {
   try {
-    context ??= new AudioContext();
+    if (context === null) {
+      context = new AudioContext();
+      context.addEventListener("statechange", onStateChange);
+      // Some browsers start it running straight away, with no state change to hear.
+      onStateChange();
+    }
     if (context.state === "suspended") {
       context.resume().catch(() => undefined);
     }

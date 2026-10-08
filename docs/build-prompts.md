@@ -439,16 +439,18 @@ Propose a short plan first and wait for my OK. Then tell me exactly how to test 
 ## Step 12 — All 6 scenarios and side problems
 
 ```text
-Build step 12: the other five scenarios and side problems. Port Zorp, Barnacle Bill, Chad,
-Gary and Inspector Hawk from ../ScammingGameRoblox/src/shared/Scenarios/, and the side
-problem and Wobblebucks rules from docs/design.md ("Side problems and the Wobblebucks
-Machine") and the Roblox CallService and RedeemService.
+Build step 12: five new scenarios and side problems. Keep Grandma. Instead of porting the
+other Roblox callers, add new ones: Hudson (obsession: popcorn), Sarah (boba tea), Pete
+(working out and staying in shape), Brody (Skibidi Toilet) and Uncle Mike (the University of
+Georgia football team, and how bad it is). Port the side problem and Wobblebucks rules from
+docs/design.md ("Side problems and the Wobblebucks Machine") and the Roblox CallService and
+RedeemService.
 
 Requirements:
 - One module per scenario in src/server/scenarios/. Adding them should need no core
   changes; if it does, stop and tell me why first.
 - Pick an ElevenLabs voice and settings for each (ask before generating any test audio),
-  and port each face.
+  and give each a face.
 - Side problems: rolled per call (Config.Card.SideProblemChance) and told to the AI. The
   Wobblebucks Card (WBK-XXX) is revealed by the same rules as the gift card code. Spending
   limits stay on the server.
@@ -499,41 +501,7 @@ any caller with unlimited money, switching back keeps my Career progress untouch
 Propose a short plan first and wait for my OK. Then tell me exactly how to test it.
 ```
 
-## Step 14 — Custom callers
-
-```text
-Build step 14: custom callers. Players make their own victims (for example a character
-based on a friend or family member) and those call like any other scenario. Read
-docs/design.md ("Custom callers") and the Scenarios section of CLAUDE.md.
-
-Requirements:
-- A Caller Maker app: name, personality, a few quirks, an obsession, catchphrases, likes and
-  dislikes, their situation and what they're trying to redeem, a difficulty preset (sets
-  starting suspicion, threshold, trust level and card value from Config, so players can't
-  make a free-money caller), a face from the step 11 options and a voice from a short list.
-  Every field is length-capped.
-- Custom callers are fictional cartoon characters. The form asks for personality, not real
-  personal details: no addresses, phone numbers, workplaces, account or card details. The
-  AI prompt keeps the same content rules for them as for built-in scenarios.
-- Saved per player (SQLite), private to that player, validated with the same scenario schema
-  (Zod) and checks, with a cap on how many each player can have.
-- Their text goes into the AI prompt, so treat it as untrusted: the server still decides
-  every reveal and makes every code. Tell me whether you think the fields need moderation
-  before they're used, which option you'd use and what it would cost.
-- When the AI is off or fails, custom callers use a generic set of scripted replies (same
-  shape and tuning as the built-in fallback replies).
-- Career: they unlock at a level I'll pick and are mixed in with the other callers. Sandbox:
-  always available in the caller picker.
-- Never shown to other players. If sharing is ever added, moderation comes first.
-
-Done when: I can make, edit and delete a caller, they call me with their own name, face,
-voice and personality, the rules (suspicion, reveal, redeem) work the same, and bad input
-(too long, empty, junk) is turned away with a clear message.
-
-Propose a short plan first and wait for my OK. Then tell me exactly how to test it.
-```
-
-## Step 15 — Facecam
+## Step 14 — Facecam
 
 ```text
 Build step 15: a facecam window that shows the player through their webcam with a cartoon
@@ -566,36 +534,8 @@ the game working.
 Propose a short plan first and wait for my OK. Then tell me exactly how to test it.
 ```
 
-## Step 16 — Player voice changer
 
-```text
-Build step 16: a voice changer for the player, so their side of the call sounds like a
-character too (fun for streaming and recording). Read docs/design.md ("Streamer extras"),
-including the open question about which voices to offer.
-
-Before writing code, read the current ElevenLabs docs for speech-to-speech (voice changer)
-and text-to-speech: endpoints, latency, cost, limits and how to pick voices. Tell me what
-you found and wait for my OK.
-
-Requirements:
-- A setting with a few character voices to pick from: [the voices I choose]. Off by default.
-- With it on, after each push-to-talk clip the player's line is played back in the chosen
-  voice; typed messages can be spoken in it too. The victim still gets the transcript text,
-  exactly as before.
-- Runs on the server like all ElevenLabs calls; the API key never reaches the client.
-- Cost guards like steps 9-10: it adds voice cost on every player message, so it has its
-  own per-player limit and turns itself off (with a short notice) when the daily voice cap
-  is hit.
-- If it fails, the call carries on normally; typed and plain voice play never depend on it.
-- Tests mock ElevenLabs. Nothing in tests or scripts calls the real API.
-
-Done when: I can pick a voice, hear my lines played back in it, turn it off again, and the
-game works the same with it failing or switched off.
-
-Then tell me exactly how to test it, and roughly what a test session costs.
-```
-
-## Step 17 — Deploy with cost guards
+## Step 15 — Deploy with cost guards
 
 ```text
 Plan only, no code until I OK it: get the game ready to put online.

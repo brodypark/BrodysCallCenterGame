@@ -5,6 +5,7 @@
 import { z } from "zod";
 import { Config } from "@shared/Config";
 import { MaxUnitsPerCharacter } from "@shared/messageText";
+import { SandboxCheats, SandboxSettingsChangeSchema, type SandboxSnapshot } from "@shared/sandbox";
 import type {
   CallSnapshot,
   PlayerStats,
@@ -39,6 +40,19 @@ const clientEventSchemas = {
   "call:send": z.strictObject({
     text: z.string().max(Config.Call.MaxTypedMessageLength * MaxUnitsPerCharacter),
   }),
+  // Sandbox mode: play the Sandbox save, and its control panel. The server ignores these
+  // outside Sandbox.
+  "sandbox:enter": z.undefined(),
+  "sandbox:settings": SandboxSettingsChangeSchema,
+  "sandbox:ringNow": z.undefined(),
+  // Sets the trust bar during a call, 0 to 100.
+  "sandbox:trust": z.strictObject({
+    percent: z.number().min(0).max(Config.Sandbox.TrustSliderMax),
+  }),
+  "sandbox:cheat": z.strictObject({ cheat: z.enum(SandboxCheats) }),
+  // Puts on a wallpaper or theme by id; the server checks it exists.
+  "sandbox:wear": z.strictObject({ id: z.string().max(Config.Shop.MaxUpgradeIdLength) }),
+  "sandbox:reset": z.undefined(),
   // The victim's line `lineId` has been said, so the turn can move on.
   "call:finishedSpeaking": z.strictObject({
     lineId: z.number().int().positive(),
@@ -62,6 +76,11 @@ const upgradeIdSchema = z.strictObject({ id: z.string().max(Config.Shop.MaxUpgra
 
 const clientRequestSchemas = {
   "redeem:code": z.strictObject({ code: z.string().max(Config.Redeem.MaxCodeInputLength) }),
+  // Charge `amount` dollars to a Wobblebucks Card. RedeemService checks the amount's range.
+  "wobblebucks:charge": z.strictObject({
+    card: z.string().max(Config.Redeem.MaxCodeInputLength),
+    amount: z.number(),
+  }),
   "shop:buy": upgradeIdSchema,
   "shop:equip": upgradeIdSchema,
 } satisfies Record<string, z.ZodType>;
@@ -75,22 +94,25 @@ export type ClientRequestPayload<R extends ClientRequestName> = z.output<
 /** What the server answers each request with. */
 export interface ClientRequestResponses {
   "redeem:code": RedeemResult;
+  "wobblebucks:charge": RedeemResult;
   "shop:buy": ShopResult;
   "shop:equip": ShopResult;
 }
 
 const shopResultSchema = z.strictObject({ success: z.boolean(), message: z.string() });
+const redeemResultSchema = z.strictObject({
+  success: z.boolean(),
+  payout: z.number(),
+  triesRemaining: z.number().nullable(),
+  message: z.string(),
+});
 
 /** The shape of each answer, so the client can check what it got back. */
 export const ClientRequestResponseSchemas: {
   readonly [R in ClientRequestName]: z.ZodType<ClientRequestResponses[R]>;
 } = {
-  "redeem:code": z.strictObject({
-    success: z.boolean(),
-    payout: z.number(),
-    triesRemaining: z.number().nullable(),
-    message: z.string(),
-  }),
+  "redeem:code": redeemResultSchema,
+  "wobblebucks:charge": redeemResultSchema,
   "shop:buy": shopResultSchema,
   "shop:equip": shopResultSchema,
 };
@@ -125,6 +147,7 @@ export interface ServerToClientEvents {
   "shift:ended": (result: ShiftResult) => void;
   "stats:snapshot": (stats: PlayerStats) => void;
   "saves:snapshot": (saves: SavesSnapshot) => void;
+  "sandbox:snapshot": (snapshot: SandboxSnapshot) => void;
   // The player opened the game in another tab, which took over. This tab is disconnected
   // and doesn't reconnect by itself.
   "session:replaced": () => void;

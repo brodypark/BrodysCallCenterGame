@@ -1,25 +1,32 @@
-// Keeps each player's revealed card codes and cashes them in when typed into the Redeem
-// app. Ported from the Roblox RedeemService. It holds no money: onRedeemed is told when a
-// card is cashed in, and pays.
+// Keeps each player's revealed cards: gift card codes, cashed in whole in the Redeem app,
+// and Wobblebucks Cards (a side problem fixed for a fee), charged any amount up to a hidden
+// spending limit in the Wobblebucks Machine. Ported from the Roblox RedeemService. It holds
+// no money: onRedeemed and onCharged are told when a card pays, and pay.
 //
 // Codes are stored normalized (capitals, no spaces or dashes), so "gma 7qz" matches
-// GMA-7QZ. A wrong guess is matched to the closest card and costs one of its tries; after
-// Config.Redeem.TriesPerCode wrong tries the card locks. Wobblebucks Cards (step 12) start
-// with Config.Card.Prefix and are turned away here without costing a try.
+// GMA-7QZ. A wrong guess is matched to the closest card of that kind and costs one of its
+// tries; so does charging more than a Wobblebucks Card's limit. Out of tries, the card
+// locks (a gift card after Config.Redeem.TriesPerCode, a Wobblebucks Card after
+// Config.Card.TriesPerCard). Each app turns away the other's cards without costing a try.
 
 import { normalizeCode } from "@shared/cardCode";
 import { Config } from "@shared/Config";
 import type { Difficulty, RedeemResult } from "@shared/types";
 import { generateCode } from "@server/services/codes";
 
+// giftCard: cashed in whole in the Redeem app. wobblebucks: charged in the Wobblebucks
+// Machine, up to its spending limit.
+type CardKind = "giftCard" | "wobblebucks";
+
 interface IssuedCard {
-  // Paid out when it's redeemed.
+  kind: CardKind;
+  // A gift card pays this when it's redeemed; a Wobblebucks Card can be charged up to it.
   value: number;
   // The scenario's difficulty, which sets the XP for cashing it in.
   difficulty: Difficulty;
-  // Wrong tries left before the card locks. 0 means locked.
+  // Wrong tries (or declined charges) left before the card locks. 0 means locked.
   triesLeft: number;
-  // Cashed in. Each card pays out once.
+  // Cashed in or charged. Each card pays out once.
   redeemed: boolean;
   // Goes up with every card issued, so ties can go to the newest one.
   order: number;
@@ -32,8 +39,10 @@ interface PlayerCards {
 }
 
 export interface RedeemServiceOptions {
-  // A card was cashed in.
+  // A gift card was cashed in.
   onRedeemed: (playerId: string, card: { value: number; difficulty: Difficulty }) => void;
+  // A Wobblebucks Card was charged `amount`.
+  onCharged?: (playerId: string, amount: number) => void;
   // A card ran out of tries and can't be cashed in any more.
   onLocked?: (playerId: string) => void;
   // Extra wrong tries per card for this player (the Sticky Notes perk).
@@ -41,6 +50,8 @@ export interface RedeemServiceOptions {
 }
 
 const NotACode = "That doesn't look like a card code.";
+const WobblebucksInRedeem = "That's a Wobblebucks Card. Charge it in the Wobblebucks Machine.";
+const GiftCardInMachine = "That's a gift card code. Cash it in with the Redeem app.";
 const OnlyLettersAndDigits = /^[A-Z0-9]+$/;
 
 function result(
@@ -87,11 +98,13 @@ function isBetterTie(candidate: IssuedCard, current: IssuedCard): boolean {
 export class RedeemService {
   private readonly players = new Map<string, PlayerCards>();
   private readonly onRedeemed: RedeemServiceOptions["onRedeemed"];
+  private readonly onCharged: NonNullable<RedeemServiceOptions["onCharged"]>;
   private readonly onLocked: NonNullable<RedeemServiceOptions["onLocked"]>;
   private readonly extraTries: NonNullable<RedeemServiceOptions["extraTries"]>;
 
   constructor(options: RedeemServiceOptions) {
     this.onRedeemed = options.onRedeemed;
+    this.onCharged = options.onCharged ?? (() => undefined);
     this.onLocked = options.onLocked ?? (() => undefined);
     this.extraTries = options.extraTries ?? (() => 0);
   }
@@ -110,18 +123,26 @@ export class RedeemService {
     code: string,
     card: { value: number; difficulty: Difficulty },
   ): void {
-    const player = this.getOrCreate(playerId);
-    const key = normalizeCode(code);
-    if (player.cards.has(key)) {
-      return;
-    }
-    player.issued += 1;
-    player.cards.set(key, {
-      value: card.value,
-      difficulty: card.difficulty,
+    this.register(playerId, code, {
+      kind: "giftCard",
+      ...card,
       triesLeft: Config.Redeem.TriesPerCode + this.extraTries(playerId),
-      redeemed: false,
-      order: player.issued,
+    });
+  }
+
+  /** Makes Wobblebucks Card `card` chargeable by the player, up to `spendingLimit` dollars.
+   * Call it when the victim reads it out. Registering the same card again does nothing. */
+  registerWobblebucksCard(
+    playerId: string,
+    card: string,
+    spendingLimit: number,
+    difficulty: Difficulty,
+  ): void {
+    this.register(playerId, card, {
+      kind: "wobblebucks",
+      value: spendingLimit,
+      difficulty,
+      triesLeft: Config.Card.TriesPerCard,
     });
   }
 
@@ -132,14 +153,9 @@ export class RedeemService {
       return result(false, 0, null, NotACode);
     }
     if (typed.startsWith(Config.Card.Prefix)) {
-      return result(
-        false,
-        0,
-        null,
-        "That's a Wobblebucks Card. Charge it in the Wobblebucks Machine.",
-      );
+      return result(false, 0, null, WobblebucksInRedeem);
     }
-    const match = this.findCard(playerId, typed);
+    const match = this.findCard(playerId, typed, "giftCard");
     if (!match) {
       return result(false, 0, null, "No card matches that code.");
     }
@@ -152,17 +168,73 @@ export class RedeemService {
       return result(false, 0, 0, "This card is locked. Too many wrong tries.");
     }
     if (!exact) {
-      card.triesLeft -= 1;
-      if (card.triesLeft === 0) {
-        this.onLocked(playerId);
-        return result(false, 0, 0, "Wrong code. That card is now locked!");
-      }
-      const tries = card.triesLeft === 1 ? "try" : "tries";
-      return result(false, 0, card.triesLeft, `Wrong code. ${card.triesLeft} ${tries} left.`);
+      return this.spendTry(playerId, card, "Wrong code.", "Wrong code. That card is now locked!");
     }
     card.redeemed = true;
     this.onRedeemed(playerId, { value: card.value, difficulty: card.difficulty });
     return result(true, card.value, card.triesLeft, `Ka-ching! +$${card.value}`);
+  }
+
+  /** Tries to charge `amount` dollars to the Wobblebucks Card the player typed into the
+   * Wobblebucks Machine. Within the card's hidden spending limit it pays that amount; over
+   * it, the charge is declined and uses a try. */
+  charge(playerId: string, input: string, amount: number): RedeemResult {
+    const typed = normalizeCode(input);
+    if (input.length > Config.Redeem.MaxCodeInputLength || !OnlyLettersAndDigits.test(typed)) {
+      return result(false, 0, null, NotACode);
+    }
+    const { MinChargeAmount, MaxChargeAmount } = Config.Card;
+    if (!Number.isInteger(amount) || amount < MinChargeAmount || amount > MaxChargeAmount) {
+      return result(
+        false,
+        0,
+        null,
+        `Enter a whole amount from $${MinChargeAmount} to $${MaxChargeAmount}.`,
+      );
+    }
+    // Neither of these costs a try: a gift card belongs in the Redeem app (where a near miss
+    // would cost one of its tries), and anything else is pointed at the right prefix.
+    if (!typed.startsWith(Config.Card.Prefix)) {
+      return result(
+        false,
+        0,
+        null,
+        this.looksLikeOwnGiftCard(playerId, typed)
+          ? GiftCardInMachine
+          : `Wobblebucks Cards start with ${Config.Card.Prefix}.`,
+      );
+    }
+    const match = this.findCard(playerId, typed, "wobblebucks");
+    if (!match) {
+      return result(false, 0, null, "No Wobblebucks Card matches that code.");
+    }
+    const { card, exact } = match;
+    if (card.redeemed) {
+      return result(false, 0, null, "You already charged this card.");
+    }
+    if (card.triesLeft <= 0) {
+      return result(false, 0, 0, "This card is frozen. Too many tries.");
+    }
+    if (!exact) {
+      return this.spendTry(
+        playerId,
+        card,
+        "Unknown card.",
+        "Unknown card. That card is now frozen!",
+      );
+    }
+    if (amount > card.value) {
+      // The limit stays hidden: too greedy just gets declined.
+      return this.spendTry(
+        playerId,
+        card,
+        "Declined! The card wobbled and said no.",
+        "Declined! That card is now frozen.",
+      );
+    }
+    card.redeemed = true;
+    this.onCharged(playerId, amount);
+    return result(true, amount, card.triesLeft, `Approved! Wobble-ka-ching! +$${amount}`);
   }
 
   /** True if the player has a card they can still cash in. */
@@ -180,6 +252,46 @@ export class RedeemService {
     this.players.clear();
   }
 
+  private register(
+    playerId: string,
+    code: string,
+    card: Pick<IssuedCard, "kind" | "value" | "difficulty" | "triesLeft">,
+  ): void {
+    const player = this.getOrCreate(playerId);
+    const key = normalizeCode(code);
+    if (player.cards.has(key)) {
+      return;
+    }
+    player.issued += 1;
+    player.cards.set(key, { ...card, redeemed: false, order: player.issued });
+  }
+
+  /** Uses up one of `card`'s tries, locking it on the last one. */
+  private spendTry(
+    playerId: string,
+    card: IssuedCard,
+    problem: string,
+    lockedMessage: string,
+  ): RedeemResult {
+    card.triesLeft -= 1;
+    if (card.triesLeft === 0) {
+      this.onLocked(playerId);
+      return result(false, 0, 0, lockedMessage);
+    }
+    const tries = card.triesLeft === 1 ? "try" : "tries";
+    return result(false, 0, card.triesLeft, `${problem} ${card.triesLeft} ${tries} left.`);
+  }
+
+  /** True if `typed` starts with the prefix of one of the player's gift cards, so it belongs
+   * in the Redeem app rather than being a mistyped Wobblebucks Card. */
+  private looksLikeOwnGiftCard(playerId: string, typed: string): boolean {
+    const prefix = typed.slice(0, Config.Code.PrefixLength);
+    const cards = this.players.get(playerId)?.cards;
+    return cards
+      ? [...cards].some(([code, card]) => card.kind === "giftCard" && code.startsWith(prefix))
+      : false;
+  }
+
   private getOrCreate(playerId: string): PlayerCards {
     let player = this.players.get(playerId);
     if (!player) {
@@ -189,20 +301,28 @@ export class RedeemService {
     return player;
   }
 
-  /** The card `typed` was meant to be, and whether it matched exactly. A wrong guess is
-   * matched to the closest card; ties go to one that can still be used, then the newest. */
-  private findCard(playerId: string, typed: string): { card: IssuedCard; exact: boolean } | null {
+  /** The card of `kind` that `typed` was meant to be, and whether it matched exactly. A
+   * wrong guess is matched to the closest card of that kind; ties go to one that can still
+   * be used, then the newest. */
+  private findCard(
+    playerId: string,
+    typed: string,
+    kind: CardKind,
+  ): { card: IssuedCard; exact: boolean } | null {
     const cards = this.players.get(playerId)?.cards;
     if (!cards) {
       return null;
     }
     const exact = cards.get(typed);
-    if (exact) {
+    if (exact?.kind === kind) {
       return { card: exact, exact: true };
     }
     let closest: IssuedCard | null = null;
     let closestDistance = Infinity;
     for (const [code, card] of cards) {
+      if (card.kind !== kind) {
+        continue;
+      }
       const distance = editDistance(typed, code);
       if (
         !closest ||

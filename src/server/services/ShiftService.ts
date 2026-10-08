@@ -174,6 +174,21 @@ export class ShiftService {
     this.checkOvertime(playerId, shift);
   }
 
+  /** A Wobblebucks Card was charged: the amount goes into this shift's earnings, with a
+   * little XP. It isn't a successful call (the gift card is), so the success rate doesn't
+   * change. */
+  cardCharged(playerId: string, amount: number): void {
+    const shift = this.shifts.get(playerId);
+    // Cards are cleared when a shift ends, so this only happens on shift.
+    if (!shift || shift.status === "offShift") {
+      return;
+    }
+    shift.earnings += amount;
+    shift.xpEarned += Config.XP.PerCharge;
+    this.publish(playerId, shift);
+    this.checkOvertime(playerId, shift);
+  }
+
   /** A card ran out of tries: in overtime, that may be the last thing left to finish. */
   cardLocked(playerId: string): void {
     const shift = this.shifts.get(playerId);

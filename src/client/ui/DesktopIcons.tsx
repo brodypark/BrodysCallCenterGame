@@ -4,7 +4,8 @@
 // the app; so does Enter or Space when the icon has keyboard focus.
 
 import { type MouseEvent, type ReactElement, useRef, useState } from "react";
-import { type AppInfo, AppList } from "@client/ui/appList";
+import { type AppInfo, appsFor } from "@client/ui/appList";
+import { useGameMode } from "@client/state/savesStore";
 import { cx } from "@client/ui/classNames";
 import { useDesktop, useDesktopState } from "@client/ui/DesktopContext";
 import {
@@ -34,10 +35,11 @@ interface IconPress {
 
 export function DesktopIcons(): ReactElement {
   const { iconCells } = useDesktopState();
+  const mode = useGameMode();
 
   return (
     <div className={styles.layer}>
-      {AppList.map((app) => {
+      {appsFor(mode).map((app) => {
         const cell = iconCells[app.id];
         return cell === undefined ? null : <DesktopIcon key={app.id} app={app} cell={cell} />;
       })}

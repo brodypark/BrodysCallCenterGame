@@ -1,6 +1,7 @@
 // Every app the desktop can open, in the order they appear as desktop icons and in the
 // start menu. Plain data, so the desktop store and its tests don't need React.
 
+import type { GameMode } from "@shared/sandbox";
 import type { Rect } from "@client/ui/desktopGrid";
 
 export const AppIds = [
@@ -11,6 +12,10 @@ export const AppIds = [
   "Stats",
   "Shop",
   "Tutorial",
+  "Settings",
+  "Notepad",
+  "Email",
+  "ControlPanel",
 ] as const;
 
 export type AppId = (typeof AppIds)[number];
@@ -25,6 +30,8 @@ export interface AppInfo {
   tileColor: string;
   // Where the window first opens, as fractions of the desktop.
   layout: Rect;
+  // Only shown (as an icon and in the start menu) in this game mode.
+  onlyIn?: GameMode;
 }
 
 export const Apps: Readonly<Record<AppId, AppInfo>> = {
@@ -81,6 +88,41 @@ export const Apps: Readonly<Record<AppId, AppInfo>> = {
     tileColor: "#14a0c8",
     layout: { x: 0.63, y: 0.06, width: 0.36, height: 0.8 },
   },
+  Settings: {
+    id: "Settings",
+    title: "Settings",
+    icon: "⚙️",
+    tileColor: "#6c757d",
+    layout: { x: 0.3, y: 0.2, width: 0.4, height: 0.5 },
+  },
+  Notepad: {
+    id: "Notepad",
+    title: "Notepad",
+    icon: "📝",
+    tileColor: "#f7d238",
+    layout: { x: 0.2, y: 0.1, width: 0.3, height: 0.6 },
+  },
+  Email: {
+    id: "Email",
+    title: "Email",
+    icon: "📧",
+    tileColor: "#4285f4",
+    layout: { x: 0.5, y: 0.1, width: 0.4, height: 0.7 },
+  },
+  // Sandbox's control panel, beside the Call window.
+  ControlPanel: {
+    id: "ControlPanel",
+    title: "Control Panel",
+    icon: "🎛️",
+    tileColor: "#e0532f",
+    layout: { x: 0.385, y: 0.03, width: 0.3, height: 0.88 },
+    onlyIn: "sandbox",
+  },
 };
 
 export const AppList: readonly AppInfo[] = AppIds.map((id) => Apps[id]);
+
+/** The apps the desktop shows in `mode` (every app that isn't kept to another mode). */
+export function appsFor(mode: GameMode | null): AppInfo[] {
+  return AppList.filter((app) => app.onlyIn === undefined || app.onlyIn === mode);
+}

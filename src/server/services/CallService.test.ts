@@ -8,7 +8,7 @@ import { grandma } from "@server/scenarios/grandma";
 import { createScenarioRegistry, type ScenarioRegistry } from "@server/scenarios/ScenarioRegistry";
 import type { AIReply, ScenarioInput } from "@server/scenarios/scenarioSchema";
 import type { VictimReplyRequest, VictimReplySource } from "@server/services/AIService";
-import { CallService } from "@server/services/CallService";
+import { type CallOverrides, CallService } from "@server/services/CallService";
 import { RedeemService } from "@server/services/RedeemService";
 import { defaultStats } from "@server/services/StatsService";
 import type { PlayerStats } from "@shared/stats";
@@ -35,6 +35,8 @@ interface SetupOptions {
   random?: () => number;
   // AI replies; left out, every reply is scripted.
   replies?: VictimReplySource;
+  // Sandbox overrides.
+  sandbox?: CallOverrides;
 }
 
 interface TestCall {
@@ -70,6 +72,7 @@ function setup(options: SetupOptions = {}): TestCall {
     send: (_playerId, snapshot) => sent.push(snapshot),
     replies: options.replies,
     random: options.random ?? (() => 0),
+    sandbox: options.sandbox,
   });
   const latest = (): CallSnapshot => {
     const snapshot = service.snapshot(PlayerId);
@@ -246,6 +249,7 @@ describe("CallService: turns", () => {
       speaker: "victim",
       text: fallbackReplies[0]?.reply,
       lineId: 2,
+      scripted: true,
     });
 
     finishLine();
@@ -420,6 +424,67 @@ describe("CallService: suspicion", () => {
   });
 });
 
+const CardShape = new RegExp(
+  `${Config.Card.Prefix}-[${Config.Code.Characters}]{${Config.Code.GroupLength}}`,
+);
+
+/** Grandma, scripted to offer her Wobblebucks Card (and lower suspicion) every reply. */
+const grandmaOfferingCard = (): ScenarioRegistry =>
+  grandmaAlwaysSaying({
+    reply: "Shall I pay for the fix?",
+    suspicionChange: -Config.Suspicion.MaxDropPerTurn,
+    revealsCode: false,
+    revealsCard: true,
+  });
+
+describe("CallService: side problems", () => {
+  it("reads the Wobblebucks Card out in the side problem's line, ready to charge", () => {
+    const { latest, say, redeem } = playerTurn();
+    say("!card");
+    const line = latest().transcript?.messages.at(-1)?.text ?? "";
+    const card = CardShape.exec(line)?.[0] ?? "";
+    expect(card).not.toBe("");
+    expect(line).toContain(grandma.sideProblem?.cardLine.replace("{card}", card));
+    const limit = grandma.sideProblem?.spendingLimit ?? 0;
+    expect(redeem.charge(PlayerId, card, limit).success).toBe(true);
+  });
+
+  it("reveals the card by the same rules as the code: trusting, and not too early", () => {
+    const { latest, say } = playerTurn({ registry: grandmaOfferingCard() });
+    for (let turn = 1; turn < Config.Call.MinTurnsBeforeReveal; turn++) {
+      say(`turn ${turn}`);
+      expect(latest().transcript?.messages.at(-1)?.text).toContain(grandma.lines.notReadyLine);
+    }
+    say("last turn");
+    expect(CardShape.test(latest().transcript?.messages.at(-1)?.text ?? "")).toBe(true);
+  });
+
+  it("never reads a card on a call without a side problem", () => {
+    // Dice over Config.Card.SideProblemChance: no side problem this call.
+    const { latest, say } = playerTurn({ registry: grandmaOfferingCard(), random: () => 0.99 });
+    for (let turn = 1; turn <= Config.Call.MinTurnsBeforeReveal + 1; turn++) {
+      say(`turn ${turn}`);
+    }
+    const said =
+      latest()
+        .transcript?.messages.map((message) => message.text)
+        .join(" ") ?? "";
+    expect(CardShape.test(said)).toBe(false);
+  });
+
+  it("keeps the card out of what the AI hears", async () => {
+    const ai = fakeAI();
+    const { service, latest, say } = playerTurn({ replies: ai.replies });
+    say("!card");
+    const card = CardShape.exec(latest().transcript?.messages.at(-1)?.text ?? "")?.[0] ?? "";
+    service.sendMessage(PlayerId, `Thanks, I got ${card}`);
+    const request = ai.requests.at(-1)?.request;
+    expect(JSON.stringify(request?.history)).not.toContain(card);
+    expect(request?.context.cardRevealed).toBe(true);
+    await ai.answerLatest(aiReply());
+  });
+});
+
 describe("CallService: the code", () => {
   it("reads the code out inside the victim's line, and makes it redeemable", () => {
     const { latest, say, redeem, earnings } = playerTurn();
@@ -505,7 +570,8 @@ describe("Scenario fallback replies", () => {
     "%s reveals the code around turn 9-10 without hanging up",
     (_id, scenario) => {
       const { latest, say } = playerTurn({
-        registry: createScenarioRegistry([scenario]),
+        // On its own, so it's the one that calls (unlocked from the start).
+        registry: createScenarioRegistry([{ ...scenario, unlockLevel: 1 }]),
         allowTestWords: false,
       });
       let revealedOn = 0;
@@ -520,6 +586,26 @@ describe("Scenario fallback replies", () => {
       expect(revealedOn).toBeLessThanOrEqual(10);
     },
   );
+});
+
+describe("CallService: scripted replies", () => {
+  it("marks scripted replies, but not greetings", () => {
+    const { latest, say } = playerTurn();
+    say("hello");
+    const victimLines = (latest().transcript?.messages ?? []).filter(
+      (message) => message.speaker === "victim",
+    );
+    expect(victimLines.map((message) => message.scripted ?? false)).toEqual([false, true]);
+  });
+
+  it("doesn't mark the AI's replies", async () => {
+    const ai = fakeAI();
+    const { service, latest } = playerTurn({ replies: ai.replies });
+    service.sendMessage(PlayerId, "hello");
+    await ai.answerLatest(aiReply());
+    const line = latest().transcript?.messages.at(-1);
+    expect(line?.speaker === "victim" && line.scripted).toBeFalsy();
+  });
 });
 
 describe("CallService: messages", () => {
@@ -755,7 +841,11 @@ describe("CallService: AI replies", () => {
       suspicion: grandma.startingSuspicion,
       playerTurns: 1,
       codeRevealed: false,
-      sideProblem: null,
+      // The test dice (always 0) give every call a side problem.
+      sideProblem: {
+        description: grandma.sideProblem?.description,
+        spendingLimit: grandma.sideProblem?.spendingLimit,
+      },
       cardRevealed: false,
     });
 
@@ -858,5 +948,101 @@ describe("CallService: AI replies", () => {
     const { service } = playerTurn({ replies: ai.replies });
     service.removePlayer(PlayerId);
     expect(ai.removed).toEqual([PlayerId]);
+  });
+});
+
+describe("CallService: Sandbox", () => {
+  const allScenarios = createScenarioRegistry(AllScenarios);
+  const overrides = (change: Partial<CallOverrides> = {}): CallOverrides => ({
+    pickScenario: () => null,
+    sideProblem: () => null,
+    useAI: () => true,
+    autoRing: () => true,
+    ...change,
+  });
+
+  it("lets Sandbox pick any caller, whatever the player's level", () => {
+    const cj = allScenarios.get("cj");
+    const { latest } = ringing({
+      registry: allScenarios,
+      sandbox: overrides({ pickScenario: () => cj ?? null }),
+    });
+    expect(latest().caller).toBe(cj?.persona.name);
+  });
+
+  it("lets Sandbox turn the side problem off, and the AI off", async () => {
+    const ai = fakeAI();
+    const { service } = playerTurn({
+      replies: ai.replies,
+      sandbox: overrides({ sideProblem: () => false, useAI: () => false }),
+    });
+    service.sendMessage(PlayerId, "hello");
+    // Scripted: the AI was never asked.
+    expect(ai.requests).toHaveLength(0);
+    await Promise.resolve();
+  });
+
+  it("only rings when asked if calls don't ring by themselves", () => {
+    const { service, latest } = setup({ sandbox: overrides({ autoRing: () => false }) });
+    service.addPlayer(PlayerId);
+    service.startCalls(PlayerId);
+    advanceSeconds(Config.Call.FirstCallDelaySeconds * 10);
+    expect(latest().status).toBe("idle");
+    service.ringNow(PlayerId);
+    expect(latest().status).toBe("ringing");
+    service.decline(PlayerId);
+    advanceSeconds(Config.Call.SecondsBetweenCalls * 10);
+    expect(latest().status).toBe("idle");
+  });
+
+  it("rings now, only between calls", () => {
+    const { service, latest } = setup();
+    service.addPlayer(PlayerId);
+    service.startCalls(PlayerId);
+    service.ringNow(PlayerId);
+    expect(latest().status).toBe("ringing");
+    const caller = latest().caller;
+    service.ringNow(PlayerId);
+    expect(latest().caller).toBe(caller);
+  });
+
+  it("sets suspicion, never to the hang-up threshold", () => {
+    const { service, latest } = playerTurn();
+    service.setSuspicion(PlayerId, 1000);
+    expect(latest().status).toBe("inCall");
+    expect(latest().trust?.percent).toBe(1);
+    service.setSuspicion(PlayerId, 0);
+    expect(latest().trust?.percent).toBe(100);
+  });
+
+  it("makes them read the code or card on the player's turn", () => {
+    const { service, latest, redeem, finishLine } = playerTurn();
+    service.cheat(PlayerId, "readCode");
+    const code = CodeShape.exec(latest().transcript?.messages.at(-1)?.text ?? "")?.[0] ?? "";
+    expect(redeem.redeem(PlayerId, code).success).toBe(true);
+    // Not while they're talking.
+    service.cheat(PlayerId, "readCard");
+    expect(CardShape.test(latest().transcript?.messages.at(-1)?.text ?? "")).toBe(false);
+    finishLine();
+    service.cheat(PlayerId, "readCard");
+    expect(CardShape.test(latest().transcript?.messages.at(-1)?.text ?? "")).toBe(true);
+  });
+
+  it("only moves the trust bar on the player's turn", () => {
+    const { service, latest, say } = playerTurn();
+    service.sendMessage(PlayerId, "hello");
+    service.setSuspicion(PlayerId, 0);
+    expect(latest().trust?.percent).not.toBe(100);
+    say("again");
+    service.setSuspicion(PlayerId, 0);
+    expect(latest().trust?.percent).toBe(100);
+  });
+
+  it("makes them hang up", () => {
+    const { service, latest, finishLine } = playerTurn();
+    service.cheat(PlayerId, "hangUp");
+    expect(latest().transcript?.messages.at(-1)?.text).toBe(grandma.lines.hangUpLine);
+    finishLine();
+    expect(latest()).toMatchObject({ status: "idle", lastOutcome: "victimHungUp" });
   });
 });

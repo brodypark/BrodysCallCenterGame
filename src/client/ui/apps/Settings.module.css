@@ -1,0 +1,49 @@
+.root {
+  display: flex;
+  flex-direction: column;
+  padding: 16px;
+  gap: 16px;
+  height: 100%;
+  overflow-y: auto;
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.heading {
+  font-weight: bold;
+  border-bottom: 1px solid var(--text-color, #000);
+  padding-bottom: 4px;
+}
+
+.songs {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.song {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.volume {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.volume input {
+  flex: 1;
+  min-width: 0;
+}
+
+/* The slider's value, in a fixed width so the slider doesn't jump as it changes. */
+.percent {
+  min-width: 4ch;
+  text-align: right;
+}

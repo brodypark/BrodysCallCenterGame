@@ -1,6 +1,6 @@
 // The upgrades shop (docs/design.md "Upgrades"): buying perks and cosmetics with banked
 // money, and equipping owned wallpapers and themes. Only between shifts. The server checks
-// every purchase; the client only asks.
+// every purchase; the client only asks. In Sandbox, money is unlimited: everything is free.
 
 import type { ShopResult } from "@shared/types";
 import { getUpgrade, maxTier, nextPrice, tierOf } from "@shared/Upgrades";
@@ -10,6 +10,8 @@ export interface ShopServiceOptions {
   stats: StatsService;
   // Why the shop is closed for the player right now, or null while it's open.
   closedReason: (playerId: string) => ShopClosedReason | null;
+  // True while purchases cost nothing (Sandbox's unlimited money).
+  isFree?: (playerId: string) => boolean;
 }
 
 export type ShopClosedReason = "onShift" | "noSave";
@@ -50,12 +52,15 @@ export class ShopService {
           : `You already own ${upgrade.name}.`,
       );
     }
-    if (stats.money < price) {
+    const free = this.options.isFree?.(playerId) ?? false;
+    if (!free && stats.money < price) {
       return result(false, `Not enough money: ${upgrade.name} costs $${price}.`);
     }
     const tier = tierOf(stats, upgrade.id) + 1;
     this.options.stats.update(playerId, (current) => {
-      current.money -= price;
+      if (!free) {
+        current.money -= price;
+      }
       current.upgrades = { ...current.upgrades, [upgrade.id]: tier };
       if (upgrade.kind === "wallpaper") {
         current.wallpaper = upgrade.id;

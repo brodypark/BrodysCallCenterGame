@@ -56,7 +56,7 @@ export const grandma: ScenarioInput = {
   suspicionThreshold: 100,
   trustLevel: 30,
   voice: {
-    voiceId: "XrExE9yKIg1WjnnlVkGX", // Matilda - ElevenLabs pre-made female voice
+    voiceId: "0rEo3eAjssGDUCXHYENf", // Matilda - ElevenLabs pre-made female voice
     stability: 0.6,
     similarityBoost: 0.8,
     style: 0.0,
@@ -74,12 +74,9 @@ export const grandma: ScenarioInput = {
   // replies drift below 30 and she reads out the code on turn 9.
   lines: {
     greetings: [
-      "Hello? Is this the gift card help line? Oh, good. I found your number in the " +
-        "newspaper, right next to the crossword.",
-      "Hello, dear! Is this the help line? Gertrude speaking. My grandson says you young " +
-        "people know all about gift cards.",
-      "Hello, dear! Gertrude here. I need help with a gift card, and Sir Fluffington is no " +
-        "help at all. He just stares at me.",
+      "Hello? Is this the gift card help line? Sir Fluffington, my cat, is glaring at me again. I think he knows I'm calling.",
+      "Hello, dear! Gertrude speaking. Sir Fluffington is sitting on my gift card and won't budge. He's plotting something, I'm sure of it.",
+      "Hello, dear! Gertrude here. I need help with a gift card, and Sir Fluffington is no help at all. He just stares at me.",
     ],
     fallbackReplies: [
       {

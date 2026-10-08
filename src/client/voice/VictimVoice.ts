@@ -20,6 +20,8 @@ import { finishedSpeaking } from "@client/net/callActions";
 import { socket } from "@client/net/socket";
 import { callStore } from "@client/state/callStore";
 import { createStore, useStore } from "@client/state/createStore";
+import { voiceVolume } from "@client/ui/audioSettings";
+import { audioSettingsStore } from "@client/ui/audioSettingsStore";
 import { getAudioContext } from "@client/voice/audioUnlock";
 import { type LoudnessEnvelope, loudnessAt, loudnessEnvelope } from "@client/voice/loudness";
 import { currentVictimLine, type VictimLine } from "@client/voice/victimLine";
@@ -64,9 +66,11 @@ function canPlayAloud(): boolean {
   return activation ? activation.hasBeenActive : getAudioContext() !== null;
 }
 
+/** Applies the call's mute button and the player's master volume. */
 function applyMute(): void {
   if (player) {
     player.muted = muted.get();
+    player.volume = voiceVolume(audioSettingsStore.get());
   }
 }
 
@@ -236,12 +240,14 @@ function onConnect(): void {
   reportedLineId = null;
 }
 
-let unsubscribe: (() => void) | null = null;
+let unsubscribers: (() => void)[] = [];
 
 /** Starts saying victim lines as they arrive. Call once when the page loads. */
 export function startVictimVoice(): void {
-  unsubscribe?.();
-  unsubscribe = callStore.subscribe(onCallChanged);
+  for (const unsubscribe of unsubscribers) {
+    unsubscribe();
+  }
+  unsubscribers = [callStore.subscribe(onCallChanged), audioSettingsStore.subscribe(applyMute)];
   socket.off("connect", onConnect);
   socket.on("connect", onConnect);
   onCallChanged();
@@ -249,7 +255,9 @@ export function startVictimVoice(): void {
 
 // When Vite hot-reloads this module in development, stop the old copy.
 import.meta.hot?.dispose(() => {
-  unsubscribe?.();
+  for (const unsubscribe of unsubscribers) {
+    unsubscribe();
+  }
   socket.off("connect", onConnect);
   stopSpeaking();
 });

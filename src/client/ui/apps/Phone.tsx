@@ -6,6 +6,7 @@ import type { CallEndReason, CallSnapshot, ShiftStatus } from "@shared/types";
 import { answerCall, declineCall } from "@client/net/callActions";
 import { useCall } from "@client/state/callStore";
 import { useConnection } from "@client/state/connectionStore";
+import { useGameMode } from "@client/state/savesStore";
 import { useShift } from "@client/state/shiftStore";
 import { cx } from "@client/ui/classNames";
 import controls from "@client/ui/controls.module.css";
@@ -26,8 +27,12 @@ interface ScreenText {
   hint: string;
 }
 
-function screenText(call: CallSnapshot, shift: ShiftStatus): ScreenText {
+// Sandbox has no shifts, and its calls only ring from the Control Panel.
+function screenText(call: CallSnapshot, shift: ShiftStatus, sandbox: boolean): ScreenText {
   const caller = `CALLER: ${call.caller ?? "---"}`;
+  if (call.status === "idle" && sandbox) {
+    return { status: "SANDBOX", caller, hint: "Ring a call from the Control Panel." };
+  }
   if (call.status === "idle" && shift === "offShift") {
     return { status: "OFF DUTY", caller, hint: "Clock in to start taking calls." };
   }
@@ -55,7 +60,8 @@ export function Phone(): ReactElement {
   const online = useConnection().status === "connected";
   const ringing = call.status === "ringing";
   const shift = useShift().snapshot.status;
-  const text = screenText(call, shift);
+  const sandbox = useGameMode() === "sandbox";
+  const text = screenText(call, shift, sandbox);
 
   return (
     <div className={styles.phone}>

@@ -15,7 +15,7 @@ Future: a shared office with other players. Build for that move: all game state 
 5. If suspicion maxes out, the victim hangs up with no payout. There's no turn cap.
 
 ## Apps
-Phone (incoming call), Call (subtitles, push-to-talk, typed box, turn indicator, trust meter, cartoon face, hang up), Redeem, Wobblebucks Machine (charge a Wobblebucks Card from a side problem), Stats, Shop (perks and cosmetics), How to Play (opens by itself until first closed, saved as stats.tutorialSeen). Windows drag by their title bar; desktop icons drag and snap to an invisible grid.
+Control Panel (Sandbox only), Phone (incoming call), Call (subtitles, push-to-talk, typed box, turn indicator, trust meter, cartoon face, hang up), Redeem, Wobblebucks Machine (charge a Wobblebucks Card from a side problem), Stats, Shop (perks and cosmetics), Settings (master volume, music, sound effects; also on the title menu), How to Play (opens by itself until first closed, saved as stats.tutorialSeen). Windows drag by their title bar; desktop icons drag and snap to an invisible grid.
 
 ## Stack
 - TypeScript (strict) everywhere, Node.js LTS, npm
@@ -30,17 +30,17 @@ Phone (incoming call), Call (subtitles, push-to-talk, typed box, turn indicator,
 ## Structure
 - src/server → Node server, all game logic
   - index.ts: Fastify + Socket.IO; serves the built client in production
-  - services/: CallService, AIService, VoiceService, RedeemService, ShiftService, ShopService, TutorialService, DataService, SaveService (3 save slots per player), PlayerService (identity, one connection per player), RateLimiter
+  - services/: CallService, AIService, VoiceService, RedeemService, ShiftService, ShopService, SandboxService (Sandbox mode and its Control Panel), TutorialService, DataService, SaveService (3 save slots per player), PlayerService (identity, one connection per player), RateLimiter
   - prompts/: VictimPrompt, DebugReplies
   - scenarios/: one module per scam, plus ScenarioRegistry
 - src/client → React app
   - net/: the socket connection and typed event helpers
   - state/: client stores holding what the server last said
   - voice/: VictimVoice (plays lines, measures loudness), PlayerVoice + pushToTalk (push-to-talk with the browser's speech recognition)
-  - ui/: Desktop, Window, DesktopIcons, Taskbar, StartMenu, TitleMenu (home screen with Clock In, between shifts), ShiftResults, Face (+ faceParts), Effects (stamp, coins, rolling number, + desktopShake), sounds + soundCues, music + songs + MusicPicker, themes
-  - ui/apps/: Phone, Call, Redeem, Wobblebucks, Stats, Shop, Tutorial
+  - ui/: Desktop, Window, DesktopIcons, Taskbar, StartMenu, TitleMenu (home screen with Clock In, between shifts), ShiftResults, Face (+ faceParts), Effects (stamp, coins, rolling number, + desktopShake), sounds (+ soundList, synthSounds: effects made in code) + soundCues, music + songs, audioSettings + audioSettingsStore (per-browser sound settings), themes
+  - ui/apps/: Phone, Call, Redeem, Wobblebucks, Stats, Shop, Tutorial, Settings
 - src/shared → used by both: Config, events (Socket.IO event types + Zod schemas), types, Levels, Upgrades
-- public/sounds (effects as <name>.mp3, missing ones skipped), public/sounds/music (looped songs), public/fonts → files we have the rights to (credited in docs/credits.md)
+- public/sounds (optional recorded replacements for the made-in-code effects, listed in SoundFiles in ui/sounds), public/sounds/music (looped songs), public/fonts → files we have the rights to (credited in docs/credits.md)
 - docs/ → design notes. data/ → SQLite file (gitignored)
 
 ## Architecture Rules
@@ -104,7 +104,7 @@ npm run dev | npm run build | npm start | npm run lint | npm run format | npm ru
 
 ## Porting from Roblox
 ../ScammingGameRoblox is the finished Roblox version. Treat it as read-only reference; never edit it.
-- Port: docs/design.md (rules and numbers), src/shared/Config.luau (tunables), src/shared/Scenarios/ (6 scenarios), src/server/Prompts/ (VictimPrompt, DebugReplies), Levels, Upgrades, Types, the rules in CallService, RedeemService and ShiftService, the desktop look (UI/Theme), and the cartoon faces (UI/Face, redrawn as SVG).
+- Port: docs/design.md (rules and numbers), src/shared/Config.luau (tunables), src/shared/Scenarios/Grandma (the other five Roblox callers were replaced by new ones: Hudson, Sarah, Pete, Brody, Uncle Mike, Evan, CJ), src/server/Prompts/ (VictimPrompt, DebugReplies), Levels, Upgrades, Types, the rules in CallService, RedeemService and ShiftService, the desktop look (UI/Theme), and the cartoon faces (UI/Face, redrawn as SVG).
 - Don't port Roblox-only workarounds: TextService filtering, SurfaceGui, AudioSpeechToText quirks, the 300-character TTS limit, 13+ voice rules, UIDragDetector quirks, Studio command-bar tricks.
 - Keep the test words (!reveal, !sus, !calm, !card), in development only.
 
@@ -113,4 +113,4 @@ Prompts are in docs/build-prompts.md.
 0 Tooling and scaffold · 1 Desktop shell · 2 Connection, player id, fake call flow · 3 Turn state machine · 4 Suspicion, redeem, payout · 5 Shifts · 6 Saving (SQLite) · 7 XP, levels, shop, tutorial · 8 AIService with Gemini (Grandma) · 9 Victim voice (ElevenLabs) · 10 Player voice · 11 Faces, sounds and effects · 12 All 6 scenarios and side problems · 13 Game modes (Career and Sandbox) · 14 Custom callers · 15 Facecam · 16 Player voice changer · 17 Deploy with cost guards
 
 ## Status
-Done through Step 11: scaffold, desktop shell, player id and connection, fake call flow, turn state machine, suspicion, code reveal, Redeem app, payout, shifts (overtime, report), saving with 3 save slots in SQLite (picker on every new visit; refresh within 30 s resumes; leaving mid-shift for longer counts as a failed shift), XP, levels, caller unlocks, the Shop (perks and cosmetics) and How to Play, and Gemini victim replies (AIService, Interactions API, gemini-3.1-flash-lite; scripted fallback when there's no key, the switch is on, a limit is hit or the AI fails; side problems still off until step 12). Steps 9 and 10 are built: ElevenLabs victim voices (each line fetched once; her turn ends when the audio ends), and push-to-talk with the browser's speech recognition, sent like typed text. Step 11 is built: SVG faces (mood from the trust word, reactions to big swings, blink, bob, mouth follows the voice), effects (CALL ENDED stamp + shake, trust flash, coin burst, rolling earnings, report stamp), sound effects (files not added yet) and looped background music picked from the taskbar (two meme tracks, licenses unconfirmed). Shifts are 60 s for testing (Config.Shift.LengthSeconds; the design is 480). Next: Step 12.
+Done through Step 13: scaffold, desktop shell, player id and connection, fake call flow, turn state machine, suspicion, code reveal, Redeem app, payout, shifts (overtime, report), saving with 3 save slots in SQLite (picker on every new visit; refresh within 30 s resumes; leaving mid-shift for longer counts as a failed shift), XP, levels, caller unlocks, the Shop (perks and cosmetics) and How to Play, and Gemini victim replies (AIService, Interactions API, gemini-3.1-flash-lite; scripted fallback when there's no key, the switch is on, a limit is hit or the AI fails; side problems). Steps 9 and 10 are built: ElevenLabs victim voices (each line fetched once; her turn ends when the audio ends), and push-to-talk with the browser's speech recognition, sent like typed text. Step 11 is built: SVG faces (mood from the trust word, reactions to big swings, blink, bob, mouth follows the voice), effects (CALL ENDED stamp + shake, trust flash, coin burst, rolling earnings, report stamp), sound effects made in code (clicks, ringtone and the rest; no files), looped background music (two meme tracks, licenses unconfirmed), and a Settings app (master volume, music, sound effects on/off and volume). Step 12 is built: eight callers (Grandma, Hudson, Sarah, Pete, Brody, Uncle Mike, Evan, CJ; one unlocks every 2 levels, up to level 15), side problems (35% of calls) and the Wobblebucks Machine, plus the !card test word and the !level N dev command. Step 13 is built: Campaign and Sandbox from the title menu; Sandbox has no shifts or XP, unlimited money (free shop), its own hidden save (slot 0), and a Control Panel app (pick caller, side problem, ring now (calls never ring by themselves), trust slider, read code/card, hang up, AI or scripted, look, reset). Shifts are 60 s for testing (Config.Shift.LengthSeconds; the design is 480). Next: Step 14.

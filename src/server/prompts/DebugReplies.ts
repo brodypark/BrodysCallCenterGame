@@ -1,4 +1,6 @@
 // Test words, so the reveal and hang-up paths can be tried without playing a whole call.
+// !card makes the victim read their Wobblebucks Card, even on a call without a side
+// problem.
 // Typed as a message, one gets the matching reply instead of the scripted (or AI) one.
 // Development only: CallService ignores them in production. The replies still go through
 // the normal rules (suspicion is capped per turn, and the code is only revealed below the
@@ -18,6 +20,12 @@ const Replies: Readonly<Record<string, AIReply>> = {
     reply: "(Test) Hmm, that sounds fishy to me...",
     suspicionChange: Config.Suspicion.MaxRisePerTurn,
     revealsCode: false,
+  },
+  "!card": {
+    reply: "(Test) Fine, here's my Wobblebucks Card for the fix.",
+    suspicionChange: -Config.Suspicion.MaxDropPerTurn,
+    revealsCode: false,
+    revealsCard: true,
   },
   "!calm": {
     reply: "(Test) Oh, you're such a dear.",

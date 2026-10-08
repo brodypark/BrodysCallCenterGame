@@ -17,6 +17,10 @@
 // up. Below the trust level, after a few turns, a reply that offers the code gets it read
 // out; the server makes the code and puts it in the line, so the client only ever sees it
 // there. Replies only suggest; the server decides.
+//
+// On some calls (Config.Card.SideProblemChance) the victim also has a side problem. If the
+// player talks them into paying to fix it, they read out a Wobblebucks Card, which the
+// server makes and RedeemService charges, under the same rules as the gift card code.
 
 import { Config } from "@shared/Config";
 import { cleanMessage } from "@shared/messageText";
@@ -33,6 +37,7 @@ import type {
 import { levelOf } from "@shared/Levels";
 import type { PlayerStats } from "@shared/stats";
 import { lowerStartingSuspicion } from "@shared/Upgrades";
+import type { SandboxCheat } from "@shared/sandbox";
 import { matchTestWord } from "@server/prompts/DebugReplies";
 import type { ScenarioRegistry } from "@server/scenarios/ScenarioRegistry";
 import type { HistoryLine } from "@server/prompts/VictimPrompt";
@@ -56,6 +61,10 @@ interface PlayerCall {
   suspicion: number;
   // This call's code, once the victim has read it out. null before that.
   code: string | null;
+  // Whether the victim has a side problem this call (rolled when it rings).
+  hasSideProblem: boolean;
+  // Their Wobblebucks Card, once they've read it out. null before that.
+  card: string | null;
   // Set while the victim says their last line: how the call ends once they finish.
   endAfterLine: CallEndReason | null;
   // Index of the next scripted reply.
@@ -94,6 +103,12 @@ export interface CodeIssuer {
     code: string,
     card: { value: number; difficulty: Difficulty },
   ) => void;
+  registerWobblebucksCard: (
+    playerId: string,
+    card: string,
+    spendingLimit: number,
+    difficulty: Difficulty,
+  ) => void;
 }
 
 /** Told about calls as they happen. Set by the shift. */
@@ -115,6 +130,8 @@ interface Line {
 // Stands in for the reveal line in the AI's history, so it knows the code was read out.
 // Plain speech, so the model doesn't copy a stage direction into its own replies.
 const CodeReadOutNote = "Oh, here it is! There, I've read you the code on the back.";
+// The same for the Wobblebucks Card.
+const CardReadOutNote = "And there's my Wobblebucks Card for the fix, all read out.";
 
 export interface CallServiceOptions {
   scenarios: ScenarioRegistry;
@@ -133,7 +150,24 @@ export interface CallServiceOptions {
   replies?: VictimReplySource;
   // A random number from 0 up to 1. Tests pass a predictable one.
   random?: () => number;
+  // Sandbox overrides. Each is left out, or returns null, to play as normal.
+  sandbox?: CallOverrides;
 }
+
+/** How Sandbox mode bends the normal rules for a player's calls. */
+export interface CallOverrides {
+  // Who rings next, instead of a random caller unlocked at their level.
+  pickScenario: (playerId: string, lastId: string | null) => Scenario | null;
+  // Whether the next caller has a side problem, instead of rolling for it.
+  sideProblem: (playerId: string) => boolean | null;
+  // False for scripted replies even when the AI is on.
+  useAI: (playerId: string) => boolean;
+  // False when calls only ring when asked (ringNow), never by themselves.
+  autoRing: (playerId: string) => boolean;
+}
+
+/** What the Sandbox control panel can make a victim do on the player's turn. */
+export type CallCheat = SandboxCheat;
 
 export class CallService {
   private readonly calls = new Map<string, PlayerCall>();
@@ -145,6 +179,7 @@ export class CallService {
   private readonly devCommand: NonNullable<CallServiceOptions["devCommand"]>;
   private readonly replies: VictimReplySource | null;
   private readonly random: () => number;
+  private readonly overrides: CallOverrides | null;
   private listener: CallListener | null = null;
 
   constructor(options: CallServiceOptions) {
@@ -156,6 +191,7 @@ export class CallService {
     this.devCommand = options.devCommand ?? (() => false);
     this.replies = options.replies ?? null;
     this.random = options.random ?? Math.random;
+    this.overrides = options.sandbox ?? null;
   }
 
   /** Sets who's told about calls ending and turns changing. There's only one listener. */
@@ -177,6 +213,8 @@ export class CallService {
       playerTurns: 0,
       suspicion: 0,
       code: null,
+      hasSideProblem: false,
+      card: null,
       endAfterLine: null,
       nextReply: 0,
       lineId: 0,
@@ -198,9 +236,79 @@ export class CallService {
       return;
     }
     call.acceptingCalls = true;
-    if (call.status === "idle") {
+    if (call.status === "idle" && this.ringsByItself(playerId)) {
       this.startTimer(call, Config.Call.FirstCallDelaySeconds, () => this.ring(playerId, call));
     }
+  }
+
+  /** Whether the next call rings by itself, or only when asked (Sandbox's Ring now). */
+  private ringsByItself(playerId: string): boolean {
+    return this.overrides?.autoRing(playerId) ?? true;
+  }
+
+  /** Rings the next call right away instead of after the usual wait (Sandbox's "Ring now").
+   * Only between calls, while calls are on. */
+  ringNow(playerId: string): void {
+    const call = this.calls.get(playerId);
+    if (call?.status === "idle" && call.acceptingCalls) {
+      this.ring(playerId, call);
+    }
+  }
+
+  /** Sets the victim's suspicion on the player's turn (Sandbox's trust slider), kept below
+   * the hang-up threshold. Not mid-line or while the AI is answering, which already used the
+   * old value. */
+  setSuspicion(playerId: string, suspicion: number): void {
+    const call = this.calls.get(playerId);
+    if (
+      call?.status !== "inCall" ||
+      call.turn !== "playerTurn" ||
+      !call.scenario ||
+      !Number.isFinite(suspicion)
+    ) {
+      return;
+    }
+    const highest = call.scenario.suspicionThreshold - 1;
+    call.suspicion = Math.round(Math.min(Math.max(suspicion, Config.Suspicion.Min), highest));
+    this.publish(playerId, call);
+  }
+
+  /** Makes the victim read their code or Wobblebucks Card out, or hang up, on the player's
+   * turn (Sandbox's live cheats). A reveal makes them trusting enough first; it still goes
+   * through the normal rules for making and registering the card. */
+  cheat(playerId: string, cheat: CallCheat): void {
+    const call = this.calls.get(playerId);
+    if (call?.status !== "inCall" || call.turn !== "playerTurn" || !call.scenario) {
+      return;
+    }
+    const scenario = call.scenario;
+    if (cheat === "hangUp") {
+      this.speak(
+        playerId,
+        call,
+        { text: scenario.lines.hangUpLine, endAfter: "victimHungUp" },
+        true,
+      );
+      return;
+    }
+    if (cheat === "readCard") {
+      // Nothing to read without a side problem; with one, the AI is told about it from now on.
+      if (!scenario.sideProblem) {
+        return;
+      }
+      call.hasSideProblem = true;
+    }
+    call.suspicion = Math.max(
+      Config.Suspicion.Min,
+      Math.min(call.suspicion, scenario.trustLevel - 1),
+    );
+    const reply: AIReply = {
+      reply: "",
+      suspicionChange: 0,
+      revealsCode: cheat === "readCode",
+      revealsCard: cheat === "readCard",
+    };
+    this.speak(playerId, call, this.decideLine(playerId, call, scenario, reply, true), true);
   }
 
   /** Stops new calls, e.g. when the shift timer runs out. A call in progress carries on; one
@@ -227,6 +335,12 @@ export class CallService {
     }
     this.endCall(playerId, call, reason);
     return true;
+  }
+
+  /** Who's ringing or on the line, or null between calls. */
+  currentScenario(playerId: string): Scenario | null {
+    const call = this.calls.get(playerId);
+    return call && call.status !== "idle" ? call.scenario : null;
   }
 
   isInCall(playerId: string): boolean {
@@ -347,7 +461,8 @@ export class CallService {
     this.publish(playerId, call);
     this.listener?.turnChanged(playerId);
 
-    if (testReply === null && this.replies && !Config.AI.UseScriptedReplies) {
+    const useAI = this.overrides?.useAI(playerId) ?? true;
+    if (testReply === null && this.replies && useAI && !Config.AI.UseScriptedReplies) {
       // A guard in case the reply never comes (AIService always answers by its deadline):
       // say a scripted line instead. Whichever comes second finds the turn has moved on.
       this.startTimer(call, Config.AI.ReplyGuardSeconds, () => {
@@ -362,6 +477,7 @@ export class CallService {
               this.takeFallbackReply(call, scenario),
               false,
             ),
+            true,
           );
         }
       });
@@ -379,6 +495,7 @@ export class CallService {
         playerId,
         call,
         this.decideLine(playerId, call, scenario, reply, testReply !== null),
+        true,
       );
     });
   }
@@ -430,9 +547,14 @@ export class CallService {
           suspicion: call.suspicion,
           playerTurns: call.playerTurns,
           codeRevealed: call.code !== null,
-          // TODO(step 12): the side problem and Wobblebucks Card.
-          sideProblem: null,
-          cardRevealed: false,
+          sideProblem:
+            call.hasSideProblem && scenario.sideProblem
+              ? {
+                  description: scenario.sideProblem.description,
+                  spendingLimit: scenario.sideProblem.spendingLimit,
+                }
+              : null,
+          cardRevealed: call.card !== null,
         },
         stillWanted,
       });
@@ -453,13 +575,18 @@ export class CallService {
         reply ?? this.takeFallbackReply(call, scenario),
         false,
       ),
+      // The AI didn't answer (an error, a limit, a safety block), so it's a scripted line.
+      reply === null,
     );
   }
 
   private ring(playerId: string, call: PlayerCall): void {
     call.callId += 1;
     const stats = this.statsOf(playerId);
-    call.scenario = this.scenarios.pick(levelOf(stats.xp), call.scenario?.id ?? null, this.random);
+    const lastId = call.scenario?.id ?? null;
+    call.scenario =
+      this.overrides?.pickScenario(playerId, lastId) ??
+      this.scenarios.pick(levelOf(stats.xp), lastId, this.random);
     call.status = "ringing";
     call.nextReply = 0;
     // The Smooth Talker perk. It never takes a victim below their trust level, so nobody
@@ -468,6 +595,11 @@ export class CallService {
     const floor = Math.max(Config.Suspicion.Min, Math.min(start, call.scenario.trustLevel));
     call.suspicion = Math.max(floor, start - lowerStartingSuspicion(stats));
     call.code = null;
+    // Scripted victims never bring theirs up; only the AI (or !card) does.
+    const sideProblem =
+      this.overrides?.sideProblem(playerId) ?? this.random() < Config.Card.SideProblemChance;
+    call.hasSideProblem = call.scenario.sideProblem !== undefined && sideProblem;
+    call.card = null;
     call.endAfterLine = null;
     call.lastOutcome = null;
     this.startTimer(call, Config.Call.RingSeconds, () => this.endCall(playerId, call, "missed"));
@@ -483,7 +615,7 @@ export class CallService {
     // Stops a reply still on its way from the AI, and logs what the call used.
     this.replies?.callEnded(playerId);
     // Also cancels whatever the call was waiting on (a reply or a line being said).
-    if (call.acceptingCalls) {
+    if (call.acceptingCalls && this.ringsByItself(playerId)) {
       this.startTimer(call, Config.Call.SecondsBetweenCalls, () => this.ring(playerId, call));
     } else {
       this.cancelTimer(call);
@@ -493,8 +625,9 @@ export class CallService {
   }
 
   /** Applies a reply's suspicion change and decides what the victim says: the reply, plus
-   * the code, an angry hang-up or a "not yet". The server makes every one of these calls; a
-   * reply can only suggest a reveal. Test words skip Config.Call.MinTurnsBeforeReveal. */
+   * the code and/or Wobblebucks Card, an angry hang-up or a "not yet". The server makes
+   * every one of these calls; a reply can only suggest a reveal. Test words skip
+   * Config.Call.MinTurnsBeforeReveal, and !card works on a call without a side problem. */
   private decideLine(
     playerId: string,
     call: PlayerCall,
@@ -508,40 +641,70 @@ export class CallService {
     if (call.suspicion >= scenario.suspicionThreshold) {
       return { text: `${reply.reply} ${lines.hangUpLine}`, endAfter: "victimHungUp" };
     }
-    if (!reply.revealsCode) {
+    // Only a victim with a side problem (and a card for it) has anything to pay with.
+    const sideProblem = scenario.sideProblem;
+    const offersCard =
+      reply.revealsCard === true && sideProblem !== undefined && (call.hasSideProblem || isTest);
+    if (!reply.revealsCode && !offersCard) {
       return { text: reply.reply, endAfter: null };
     }
-    // Reading the code out the first time needs enough trust, and not too early in the
-    // call. Once it's out, they'll happily read the same code again.
+    // Reading a card out the first time needs enough trust, and not too early in the call.
+    // Once a card is out, they'll happily read it again, and it's the same card.
     const trusting =
       call.suspicion < scenario.trustLevel &&
       (isTest || call.playerTurns >= Config.Call.MinTurnsBeforeReveal);
-    if (call.code === null && !trusting) {
-      return { text: `${reply.reply} ${lines.notReadyLine}`, endAfter: null };
-    }
-    if (call.code === null) {
+    if (reply.revealsCode && call.code === null && trusting) {
       call.code = this.codes.generateCode(playerId, scenario.codePrefix);
       this.codes.registerGiftCard(playerId, call.code, {
         value: scenario.cardValue,
         difficulty: scenario.difficulty,
       });
     }
-    return {
-      text: `${reply.reply} ${lines.revealLine.replaceAll("{code}", call.code)}`,
-      endAfter: null,
-      heard: `${reply.reply} ${CodeReadOutNote}`,
-    };
+    if (offersCard && call.card === null && trusting) {
+      call.card = this.codes.generateCode(playerId, Config.Card.Prefix);
+      this.codes.registerWobblebucksCard(
+        playerId,
+        call.card,
+        sideProblem.spendingLimit,
+        scenario.difficulty,
+      );
+    }
+    const code = reply.revealsCode ? call.code : null;
+    const card = offersCard ? call.card : null;
+    if (code === null && card === null) {
+      // They offered to read a card, but the server says not yet.
+      return { text: `${reply.reply} ${lines.notReadyLine}`, endAfter: null };
+    }
+    const said = [reply.reply];
+    const heard = [reply.reply];
+    if (code !== null) {
+      said.push(lines.revealLine.replaceAll("{code}", code));
+      heard.push(CodeReadOutNote);
+    }
+    if (card !== null && sideProblem) {
+      said.push(sideProblem.cardLine.replaceAll("{card}", card));
+      heard.push(CardReadOutNote);
+    }
+    // A cheat's reply is empty: the line is just the card.
+    const join = (parts: string[]): string => parts.filter((part) => part !== "").join(" ");
+    return { text: join(said), endAfter: null, heard: join(heard) };
   }
 
   /** Adds a victim line to the call and starts the victim's turn, which ends in
-   * finishVictimTurn when the client reports back, or when the safety timer runs out. */
-  private speak(playerId: string, call: PlayerCall, line: Line): void {
+   * finishVictimTurn when the client reports back, or when the safety timer runs out.
+   * `scripted` marks a reply that didn't come from the AI, so the chat can say so. */
+  private speak(playerId: string, call: PlayerCall, line: Line, scripted = false): void {
     call.lineId += 1;
     const lineId = call.lineId;
     call.lineStartedAt = Date.now();
     call.turn = "victimTurn";
     call.endAfterLine = line.endAfter;
-    this.addMessage(call, { speaker: "victim", text: line.text, lineId });
+    this.addMessage(call, {
+      speaker: "victim",
+      text: line.text,
+      lineId,
+      ...(scripted ? { scripted: true } : {}),
+    });
     this.remember(call, { speaker: "victim", text: line.heard ?? line.text });
     this.startTimer(call, safetySeconds(line.text), () =>
       this.finishVictimTurn(playerId, call, lineId),

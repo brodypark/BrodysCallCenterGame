@@ -13,6 +13,7 @@ export const AppIds = [
   "Shop",
   "Tutorial",
   "Settings",
+  "Facecam",
   "Notepad",
   "Email",
   "ControlPanel",
@@ -94,6 +95,14 @@ export const Apps: Readonly<Record<AppId, AppInfo>> = {
     icon: "⚙️",
     tileColor: "#6c757d",
     layout: { x: 0.3, y: 0.2, width: 0.4, height: 0.5 },
+  },
+  // Bottom right, out of the way of the call, for streaming.
+  Facecam: {
+    id: "Facecam",
+    title: "Facecam",
+    icon: "📷",
+    tileColor: "#2f9e8f",
+    layout: { x: 0.7, y: 0.45, width: 0.28, height: 0.45 },
   },
   Notepad: {
     id: "Notepad",

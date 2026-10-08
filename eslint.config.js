@@ -19,7 +19,7 @@ function forbidImports(folders, message) {
 }
 
 export default defineConfig(
-  globalIgnores(["dist", "data", "coverage"]),
+  globalIgnores(["dist", "data", "coverage", "public/facecam"]),
 
   js.configs.recommended,
   tseslint.configs.recommendedTypeChecked,

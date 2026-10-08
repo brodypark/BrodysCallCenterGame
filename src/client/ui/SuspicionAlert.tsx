@@ -7,7 +7,7 @@ export function SuspicionAlert(): ReactElement | null {
   const trust = call.trust;
 
   // Flash red if they are on the phone and trust is dangerously low (e.g. 30% or less)
-  const isDanger = call.status === "onCall" && trust !== null && trust.percent <= 30;
+  const isDanger = call.status === "inCall" && trust !== null && trust.percent <= 30;
 
   if (!isDanger) return null;
 

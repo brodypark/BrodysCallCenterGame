@@ -4,6 +4,7 @@ import type { ComponentType } from "react";
 import type { AppId } from "@client/ui/appList";
 import { Call } from "@client/ui/apps/Call";
 import { ControlPanel } from "@client/ui/apps/ControlPanel";
+import { Facecam } from "@client/ui/apps/Facecam";
 import { Phone } from "@client/ui/apps/Phone";
 import { Redeem } from "@client/ui/apps/Redeem";
 import { Settings } from "@client/ui/apps/Settings";
@@ -28,6 +29,7 @@ export const AppComponents: Readonly<Record<AppId, ComponentType<AppProps>>> = {
   Shop,
   Tutorial,
   Settings,
+  Facecam,
   Notepad,
   Email,
   ControlPanel,

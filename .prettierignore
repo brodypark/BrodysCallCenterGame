@@ -1,6 +1,8 @@
 dist
 data
 coverage
+# Third-party files copied from @mediapipe/tasks-vision.
+public/facecam
 package-lock.json
 # Hand-written docs and agent prompts keep their own wrapping.
 *.md

@@ -1,0 +1,126 @@
+/* Fills the cartoon face's box; the wisps rise out of the top of it. */
+.cloud {
+  --stink: #8fc43a;
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.wisp {
+  position: absolute;
+  bottom: 70%;
+  width: 14%;
+  height: 45%;
+  overflow: visible;
+  opacity: 0;
+  animation: rise 2.4s ease-in infinite;
+}
+
+.wisp path {
+  fill: none;
+  stroke: var(--stink);
+  stroke-width: 2.5;
+  stroke-linecap: round;
+}
+
+/* A fly goes round the head on the edge of this box as it turns. */
+.orbit {
+  position: absolute;
+  inset: 5%;
+  animation: orbit 2.6s linear infinite;
+}
+
+.wideOrbit {
+  inset: 15% -8%;
+  animation-duration: 1.9s;
+  animation-direction: reverse;
+}
+
+.fly {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: 4%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: #141010;
+  animation: buzz 0.15s ease-in-out infinite alternate;
+}
+
+/* Wings. */
+.fly::before,
+.fly::after {
+  content: "";
+  position: absolute;
+  top: -80%;
+  width: 90%;
+  height: 120%;
+  border: 1px solid rgb(0 0 0 / 0.3);
+  border-radius: 50%;
+  background: rgb(255 255 255 / 0.75);
+}
+
+.fly::before {
+  left: -55%;
+}
+
+.fly::after {
+  right: -55%;
+}
+
+/* A green fug rising from the bottom of the picture. */
+.haze {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(ellipse at 50% 115%, rgb(140 190 50 / 0.45), transparent 65%);
+  animation: waft 3s ease-in-out infinite alternate;
+}
+
+@keyframes rise {
+  0% {
+    opacity: 0;
+    transform: translateY(30%) scaleX(0.8);
+  }
+  25% {
+    opacity: 0.85;
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-50%) scaleX(1.5);
+  }
+}
+
+@keyframes orbit {
+  to {
+    transform: rotate(1turn);
+  }
+}
+
+@keyframes buzz {
+  to {
+    transform: translate(20%, -30%);
+  }
+}
+
+@keyframes waft {
+  from {
+    opacity: 0.6;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wisp {
+    opacity: 0.7;
+    animation: none;
+  }
+
+  .orbit,
+  .fly,
+  .haze {
+    animation: none;
+  }
+}

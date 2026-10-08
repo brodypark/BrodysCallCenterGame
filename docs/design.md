@@ -133,7 +133,8 @@ A bonus way to earn on top of the gift card.
   of pop-ups, Hudson's microwave popcorn button sets off the smoke alarm, Sarah's laptop
   autocorrects everything to "boba", Pete's smart scale says he weighs three pounds, Brody's smart
   fridge locks itself at night, Uncle Mike's smart TV only shows Georgia's worst losses, Evan's phone sends
-  his half-written texts to CJ's sister, and CJ's PC fans sound like a jet engine on stream.
+  his half-written texts to CJ's sister, CJ's PC fans sound like a jet engine on stream, and
+  Jordan's robot vacuum won't clean until someone calls heads or tails.
 - **The pitch:** the player offers to fix it for a small fee. Asking for money makes the victim
   more careful, so the fix has to sound believable. Asking how much they can pay is suspicious.
 - **Wobblebucks Card:** if they agree, they read out their Wobblebucks Card, a made-up card with
@@ -143,7 +144,7 @@ A bonus way to earn on top of the gift card.
   level, not too early).
 - **Wobblebucks Machine app:** type the card and an amount to charge. Each victim's card has a
   hidden **spending limit** (Grandma $40, Hudson $50, Sarah $70, Pete $80, Brody $100,
-  Uncle Mike $120, Evan $140, CJ $160), kept on the server. Charging within it pays that amount; charging over
+  Uncle Mike $120, Evan $140, CJ $160, Jordan $180), kept on the server. Charging within it pays that amount; charging over
   it is **declined** and uses a try. **2 tries per card**, then it's frozen. Each card can be
   charged once.
 - A charge adds to shift earnings and gives **5 XP**, but doesn't count as a successful call (the
@@ -155,7 +156,7 @@ A bonus way to earn on top of the gift card.
 ## Economy
 
 - **Payout = the scenario's card value.** Each scenario sets its own value, from $50 (Grandma)
-  to $200 (CJ). Harder scenarios have bigger cards.
+  to $225 (Jordan). Harder scenarios have bigger cards.
 - **Quota:** fixed per shift. Starting value: **$150** (3 Grandma successes out of ~4–5 calls).
 - **Shift earnings vs. bank:** money earned during a shift is held as shift earnings. It moves to
   the bank only if the shift is passed. Upgrades are paid from the bank.
@@ -259,9 +260,10 @@ gap and shrink the second, and pay more.
 | 11 | Uncle Mike | Hard | $150 | `MKE` | 55 | 85 | 20 | 35 | 30 |
 | 13 | Evan | Hard | $175 | `EVN` | 50 | 85 | 20 | 30 | 35 |
 | 15 | CJ | Hard | $200 | `CJZ` | 65 | 85 | 20 | 45 | 20 |
+| 17 | Jordan | Hard | $225 | `JRD` | 55 | 90 | 20 | 35 | 35 |
 
 Prefixes are never real words, since the AI's replies are cleaned of anything shaped like a code
-with the scenario's prefix. Grandma is ported from the Roblox version; the other seven are new to
+with the scenario's prefix. Grandma is ported from the Roblox version; the other eight are new to
 the browser version.
 
 **Grandma Gertrude (Easy, level 1):** a sweet, confused grandma who can't figure out how to
@@ -313,6 +315,14 @@ Gamer Gems card says "code already used". Obsession: brainrot (skibidi, sigma, r
 him *more* suspicious; slang and memes win him over. Hates being called "sir" and anything
 urgent ("the scam playbook"). Dyed blue hair, a red headband. The final boss: he starts the most
 suspicious (65) with the least room for mistakes.
+
+**Jordan (Hard, level 17):** a fast-talking guy who bets on everything (snail races, coin flips
+with his cat, which pigeon lands first) and can't stop until he's lost it all, whose Quackpot
+Arcade card (won in the arcade's raffle) says "card on hold". Obsession: gambling, cartoon style: his
+bets are always silly stuff (snacks, socks, his couch), never money. Likes the help line taking
+his bets, odds talk and cheering for his snail; hates "guaranteed" or "risk-free" promises
+(nothing's a sure thing), being called a sore loser and anyone jinxing his streak. Short black
+hair and a thin mustache. The biggest card ($225).
 
 **Economy check:** with the fixed $150 quota, two Hard cards nearly pass a shift, but Hard
 victims hang up far more often, so later shifts pay better without being free. Calls still pick
@@ -431,11 +441,20 @@ They're fictional cartoon characters: no real personal details (addresses, phone
 workplaces, account or card details). Private to the player who made them; the server still
 decides every reveal and makes every code.
 
-## Streamer extras (planned, steps 15-16)
+## Streamer extras (facecam built; voice changer planned)
 
-- **Facecam:** an optional webcam window with a cartoon or AI-made face covering the
-  player's face. Off by default; all video stays on the device; if tracking loses the face,
-  the whole frame is covered rather than showing it.
+- **Facecam (built):** an optional webcam window (the Facecam app) that shows the player with
+  a call-center headset and mic drawn on, so they look like they work the help line. Off
+  until the player turns it on, the only time the game asks for the camera. MediaPipe's Face
+  Landmarker tracks the face on the device (served from our own server, loaded only when
+  turned on, its usage logging blocked), and each frame is drawn, tracked and given its
+  headset before the browser paints it, so the headset follows the head (position, size and
+  tilt). If no face is found, the picture just shows without a headset. A stinky aroma (green
+  wisps off the head, two buzzing flies, a green haze) is on unless the player unticks
+  Stinky. All video stays on the device: never recorded, uploaded or sent to an AI. The
+  camera stops when the window closes, the tab is hidden or the title menu covers the desk
+  (and starts again when the game is back in view). This replaced the first version, which
+  covered the player's face with a cartoon one.
 - **Player voice changer:** an optional setting that plays the player's lines back in a
   character voice (ElevenLabs), so both sides of the call sound like characters. Adds voice
   cost per message, so it has its own limits.

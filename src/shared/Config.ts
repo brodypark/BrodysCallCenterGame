@@ -326,4 +326,22 @@ export const Config = {
     // Volume changes (ducking) fade over this long.
     FadeSeconds: 0.4,
   },
+
+  // The facecam (client/facecam): the player's webcam with a call-center headset drawn on,
+  // for streaming. Off until the player turns it on; the video never leaves their device.
+  Facecam: {
+    // The camera picture asked for, in pixels (4:3).
+    VideoWidth: 640,
+    VideoHeight: 480,
+    // Shown like a mirror, the way webcam previews usually look.
+    Mirror: true,
+    // Most faces given a headset at once, e.g. a friend leaning in.
+    MaxFaces: 3,
+    // How sure the tracker must be that a face is there, 0 to 1.
+    MinConfidence: 0.5,
+    // The stinky aroma's box round each head, as a multiple of the face's width at the ears.
+    StinkSize: 1.5,
+    // Turning on gives up after this long (loading the tracker, or the camera's video).
+    StartTimeoutSeconds: 30,
+  },
 } as const;

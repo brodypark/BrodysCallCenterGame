@@ -20,6 +20,14 @@ Looped background music, picked in the Settings app (`src/client/ui/songs.ts`).
   confirm the rights (or replace it) before deploying.
 - **Patapim**: `public/sounds/music/patapim.mp3`. A user-uploaded meme clip. **License unconfirmed**: fine for local testing; confirm the rights before deploying.
 
+## Facecam
+
+- **MediaPipe Face Landmarker** (`@mediapipe/tasks-vision` 1.1.0) by Google. Apache License 2.0.
+  The WebAssembly files in `public/facecam/wasm/` are copied from the npm package (keep them
+  the same version as package.json), and `public/facecam/face_landmarker.task` is the float16
+  model (version 1) from Google's MediaPipe model storage. It runs on the player's device; its
+  usage logging to Google is blocked (`src/client/facecam/blockTrackerLogs.ts`).
+
 ## Sounds
 
 None: every sound effect (clicks, the ringtone, ka-ching, stamps, jingles...) is made in

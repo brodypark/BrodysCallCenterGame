@@ -1,0 +1,67 @@
+/* The space for the picture: it keeps the camera's shape and fits inside, whatever size the
+   window is. */
+.stageArea {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  justify-content: center;
+  min-height: 0;
+  container-type: size;
+}
+
+/* --aspect is the camera picture's width over its height. */
+.stage {
+  position: relative;
+  width: min(100cqw, 100cqh * var(--aspect));
+  aspect-ratio: var(--aspect);
+  overflow: hidden;
+  background: var(--field);
+  font-size: inherit;
+}
+
+.picture {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+/* A stinky cloud, moved round the player's head every frame. */
+.stink {
+  position: absolute;
+  aspect-ratio: 1;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.hidden {
+  display: none;
+}
+
+.lost {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  margin: 0;
+  padding: 0.4em;
+  background: var(--face);
+  text-align: center;
+}
+
+.off {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+  font-size: 4em;
+  opacity: 0.4;
+}
+
+.option {
+  display: flex;
+  align-items: center;
+  gap: 0.6em;
+}

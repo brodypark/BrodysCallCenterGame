@@ -57,8 +57,14 @@
   --level-up-banner: #ffec8c;
   --level-up-text: #964600;
 
-  /* Teal, until a wallpaper rule below says otherwise. */
-  --wallpaper: #008080;
+  /* Flat blue with thin, widely spaced diagonal stripes */
+  --wallpaper: repeating-linear-gradient(
+    45deg,
+    #2096d3,
+    #2096d3 100px,
+    rgba(255, 255, 255, 0.2) 100px,
+    rgba(255, 255, 255, 0.2) 102px
+  );
 }
 
 /* Window themes. */

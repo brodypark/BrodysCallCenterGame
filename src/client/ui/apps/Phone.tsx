@@ -11,6 +11,7 @@ import { useShift } from "@client/state/shiftStore";
 import { cx } from "@client/ui/classNames";
 import controls from "@client/ui/controls.module.css";
 import styles from "@client/ui/apps/Phone.module.css";
+import { useDesktop } from "@client/ui/DesktopContext";
 
 // The screen's top line after each way a call can end.
 const OutcomeText: Record<CallEndReason, string> = {
@@ -56,6 +57,7 @@ function screenText(call: CallSnapshot, shift: ShiftStatus, sandbox: boolean): S
 }
 
 export function Phone(): ReactElement {
+  const { store } = useDesktop();
   const call = useCall();
   const online = useConnection().status === "connected";
   const ringing = call.status === "ringing";
@@ -75,7 +77,10 @@ export function Phone(): ReactElement {
           type="button"
           className={cx(controls.button, styles.answer)}
           disabled={!ringing || !online}
-          onClick={answerCall}
+          onClick={() => {
+            answerCall();
+            store.closeApp("Phone");
+          }}
         >
           Answer
         </button>

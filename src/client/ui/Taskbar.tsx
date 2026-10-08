@@ -43,8 +43,9 @@ export function Taskbar(): ReactElement {
           event.stopPropagation();
           store.toggleStartMenu();
         }}
+        title="Start"
       >
-        Start
+        ⏻
       </button>
       <button
         type="button"
@@ -53,8 +54,9 @@ export function Taskbar(): ReactElement {
           event.stopPropagation();
           leaveSave();
         }}
+        title="Quit to Title"
       >
-        Quit to Title
+        Quit
       </button>
 
       <div className={styles.windowButtons}>
@@ -71,9 +73,11 @@ export function Taskbar(): ReactElement {
                 isFocused && controls.pressed,
                 isFocused && styles.focusedButton,
               )}
+              style={{ backgroundColor: app.tileColor }}
+              title={app.title}
               onClick={() => store.focusApp(id)}
             >
-              {app.icon} {app.title}
+              {app.icon}
             </button>
           );
         })}
@@ -81,18 +85,22 @@ export function Taskbar(): ReactElement {
 
       <div className={cx(controls.sunken, styles.tray)}>
         {sandbox ? (
-          <>
+          <div className={styles.statsColumn}>
             <span className={styles.sandbox}>SANDBOX</span>
             <span>$∞</span>
-          </>
+          </div>
         ) : (
-          <>
-            <ShiftTimer shift={shift} />
-            <span>
-              <RollingNumber value={shift.snapshot.earnings} format={(value) => `$${value}`} /> / $
-              {shift.snapshot.quota}
-            </span>
-          </>
+          <div className={styles.statsColumn}>
+            <div className={styles.statLine1}>
+              PERSONAL <RollingNumber value={shift.snapshot.earnings} format={(value) => `$${value}`} />
+            </div>
+            <div className={styles.statLine2}>
+              <span className={styles.quotaStat}>QUOTA {shift.snapshot.earnings}/{shift.snapshot.quota}</span>
+            </div>
+            <div className={styles.statLine3}>
+              <ShiftTimer shift={shift} />
+            </div>
+          </div>
         )}
         <ConnectionDot />
         <TrayClock />
@@ -116,9 +124,16 @@ function ConnectionDot(): ReactElement {
   );
 }
 
+const dateFormat = new Intl.DateTimeFormat(undefined, { weekday: "short", month: "short", day: "numeric", year: "numeric" });
+
 function TrayClock(): ReactElement {
   const now = useNow(ClockRefreshMs);
-  return <span>{clockFormat.format(now)}</span>;
+  return (
+    <div className={styles.clockColumn}>
+      <div>{clockFormat.format(now)}</div>
+      <div>{dateFormat.format(now)}</div>
+    </div>
+  );
 }
 
 /** Time left on the shift, OVERTIME (in red) once it runs out, or Off duty. */
@@ -134,7 +149,7 @@ function ShiftTimer({ shift }: { shift: ShiftState }): ReactElement {
     return <span className={styles.overtime}>OVERTIME{left}</span>;
   }
   if (status === "onShift" && endsAt !== null) {
-    return <span>Shift {formatClock(secondsUntil(endsAt, shift.clockOffsetMs))}</span>;
+    return <span className={styles.performanceReview}>PERFORMANCE REVIEW {formatClock(secondsUntil(endsAt, shift.clockOffsetMs))}</span>;
   }
-  return <span>Off duty</span>;
+  return <span>OFF DUTY</span>;
 }

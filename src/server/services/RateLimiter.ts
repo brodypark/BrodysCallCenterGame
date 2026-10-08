@@ -1,6 +1,7 @@
-// Cost guard for paid API requests (Gemini now, ElevenLabs later): a per-player limit in any
-// rolling minute, a per-player daily cap, and a daily cap for everyone together. Days are
-// UTC days. Counts live in memory, so a server restart starts them over.
+// Cost guard for paid API requests (Gemini replies, ElevenLabs voice lines): a per-player
+// limit on requests in any rolling minute, and a per-player daily cap and a daily cap for
+// everyone together on the amount used (one per request, or e.g. characters spoken). Days
+// are UTC days. Counts live in memory, so a server restart starts them over.
 
 const MsPerMinute = 60_000;
 
@@ -35,9 +36,12 @@ export class RateLimiter {
     this.day = utcDay(now());
   }
 
-  /** Counts one request for `playerId` if it's within every limit. Returns whether it is;
-   * a request that isn't allowed doesn't count. */
-  tryTake(playerId: string): boolean {
+  /** Counts one request using `amount` for `playerId` if it's within every limit. Returns
+   * whether it is; a request that isn't allowed doesn't count. */
+  tryTake(playerId: string, amount: number = 1): boolean {
+    if (!Number.isFinite(amount) || amount < 0) {
+      return false;
+    }
     const now = this.now();
     const today = utcDay(now);
     if (today !== this.day) {
@@ -46,18 +50,18 @@ export class RateLimiter {
       this.globalToday = 0;
       this.players.clear();
     }
-    if (this.globalToday >= this.limits.globalPerDay) {
+    if (this.globalToday + amount > this.limits.globalPerDay) {
       return false;
     }
     const usage = this.players.get(playerId) ?? { today: 0, recent: [] };
     const minuteAgo = now - MsPerMinute;
     usage.recent = usage.recent.filter((time) => time > minuteAgo);
-    if (usage.today >= this.limits.perDay || usage.recent.length >= this.limits.perMinute) {
+    if (usage.today + amount > this.limits.perDay || usage.recent.length >= this.limits.perMinute) {
       return false;
     }
-    usage.today += 1;
+    usage.today += amount;
     usage.recent.push(now);
-    this.globalToday += 1;
+    this.globalToday += amount;
     this.players.set(playerId, usage);
     return true;
   }

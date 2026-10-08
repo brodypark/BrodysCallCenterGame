@@ -340,6 +340,10 @@ Moments that should feel especially satisfying:
 **Sounds** are files we have the rights to, kept in `public/sounds` and credited in
 `docs/credits.md`. No real operating-system sounds.
 
+**Music:** a looping background song the player picks (or turns off) from a ♪ menu in the
+taskbar, with a volume slider. It gets quieter while the victim talks. The choice is a
+per-browser preference, not part of the save.
+
 **Call window:** a dark phone-app look (the same in every desktop theme) with a Caller Trust
 bar, the victim's name, their cartoon face, a status line, chat bubbles, and Hang Up / speaker
 (mute the voice) / hold-to-talk mic buttons. Faces are drawn as SVG from shapes, so every
@@ -408,9 +412,11 @@ decides every reveal and makes every code.
 
 - **AI:** victims' replies come from Gemini, called by the server. The reply can be longer than
   Roblox allowed, but is still capped in Config because voice cost grows with characters.
-- **Voice:** ElevenLabs speaks victim lines (streamed from the server) and transcribes the
-  player's push-to-talk clips. No 300-character speech limit and no age check for voice; typing
-  always works and takes over if the mic is denied, missing, or fails.
+- **Voice:** ElevenLabs speaks victim lines (streamed from the server). The player's
+  push-to-talk is turned into text by the browser's own speech recognition (free; Chrome, Edge
+  and Safari) and sent like a typed message. No 300-character speech limit and no age check for
+  voice; typing always works and takes over if voice is unsupported, the mic is denied or
+  missing, or recognition fails.
 - **No platform text filter:** the AI is told the content rules, and player text is only shown
   back to that player.
 - **Identity and saving:** an anonymous player id in a signed cookie (accounts later), one active

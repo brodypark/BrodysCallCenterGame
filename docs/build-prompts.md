@@ -386,29 +386,28 @@ Then tell me exactly how to test it, and roughly what a test session costs.
 ## Step 10 — Player voice (push-to-talk)
 
 ```text
-Build step 10: the player talks with push-to-talk, transcribed by ElevenLabs
-speech-to-text.
+Build step 10: the player talks with push-to-talk, turned into text by the browser's own
+speech recognition (Web Speech API), which is free. ElevenLabs speech-to-text was dropped
+because it shares credits with the victim voices.
 
-Before writing code, read the current ElevenLabs speech-to-text docs and the MDN docs for
-getUserMedia and MediaRecorder (including which formats each browser records, Safari
-especially). Tell me what you found and wait for my OK.
+Before writing code, read the current MDN docs for SpeechRecognition (and Safari's
+webkitSpeechRecognition). Tell me what you found and wait for my OK.
 
 Requirements:
-- Push-to-talk: hold V or the Talk button. Only during PlayerTurn; the mic is off during
-  the victim's turn. Clips stop at Config.Voice.MaxClipSeconds.
-- PlayerVoice records with MediaRecorder and uploads the clip over HTTP. The server checks
-  it's that player's turn and the clip's size and length, then transcribes it. The text
-  goes through exactly the same send message path and checks as typed text.
-- Ask for the mic only the first time the player tries to talk, not on page load.
-- Typed input always works. If the mic is denied, missing or fails, or transcription fails
-  or hits a limit, switch to typing and show a short notice.
-- Show "Listening..." while recording, and my words in the chat once they're back.
-- Cost guards like step 9. Tests mock ElevenLabs.
+- Push-to-talk: hold V (outside a text box) or the Talk button. Only during PlayerTurn; the
+  mic is off during the victim's turn. Talks stop at Config.PlayerVoice.MaxTalkSeconds.
+- The recognized text is sent with call:send, so it goes through exactly the same path and
+  server checks as typed text.
+- The browser asks for the mic only the first time the player tries to talk.
+- Typed input always works. If voice is unsupported (Firefox), the mic is denied or missing,
+  or recognition fails, switch to typing and show a short notice.
+- Show "Listening..." and the words heard so far while talking, and send on release.
+- Tests use a fake recognition.
 
-Done when: holding V records, letting go sends, my words show up as my message and the
+Done when: holding V listens, letting go sends, my words show up as my message and the
 victim answers them, and denying the mic leaves typing working.
 
-Then tell me exactly how to test it, and roughly what a test session costs.
+Then tell me exactly how to test it.
 ```
 
 ## Step 11 — Faces, sounds and effects

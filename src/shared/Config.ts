@@ -93,7 +93,8 @@ export const Config = {
     // anyway: this many seconds per character, plus SafetyExtraSeconds. Only matters if the
     // client never reports back.
     SafetySecondsPerCharacter: 0.15,
-    SafetyExtraSeconds: 5,
+    // Room for a voice line's audio to load (Config.Voice.LoadTimeoutSeconds) first.
+    SafetyExtraSeconds: 10,
   },
 
   Connection: {
@@ -191,13 +192,117 @@ export const Config = {
     ReplyGuardSeconds: 15,
   },
   Voice: {
-    // The switch: true falls back to subtitle-only timed turns for every victim.
-    // Also true if ELEVENLABS_API_KEY is not set.
+    // The switch: true gives every victim subtitle-only timed lines and no voice requests.
+    // The server also does that when ELEVENLABS_API_KEY isn't set. Doesn't touch
+    // push-to-talk (PlayerVoice), which costs nothing. The limits on voice requests are
+    // server-only (ServerConfig.VoiceLimits).
     TypedOnly: false,
-    // Daily character limit for all players (total). 0 means no limit (or disabled).
-    // The API is relatively cheap, but this prevents unexpected bills.
-    DailyCharacterCap: 100000,
-    // Max characters per player per day to prevent abuse from one IP/player.
-    PerPlayerDailyCharacterCap: 15000,
+    // How long the client waits for a victim line's audio to arrive before showing it as
+    // subtitles only (timed like a line without a voice).
+    LoadTimeoutSeconds: 8,
+    // Once a line's audio is playing, how long past its length to wait for the browser to
+    // say it ended before moving on anyway.
+    EndGraceSeconds: 2,
+  },
+
+  // Push-to-talk. The browser's own speech recognition turns the player's words into text,
+  // which is sent exactly like a typed message, so it costs nothing and needs no server
+  // checks of its own.
+  PlayerVoice: {
+    // The key held to talk (a KeyboardEvent.code, so it's the same key on any layout).
+    TalkKey: "KeyV",
+    // Longest the player can hold the talk key in one go; it lets go by itself after this.
+    MaxTalkSeconds: 15,
+    // After letting go, how long to wait for the browser's final words before sending
+    // whatever it heard so far.
+    ResultWaitSeconds: 3,
+    // The language the browser listens for.
+    Language: "en-US",
+    // How long a notice (e.g. "Mic blocked") stays up.
+    NoticeSeconds: 5,
+  },
+
+  // The victim's cartoon face (ui/Face). Sizes are fractions of the face's square.
+  Face: {
+    // Eyebrows ease to a new mood's pose over this long.
+    BrowSeconds: 0.2,
+    // The talking mouth: width, and height when shut and wide open.
+    TalkWidth: 0.15,
+    TalkMinHeight: 0.03,
+    TalkMaxHeight: 0.13,
+    // Below this openness (0 to 1) the face shows its mood's resting mouth instead.
+    MouthShowThreshold: 0.08,
+    // How fast the mouth opens and closes, in openness per second.
+    MouthOpenSpeed: 14,
+    MouthCloseSpeed: 8,
+    // How the mouth follows the voice: each line's loudness is measured this many times a
+    // second from its audio. A moment at LoudnessPeakShare of the line's loudest opens the
+    // mouth fully (lower it for a wider-open mouth), and anything under LoudnessGate of that
+    // shuts it, so it closes between words.
+    LoudnessFramesPerSecond: 60,
+    LoudnessPeakShare: 0.6,
+    LoudnessGate: 0.15,
+    // With no voice to follow (subtitles only), the mouth flaps at this speed (radians per
+    // second) during the victim's turn.
+    FlapSpeed: 10,
+    // Blinks: random gaps between them, how long each lasts, and how far the eyes close.
+    BlinkMinSeconds: 2.5,
+    BlinkMaxSeconds: 5.5,
+    BlinkSeconds: 0.12,
+    BlinkEyeHeight: 0.15,
+    // The head bobs up and down by this fraction, once per BobPeriodSeconds.
+    BobPeriodSeconds: 3.5,
+    BobAmount: 0.015,
+  },
+
+  // The feedback moments (ui/effects): stamps, shakes, flashes, coins, rolling numbers.
+  Effects: {
+    // Stamps (CALL ENDED, PROMOTED, FIRED) start this many times bigger and slam down.
+    StampStartScale: 3,
+    SlamSeconds: 0.25,
+    StampRotationDegrees: -12,
+    // The CALL ENDED stamp stays this long, then fades.
+    StampHoldSeconds: 1.8,
+    StampFadeSeconds: 0.5,
+    // The desktop shakes when a victim hangs up, by this fraction of its size.
+    ShakeSeconds: 0.4,
+    ShakeAmount: 0.006,
+    // The trust bar blinks on big changes.
+    FlashSeconds: 0.12,
+    FlashCount: 3,
+    // Coins thrown out of the Redeem button, flying up to CoinTravel (a fraction of the
+    // desktop's height).
+    CoinCount: 12,
+    CoinSeconds: 0.9,
+    CoinTravel: 0.18,
+    // Numbers (the taskbar earnings) roll up to a new value over this long.
+    RollSeconds: 0.8,
+    // A trust change at least this big (in percent of the bar) in one turn flashes the bar,
+    // beeps, and makes the face react.
+    BigTrustChangePercent: 10,
+    // How long the face shows a reaction before going back to its resting mood.
+    ReactionSeconds: 3,
+    // Shift report: when the stamp lands, and how long after it the level up jingle plays.
+    ReportStampDelaySeconds: 0.9,
+    LevelUpJingleDelaySeconds: 2.5,
+  },
+
+  // Sound effects (ui/sounds). Files missing from public/sounds are skipped.
+  Sounds: {
+    // How loud all sound effects are, from 0 to 1, on top of each sound's own volume.
+    MasterVolume: 0.8,
+    // The dial tone and the overtime alarm are cut off after this long.
+    DialToneSeconds: 2.5,
+    OvertimeSeconds: 2,
+  },
+
+  // Background music (ui/music). The songs are listed in ui/songs.ts.
+  Music: {
+    // The volume a new player starts at, from 0 to 1.
+    DefaultVolume: 0.35,
+    // While the victim talks, the music drops to this fraction of its volume.
+    DuckLevel: 0.25,
+    // Volume changes (ducking) fade over this long.
+    FadeSeconds: 0.4,
   },
 } as const;

@@ -1,0 +1,20 @@
+/* Fills its (positioned) parent's box exactly, keeping its square shape centered in it,
+   whatever that box's size. */
+.face {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+/* Eyebrows ease to each mood's pose (the duration is set from Config.Face.BrowSeconds). */
+.brow {
+  transition-property: transform;
+  transition-timing-function: ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .brow {
+    transition: none;
+  }
+}

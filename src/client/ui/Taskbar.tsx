@@ -1,5 +1,6 @@
 // The bar along the bottom of the desktop: the start button, a button for each open window,
-// and a tray with the shift timer, earnings vs. quota, the server connection and a clock.
+// and a tray with the shift timer, earnings vs. quota (rolling up on a payout), the music
+// picker, the server connection and a clock.
 
 import type { ReactElement } from "react";
 import { formatClock } from "@shared/time";
@@ -7,6 +8,8 @@ import { Apps } from "@client/ui/appList";
 import { cx } from "@client/ui/classNames";
 import controls from "@client/ui/controls.module.css";
 import { useDesktop, useDesktopState } from "@client/ui/DesktopContext";
+import { RollingNumber } from "@client/ui/Effects";
+import { MusicPicker } from "@client/ui/MusicPicker";
 import { useNow } from "@client/ui/useNow";
 import { leaveSave } from "@client/net/saveActions";
 import { type ConnectionStatus, useConnection } from "@client/state/connectionStore";
@@ -77,8 +80,10 @@ export function Taskbar(): ReactElement {
       <div className={cx(controls.sunken, styles.tray)}>
         <ShiftTimer shift={shift} />
         <span>
-          ${shift.snapshot.earnings} / ${shift.snapshot.quota}
+          <RollingNumber value={shift.snapshot.earnings} format={(value) => `$${value}`} /> / $
+          {shift.snapshot.quota}
         </span>
+        <MusicPicker />
         <ConnectionDot />
         <TrayClock />
       </div>

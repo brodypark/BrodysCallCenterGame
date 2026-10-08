@@ -1,5 +1,5 @@
-// How long a victim line takes to say, worked out from its length. Used by the client to
-// fake speaking until real voices arrive (step 9), and by the server's safety timer.
+// How long a victim line takes to say, worked out from its length. Used by the client for
+// lines without audio (subtitles only), and by the server's safety timer.
 
 import { Config } from "@shared/Config";
 

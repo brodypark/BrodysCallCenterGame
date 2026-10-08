@@ -6,6 +6,7 @@ import path from "node:path";
 import fastifyCookie from "@fastify/cookie";
 import fastifyStatic from "@fastify/static";
 import Fastify from "fastify";
+import { z } from "zod";
 import { ServerConfig } from "@server/config";
 import { loadServerEnv } from "@server/env";
 import { playerIdFromCookieHeader, registerSessionRoute } from "@server/net/playerSession";
@@ -16,6 +17,8 @@ import { AIService } from "@server/services/AIService";
 import { DataService } from "@server/services/DataService";
 import { createGeminiModel } from "@server/services/GeminiClient";
 import { RateLimiter } from "@server/services/RateLimiter";
+import { VoiceService } from "@server/services/VoiceService";
+import { ApiRoutes } from "@shared/api";
 import { Config } from "@shared/Config";
 
 const env = loadServerEnv();
@@ -69,21 +72,70 @@ const game = startGameServer(app.server, {
   log: app.log,
 });
 
-import { VoiceService } from "@server/services/VoiceService";
-const voiceService = new VoiceService();
+// Victims speak with ElevenLabs when there's a key and the cost switch allows it; otherwise
+// their lines are subtitles only.
+let voice: VoiceService | undefined;
+if (Config.Voice.TypedOnly) {
+  app.log.info("Config.Voice.TypedOnly is on, so victims don't speak.");
+} else if (env.elevenLabsApiKey === undefined) {
+  app.log.warn("ELEVENLABS_API_KEY isn't set, so victims don't speak.");
+} else {
+  const { PerMinute, PerDayCharacters, GlobalPerDayCharacters } = ServerConfig.VoiceLimits;
+  const limiter = new RateLimiter({
+    perMinute: PerMinute,
+    perDay: PerDayCharacters,
+    globalPerDay: GlobalPerDayCharacters,
+  });
+  voice = new VoiceService({
+    apiKey: env.elevenLabsApiKey,
+    allowLine: (playerId, characters) => limiter.tryTake(playerId, characters),
+    log: app.log,
+  });
+  app.log.info({ model: ServerConfig.ElevenLabs.Model }, "Victims speak with ElevenLabs.");
+}
 
-app.get<{ Params: { lineId: string } }>("/api/voice/victim/:lineId", async (request, reply) => {
+const voiceParamsSchema = z.strictObject({ lineId: z.coerce.number().int().positive() });
+
+// The audio for the victim line the player's call is on right now, streamed as it's made
+// (the client waits for all of it before playing; the fast model makes it in well under the
+// line's length). Each line can be fetched once (CallService.claimLineForVoice), so nothing gets paid for
+// twice. Any failure is a 4xx/5xx and the client shows the line as subtitles only.
+app.get(`${ApiRoutes.VictimVoice}/:lineId`, async (request, reply) => {
   const playerId = playerIdFromCookieHeader(app, request.headers.cookie);
-  if (!playerId) {
-    return reply.status(401).send({ error: "Unauthorized" });
+  if (playerId === undefined) {
+    return reply.status(401).send({ error: "No valid player cookie." });
   }
-  
-  const currentLine = game.calls.getCurrentVictimLine(playerId);
-  if (!currentLine || currentLine.lineId.toString() !== request.params.lineId) {
-    return reply.status(403).send({ error: "Invalid or expired line" });
+  if (voice === undefined) {
+    return reply.status(404).send({ error: "Victims don't speak right now." });
   }
-
-  return voiceService.streamVictimLine(playerId, currentLine.text, currentLine.scenario, reply);
+  const params = voiceParamsSchema.safeParse(request.params);
+  const line = params.success ? game.calls.claimLineForVoice(playerId, params.data.lineId) : null;
+  if (line === null) {
+    return reply.status(409).send({ error: "That line isn't being said, or already was." });
+  }
+  // Stops the ElevenLabs request if the player leaves or the client gives up waiting.
+  const cancel = new AbortController();
+  reply.raw.on("close", () => cancel.abort());
+  if (reply.raw.destroyed || request.raw.socket.destroyed) {
+    // Gone before the listener was added (e.g. hung up as the line arrived).
+    cancel.abort();
+  }
+  const result = await voice.speak(playerId, line.text, line.voice, cancel.signal);
+  if (cancel.signal.aborted) {
+    if (result.ok) {
+      result.audio.destroy();
+    }
+    return reply;
+  }
+  if (!result.ok) {
+    return reply
+      .status(result.reason === "limit" ? 429 : 502)
+      .send({ error: "No voice for this line." });
+  }
+  return reply
+    .header("Content-Type", "audio/mpeg")
+    .header("Cache-Control", "no-store")
+    .send(result.audio);
 });
 
 // Close the game (timers and open connections) before Fastify closes the HTTP server, or it

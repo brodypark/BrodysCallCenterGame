@@ -42,6 +42,35 @@ export const ServerConfig = {
     GlobalPerDay: 5000,
   },
 
+  // Cost guards on ElevenLabs victim voice lines. A line over any limit is shown as
+  // subtitles only. Kept on the server so players can't see how close they are.
+  VoiceLimits: {
+    // Lines per player in any rolling minute. Real play is a few a minute.
+    PerMinute: 20,
+    // Characters per player, per UTC day: about 100 lines.
+    PerDayCharacters: 15_000,
+    // Characters for all players together, per UTC day: the real ceiling on the bill.
+    GlobalPerDayCharacters: 100_000,
+  },
+
+  // ElevenLabs text-to-speech for victim lines (docs read 2026-10-08).
+  ElevenLabs: {
+    // Streaming text-to-speech: POST {BaseUrl}/{voiceId}/stream.
+    BaseUrl: "https://api.elevenlabs.io/v1/text-to-speech",
+    // The fast, cheap model (eleven_turbo_v2_5 is deprecated in its favor).
+    Model: "eleven_flash_v2_5",
+    // MP3 at 64 kbps: plenty for a voice, and half the download of the default.
+    OutputFormat: "mp3_44100_64",
+    // How long to wait for the audio to start arriving (the audio itself then streams).
+    // Kept well under Config.Voice.LoadTimeoutSeconds, which covers the whole download, so
+    // a retry still has time to work.
+    RequestTimeoutMs: 3500,
+    // Tries again after a network error, a timeout or a 5xx/429 this many times, waiting
+    // RetryBaseMs (then twice that).
+    MaxRetries: 1,
+    RetryBaseMs: 400,
+  },
+
   PlayerCookie: {
     Name: "scamgpt_player",
     // A year. Every visit starts it again.

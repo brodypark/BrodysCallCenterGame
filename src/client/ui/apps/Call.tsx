@@ -1,10 +1,22 @@
 // Call app: the conversation with the victim, styled as a dark phone app that looks the same
 // in every desktop theme. From the top: the Caller Trust bar, the caller (name, face and a
 // status line saying whose turn it is), the chat log, the typed message box, and Hang Up,
-// speaker and hold-to-talk buttons. It opens by itself when a call is answered. Voice
-// arrives in steps 9-10 and the face in step 11.
+// speaker and hold-to-talk buttons. It opens by itself when a call is answered. Holding V
+// (outside the message box) or the talk button talks; the words show as a "Listening..."
+// bubble and send when it's let go. The caller's face shows their mood and talks with
+// their voice; big trust swings flash the bar and make it react, and a victim hanging up
+// slams a CALL ENDED stamp on the window.
 
-import { type FormEvent, type ReactElement, useEffect, useRef, useState } from "react";
+import {
+  type CSSProperties,
+  type FormEvent,
+  type KeyboardEvent,
+  type PointerEvent,
+  type ReactElement,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import { Config } from "@shared/Config";
 import { cleanMessage } from "@shared/messageText";
 import type {
@@ -19,6 +31,18 @@ import { useCall } from "@client/state/callStore";
 import { useConnection } from "@client/state/connectionStore";
 import { useShift } from "@client/state/shiftStore";
 import { cx } from "@client/ui/classNames";
+import { Stamp } from "@client/ui/Effects";
+import { Face } from "@client/ui/Face";
+import { moodFor } from "@client/ui/faceParts";
+import { type TrustSwing, useTrustReaction } from "@client/ui/apps/useTrustReaction";
+import { usePushToTalkKey } from "@client/ui/usePushToTalkKey";
+import {
+  cancelTalking,
+  startTalking,
+  stopTalking,
+  usePlayerVoice,
+} from "@client/voice/PlayerVoice";
+import { setVictimMuted, useVictimMuted } from "@client/voice/VictimVoice";
 import styles from "@client/ui/apps/Call.module.css";
 
 // The status line after each way a call can end, also shown at the end of its chat.
@@ -60,25 +84,29 @@ function statusText(call: CallSnapshot, shift: ShiftStatus): string {
   return call.lastOutcome ? OutcomeText[call.lastOutcome].toUpperCase() : "WAITING FOR A CALL...";
 }
 
-import { VictimVoice } from "@client/ui/VictimVoice";
-
 export function Call(): ReactElement {
   const call = useCall();
   const shift = useShift().snapshot.status;
   const online = useConnection().status === "connected";
   const [draft, setDraft] = useState("");
-  const [muted, setMuted] = useState(false);
+  const muted = useVictimMuted();
   const logRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const talkRef = useRef<HTMLButtonElement>(null);
+  const voice = usePlayerVoice();
 
   const inCall = call.status === "inCall";
   // Only usable while connected: anything sent offline would be dropped.
   const canAct = inCall && online;
   // Typing (and talking) is only for the player's turn.
   const canType = canAct && call.turn === "playerTurn";
-  // Puts the cursor back in the message box when the player's turn comes: after answering,
-  // and after sending a message from the box.
+  // Puts the cursor back in the message box when the player's turn comes: after sending a
+  // message from the box, and after answering or voice failing when voice can't be used.
+  // Otherwise the box stays out of the way, so holding V talks.
   const wantsFocus = useRef(false);
+  const talking = voice.status !== "idle";
+  usePushToTalkKey(canType);
+  const reaction = useTrustReaction(call.trust);
 
   // A half-typed message doesn't carry over into the next call.
   const [wasInCall, setWasInCall] = useState(inCall);
@@ -93,26 +121,25 @@ export function Call(): ReactElement {
   const callerName = call.caller ?? transcript?.callerName ?? "No caller";
   const canSend = canType && cleanMessage(draft) !== null;
 
-  const currentVictimLine = 
-    call.turn === "victimTurn" 
-      ? [...messages].reverse().find(m => m.speaker === "victim")
-      : null;
-  const lineId = (currentVictimLine && "lineId" in currentVictimLine) ? currentVictimLine.lineId : null;
-
   // Keep the newest message (or the line saying how the call ended) in view.
   const endReason = transcript?.endReason ?? null;
+  // Which call ending this is, and the one already over when the window opened: only a
+  // hang-up seen happen gets the CALL ENDED stamp, not one from before it was reopened.
+  const endingKey = endReason === null ? null : `${callerName}-${messages.length}-${endReason}`;
+  const [endingAtOpen] = useState(endingKey);
+  const stampCallEnded = endReason === "victimHungUp" && endingKey !== endingAtOpen;
   useEffect(() => {
     const log = logRef.current;
     if (log) {
       log.scrollTop = log.scrollHeight;
     }
-  }, [messages.length, endReason]);
+  }, [messages.length, endReason, talking, voice.heard]);
 
   useEffect(() => {
     if (inCall) {
-      wantsFocus.current = true;
+      wantsFocus.current = !voice.available;
     }
-  }, [inCall]);
+  }, [inCall, voice.available]);
 
   useEffect(() => {
     if (!canType || !wantsFocus.current) {
@@ -121,10 +148,18 @@ export function Call(): ReactElement {
     wantsFocus.current = false;
     // Only if the player hasn't moved on to something else, like typing in another app.
     const active = document.activeElement;
-    if (active === null || active === document.body || active === inputRef.current) {
+    if (
+      active === null ||
+      active === document.body ||
+      active === inputRef.current ||
+      active === talkRef.current
+    ) {
       inputRef.current?.focus();
     }
-  }, [canType]);
+  }, [canType, voice.available]);
+
+  // A talk can't outlive the window: a button held down when it closes never hears the let-go.
+  useEffect(() => cancelTalking, []);
 
   function submit(event: FormEvent<HTMLFormElement>): void {
     event.preventDefault();
@@ -132,19 +167,45 @@ export function Call(): ReactElement {
     if (!canType || text === null) {
       return;
     }
+    // Typing wins over words still on their way, so only one message goes this turn.
+    cancelTalking();
     sendMessage(text);
     setDraft("");
     wantsFocus.current = true;
   }
 
+  // Escape leaves the message box, so holding V talks again.
+  function onInputKeyDown(event: KeyboardEvent<HTMLInputElement>): void {
+    if (event.key === "Escape") {
+      event.currentTarget.blur();
+    }
+  }
+
+  function onTalkDown(event: PointerEvent<HTMLButtonElement>): void {
+    if (event.button !== 0) {
+      return;
+    }
+    // Keeps the button hearing the pointer even if it slides off while held.
+    event.currentTarget.setPointerCapture(event.pointerId);
+    startTalking();
+  }
+
   return (
     <div className={styles.call}>
-      <TrustBar trust={call.trust} />
+      <TrustBar trust={call.trust} swing={reaction.swing} />
 
       <section className={cx(styles.panel, styles.caller)} aria-label="Caller">
         <div className={styles.nameBand}>{callerName}</div>
         <div className={styles.faceArea}>
-          <span className={styles.noFace}>?</span>
+          {call.face ? (
+            <Face
+              look={call.face}
+              mood={reaction.mood ?? moodFor(call.trust?.word ?? "unsure")}
+              speaking={call.turn === "victimTurn"}
+            />
+          ) : (
+            <span className={styles.noFace}>?</span>
+          )}
         </div>
         <div className={styles.statusBand} aria-live="polite">
           {statusText(call, shift)}
@@ -160,9 +221,23 @@ export function Call(): ReactElement {
               <Bubble key={index} message={message} callerName={transcript?.callerName ?? ""} />
             ))
           )}
+          {talking && (
+            <div className={cx(styles.bubble, styles.playerBubble, styles.listening)}>
+              <span className={styles.tag}>
+                {voice.status === "listening" ? "Listening..." : "Sending..."}
+              </span>
+              <span>{voice.heard || "..."}</span>
+            </div>
+          )}
           {endReason && <p className={styles.systemLine}>{OutcomeText[endReason]}.</p>}
         </div>
       </section>
+
+      {voice.notice && (
+        <p className={styles.notice} role="status">
+          {voice.notice}
+        </p>
+      )}
 
       <form className={styles.inputRow} onSubmit={submit}>
         <input
@@ -171,10 +246,17 @@ export function Call(): ReactElement {
           type="text"
           value={draft}
           maxLength={Config.Call.MaxTypedMessageLength}
-          placeholder={inCall ? "Type a message..." : "Not on a call"}
+          placeholder={
+            !inCall
+              ? "Not on a call"
+              : voice.available
+                ? "Type, or Esc then hold V to talk..."
+                : "Type a message..."
+          }
           aria-label="Message"
           disabled={!canType}
           onChange={(event) => setDraft(event.target.value)}
+          onKeyDown={onInputKeyDown}
         />
         <button type="submit" className={cx(styles.button, styles.send)} disabled={!canSend}>
           Send
@@ -194,20 +276,40 @@ export function Call(): ReactElement {
           type="button"
           className={cx(styles.button, styles.round)}
           aria-label={muted ? "Unmute the caller" : "Mute the caller"}
-          onClick={() => setMuted(!muted)}
+          onClick={() => setVictimMuted(!muted)}
         >
           {muted ? "🔇" : "🔊"}
         </button>
-        <VictimVoice lineId={lineId} muted={muted} />
         <button
+          ref={talkRef}
           type="button"
-          className={cx(styles.button, styles.round)}
+          className={cx(
+            styles.button,
+            styles.round,
+            voice.available && styles.talk,
+            talking && styles.live,
+          )}
           aria-label="Hold to talk"
-          disabled
+          aria-pressed={talking}
+          title={voice.available ? "Hold to talk, or hold V" : "Voice is off here. Type instead."}
+          disabled={!canType}
+          onPointerDown={onTalkDown}
+          onPointerUp={stopTalking}
+          onPointerCancel={stopTalking}
+          onLostPointerCapture={stopTalking}
+          // A long press on a touch screen would otherwise open a menu.
+          onContextMenu={(event) => event.preventDefault()}
         >
           🎤
         </button>
       </div>
+
+      {stampCallEnded && (
+        <div className={styles.stampLayer}>
+          {/* A new key per call, so each hang-up slams it down again. */}
+          <Stamp key={endingKey} text="CALL ENDED" tone="bad" fades />
+        </div>
+      )}
     </div>
   );
 }
@@ -230,12 +332,35 @@ function Bubble({
 
 /** How much the caller trusts the player, the word for it, and the line trust must climb
  * past before they'll read out the code. All worked out on the server. */
-function TrustBar({ trust }: { trust: TrustMeter | null }): ReactElement {
+function TrustBar({
+  trust,
+  swing,
+}: {
+  trust: TrustMeter | null;
+  // The latest big swing, which blinks the bar green (more trust) or red (less).
+  swing: TrustSwing | null;
+}): ReactElement {
+  const { FlashSeconds, FlashCount } = Config.Effects;
   return (
     <section
       className={cx(styles.panel, styles.trust, trust && styles[trust.word])}
       aria-label="Caller trust"
     >
+      {swing && (
+        <div
+          key={swing.id}
+          className={cx(
+            styles.trustFlash,
+            swing.suspicionRose ? styles.flashBad : styles.flashGood,
+          )}
+          style={
+            {
+              "--flash-seconds": `${FlashSeconds * 2}s`,
+              "--flash-count": FlashCount,
+            } as CSSProperties
+          }
+        />
+      )}
       <div className={styles.trustHeader}>
         <span className={styles.trustTitle}>CALLER TRUST</span>
         <span className={styles.trustWord}>

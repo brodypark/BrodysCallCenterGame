@@ -1,0 +1,102 @@
+/* A rubber stamp: thick outline, tilted, slamming down from big. Colors work on any theme. */
+.stamp {
+  --stamp-good: #2f9e44;
+  --stamp-bad: #d93030;
+
+  margin: 0;
+  padding: 0.4cqh 2cqh;
+  border: 0.6cqh solid currentcolor;
+  border-radius: 1cqh;
+  background: rgb(255 255 255 / 70%);
+  font-size: 5cqh;
+  font-weight: bold;
+  letter-spacing: 0.1em;
+  white-space: nowrap;
+  pointer-events: none;
+  transform: rotate(var(--stamp-rotation));
+  animation: slam var(--slam-seconds) ease-in var(--slam-delay) both;
+}
+
+.good {
+  color: var(--stamp-good);
+}
+
+.bad {
+  color: var(--stamp-bad);
+}
+
+.fades {
+  animation:
+    slam var(--slam-seconds) ease-in var(--slam-delay) both,
+    fade var(--fade-seconds) ease-out var(--fade-delay) forwards;
+}
+
+@keyframes slam {
+  from {
+    opacity: 0;
+    transform: scale(var(--stamp-scale)) rotate(var(--stamp-rotation));
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1) rotate(var(--stamp-rotation));
+  }
+}
+
+@keyframes fade {
+  to {
+    opacity: 0;
+  }
+}
+
+/* Coins burst from the middle of their parent, which must be position: relative. */
+.coins {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+}
+
+.coin {
+  position: absolute;
+  width: 2.4cqh;
+  height: 2.4cqh;
+  margin: -1.2cqh;
+  border: 0.3cqh solid #a66b00;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%, #fff3a0, #f5c518 55%, #c98a00);
+  opacity: 0;
+  animation: coin var(--coin-seconds) ease-out forwards;
+}
+
+@keyframes coin {
+  from {
+    opacity: 1;
+    transform: translate(0, 0) rotate(0);
+  }
+
+  to {
+    opacity: 0;
+    transform: translate(
+        calc(var(--coin-x) * var(--coin-travel)),
+        calc(var(--coin-y) * var(--coin-travel))
+      )
+      rotate(var(--coin-spin));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .stamp {
+    animation: none;
+  }
+
+  .fades {
+    animation: fade var(--fade-seconds) ease-out var(--fade-delay) forwards;
+  }
+
+  .coin {
+    animation: none;
+  }
+}

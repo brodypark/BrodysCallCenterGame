@@ -48,6 +48,9 @@ import.meta.hot?.dispose(() => {
   socket.off("shift:ended", onEnded);
 });
 
+/** The latest shift state, and changes to it, for code outside React (e.g. sound cues). */
+export const shiftStore: Pick<typeof shift, "get" | "subscribe"> = shift;
+
 /** The latest shift state; re-renders the component when it changes. */
 export function useShift(): ShiftState {
   return useStore(shift);

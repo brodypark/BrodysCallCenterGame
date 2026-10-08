@@ -1,5 +1,6 @@
 // Redeem app: type in a card code from a call to cash it in. The server checks the code and
-// decides the payout; this only sends what was typed and shows the answer.
+// decides the payout; this only sends what was typed and shows the answer. A payout rings
+// the till and throws coins out of the button; a wrong code buzzes.
 
 import { type FormEvent, type ReactElement, useState } from "react";
 import { codePlaceholder } from "@shared/cardCode";
@@ -7,6 +8,8 @@ import { Config } from "@shared/Config";
 import { redeemCode } from "@client/net/redeemActions";
 import { useConnection } from "@client/state/connectionStore";
 import { cx } from "@client/ui/classNames";
+import { CoinBurst } from "@client/ui/Effects";
+import { playSound } from "@client/ui/sounds";
 import { upperCaseInput } from "@client/ui/upperCaseInput";
 import controls from "@client/ui/controls.module.css";
 import app from "@client/ui/apps/appStyles.module.css";
@@ -30,6 +33,8 @@ export function Redeem(): ReactElement {
   // Tries left for the card the last answer was about; null when it wasn't about one that
   // can still be tried (cashed in, or nothing matched).
   const [triesLeft, setTriesLeft] = useState<number | null>(null);
+  // Goes up by one per payout, so each one throws a fresh burst of coins.
+  const [payouts, setPayouts] = useState(0);
   const canRedeem = online && !checking && code.trim() !== "";
 
   async function submit(event: FormEvent<HTMLFormElement>): Promise<void> {
@@ -49,6 +54,11 @@ export function Redeem(): ReactElement {
     setTriesLeft(result.success ? null : result.triesRemaining);
     if (result.success) {
       setCode("");
+      setPayouts((count) => count + 1);
+      playSound("ka-ching");
+      playSound("coins");
+    } else {
+      playSound("wrong-code");
     }
   }
 
@@ -72,9 +82,12 @@ export function Redeem(): ReactElement {
       </label>
       <div className={app.row}>
         <span className={app.muted}>Tries left: {triesLeft ?? "-"}</span>
-        <button type="submit" className={controls.button} disabled={!canRedeem}>
-          Redeem
-        </button>
+        <span className={styles.redeemButton}>
+          <button type="submit" className={controls.button} disabled={!canRedeem}>
+            Redeem
+          </button>
+          {payouts > 0 && <CoinBurst key={payouts} seed={payouts} />}
+        </span>
       </div>
       <p
         className={cx(controls.sunken, app.status, styles[status.tone])}

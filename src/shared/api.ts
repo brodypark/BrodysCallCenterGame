@@ -7,4 +7,6 @@ export const ApiPrefix = "/api";
 export const ApiRoutes = {
   // Gives this browser a player id cookie if it doesn't have a valid one.
   Session: `${ApiPrefix}/session`,
+  // The audio for the victim line being said: GET {VictimVoice}/{lineId}, once per line.
+  VictimVoice: `${ApiPrefix}/voice/victim`,
 } as const;

@@ -25,6 +25,23 @@ function setup(limits: { perMinute?: number; perDay?: number; globalPerDay?: num
 }
 
 describe("RateLimiter", () => {
+  it("counts an amount against the daily caps, but one request against the minute", () => {
+    const { limiter } = setup({ perMinute: 3, perDay: 100, globalPerDay: 150 });
+    expect(limiter.tryTake("a", 60)).toBe(true);
+    // 60 + 50 would pass the player's 100.
+    expect(limiter.tryTake("a", 50)).toBe(false);
+    expect(limiter.tryTake("a", 40)).toBe(true);
+    // 100 + 60 would pass everyone's 150.
+    expect(limiter.tryTake("b", 60)).toBe(false);
+    expect(limiter.tryTake("b", 50)).toBe(true);
+  });
+
+  it("refuses an amount that isn't a count", () => {
+    const { limiter } = setup();
+    expect(limiter.tryTake("a", -5)).toBe(false);
+    expect(limiter.tryTake("a", Number.NaN)).toBe(false);
+  });
+
   it("allows a player only so many requests in a rolling minute", () => {
     const { limiter, advance } = setup({ perMinute: 2 });
     expect(limiter.tryTake("a")).toBe(true);

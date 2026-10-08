@@ -5,6 +5,7 @@ import { currentVictimLine } from "@client/voice/victimLine";
 const talking: CallSnapshot = {
   status: "inCall",
   caller: "Grandma Gertrude",
+  face: null,
   turn: "victimTurn",
   playerTurns: 1,
   trust: { percent: 60, word: "unsure", revealAt: 70 },

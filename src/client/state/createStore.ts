@@ -30,6 +30,6 @@ export function createStore<T>(initial: T): Store<T> {
 }
 
 /** The store's current value; re-renders the component when it changes. */
-export function useStore<T>(store: Store<T>): T {
+export function useStore<T>(store: Pick<Store<T>, "get" | "subscribe">): T {
   return useSyncExternalStore(store.subscribe, store.get);
 }

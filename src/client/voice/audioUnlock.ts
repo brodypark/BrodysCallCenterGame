@@ -1,6 +1,6 @@
 // Browsers block sound until the player clicks something, so the first click or key press
-// (Clock In, or anything after a refresh mid-shift) starts the shared audio context. Step 9
-// plays victim voices through it.
+// (Clock In, or anything after a refresh mid-shift) starts the shared audio context. Victim
+// voices play through it (VictimVoice).
 
 let context: AudioContext | null = null;
 
@@ -21,21 +21,18 @@ export function getAudioContext(): AudioContext | null {
   return context;
 }
 
-/** Unlocks audio on the player's first click or key press anywhere. Returns a function that
- * stops listening (it also stops by itself once it has run). */
-export function unlockAudioOnFirstInput(): () => void {
-  const events = ["pointerdown", "keydown"] as const;
-  const stop = (): void => {
+/** Unlocks audio on every click or key press anywhere, so a context the browser suspended
+ * later (e.g. Safari after the tab was in the background) comes back too. Cheap once it's
+ * running. Returns a function that stops listening. */
+export function keepAudioUnlocked(): () => void {
+  // pointerup too: on touch screens it's the tap that lets a page play sound.
+  const events = ["pointerdown", "pointerup", "keydown"] as const;
+  for (const event of events) {
+    window.addEventListener(event, unlockAudio, true);
+  }
+  return () => {
     for (const event of events) {
-      window.removeEventListener(event, onInput, true);
+      window.removeEventListener(event, unlockAudio, true);
     }
   };
-  function onInput(): void {
-    unlockAudio();
-    stop();
-  }
-  for (const event of events) {
-    window.addEventListener(event, onInput, true);
-  }
-  return stop;
 }

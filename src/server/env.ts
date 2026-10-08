@@ -14,7 +14,7 @@ export interface ServerEnv {
   // Development only: a shorter shift for testing (SHIFT_SECONDS). Always undefined in
   // production.
   shiftSecondsOverride: number | undefined;
-  // Not needed until the AI (step 8) and voice (steps 9-10) arrive, so they may be missing.
+  // Optional: without them, victims use scripted replies and don't speak.
   geminiApiKey: string | undefined;
   elevenLabsApiKey: string | undefined;
 }

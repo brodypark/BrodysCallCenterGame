@@ -8,6 +8,7 @@ import { createStore, useStore } from "@client/state/createStore";
 const NoCalls: CallSnapshot = {
   status: "idle",
   caller: null,
+  face: null,
   turn: null,
   playerTurns: 0,
   trust: null,

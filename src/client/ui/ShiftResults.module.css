@@ -48,26 +48,6 @@
   font-weight: bold;
 }
 
-/* A rubber stamp across the card. */
-.stamp {
-  margin: 0;
-  padding: 0.4cqh 2cqh;
-  border: 0.6cqh solid currentcolor;
-  border-radius: 1cqh;
-  font-size: 5cqh;
-  font-weight: bold;
-  letter-spacing: 0.1em;
-  transform: rotate(-8deg);
-}
-
-.promoted {
-  color: var(--success-text);
-}
-
-.fired {
-  color: var(--error-text);
-}
-
 /* A yellow banner when the shift's XP took the player up a level. */
 .levelUp {
   align-self: stretch;

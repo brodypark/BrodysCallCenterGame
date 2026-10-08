@@ -1,106 +1,131 @@
-import { Config } from "@shared/Config";
-import type { Scenario } from "@server/scenarios/scenarioSchema";
-import type { FastifyReply } from "fastify";
-import { Readable } from "node:stream";
+// Victim voices: turns a victim line into speech with ElevenLabs' streaming text-to-speech
+// (docs: elevenlabs.io/docs/api-reference/text-to-speech/stream) and hands back the audio
+// as it arrives, for the HTTP route to stream to the player. Every line is checked against
+// the cost limits first and its characters logged. A line that's over a limit or fails is
+// shown as subtitles only; the client times it like a line without a voice.
 
-interface PlayerUsage {
-  charactersUsed: number;
-  resetAt: number;
+import { Readable } from "node:stream";
+import type { FastifyBaseLogger } from "fastify";
+import { ServerConfig } from "@server/config";
+import type { Scenario } from "@server/scenarios/scenarioSchema";
+
+type Voice = Scenario["voice"];
+
+/** The parts of the server's logger this uses. */
+export type VoiceLog = Pick<FastifyBaseLogger, "info" | "warn">;
+
+export interface VoiceServiceOptions {
+  apiKey: string;
+  // Counts a line of `characters` against the player's limits. False means it's over one.
+  allowLine: (playerId: string, characters: number) => boolean;
+  log: VoiceLog;
+  // Tests pass fakes for these.
+  fetch?: typeof fetch;
+  sleep?: (ms: number) => Promise<void>;
+}
+
+/** A line's audio (MP3, still arriving), or why there isn't any. */
+export type VoiceLine = { ok: true; audio: Readable } | { ok: false; reason: "limit" | "failed" };
+
+// One request to ElevenLabs: the audio, or what went wrong and whether trying again may help.
+type Attempt = { ok: true; audio: Readable } | { ok: false; retry: boolean; detail: string };
+
+function wait(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 export class VoiceService {
-  private readonly usageByPlayer = new Map<string, PlayerUsage>();
-  private globalUsage = 0;
-  private globalResetAt = 0;
+  private readonly apiKey: string;
+  private readonly allowLine: VoiceServiceOptions["allowLine"];
+  private readonly log: VoiceLog;
+  private readonly fetch: typeof fetch;
+  private readonly sleep: (ms: number) => Promise<void>;
 
-  private getUsage(playerId: string): PlayerUsage {
-    const now = Date.now();
-    let usage = this.usageByPlayer.get(playerId);
-    if (!usage || usage.resetAt < now) {
-      usage = { charactersUsed: 0, resetAt: now + 24 * 60 * 60 * 1000 };
-      this.usageByPlayer.set(playerId, usage);
-    }
-    return usage;
+  constructor(options: VoiceServiceOptions) {
+    this.apiKey = options.apiKey;
+    this.allowLine = options.allowLine;
+    this.log = options.log;
+    this.fetch = options.fetch ?? fetch;
+    this.sleep = options.sleep ?? wait;
   }
 
-  private checkUsage(now: number) {
-    if (this.globalResetAt < now) {
-      this.globalUsage = 0;
-      this.globalResetAt = now + 24 * 60 * 60 * 1000;
-      this.usageByPlayer.clear();
+  /** Speech for `text` in `voice`. Aborting `signal` (the player went away) stops the
+   * request, including audio still on its way. A line that passes the limits counts against
+   * them even if ElevenLabs then fails. */
+  async speak(
+    playerId: string,
+    text: string,
+    voice: Voice,
+    signal: AbortSignal,
+  ): Promise<VoiceLine> {
+    if (signal.aborted) {
+      return { ok: false, reason: "failed" };
     }
-  }
-
-  /**
-   * Generates TTS via ElevenLabs and streams it directly to the response.
-   */
-  async streamVictimLine(playerId: string, text: string, scenario: Scenario, reply: FastifyReply): Promise<void> {
-    const now = Date.now();
-    this.checkUsage(now);
-
-    const charCount = text.length;
-
-    // Check limits and master switch
-    if (Config.Voice.TypedOnly || !process.env.ELEVENLABS_API_KEY) {
-      reply.status(403).send({ error: "Voice disabled" });
-      return;
+    const characters = [...text].length;
+    if (!this.allowLine(playerId, characters)) {
+      this.log.info({ playerId, characters }, "Voice: over a limit, so the line is subtitles only");
+      return { ok: false, reason: "limit" };
     }
-
-    const usage = this.getUsage(playerId);
-    if (Config.Voice.PerPlayerDailyCharacterCap > 0 && usage.charactersUsed + charCount > Config.Voice.PerPlayerDailyCharacterCap) {
-      reply.status(429).send({ error: "Per-player daily voice cap exceeded" });
-      return;
-    }
-    if (Config.Voice.DailyCharacterCap > 0 && this.globalUsage + charCount > Config.Voice.DailyCharacterCap) {
-      reply.status(429).send({ error: "Global daily voice cap exceeded" });
-      return;
-    }
-
-    const voice = scenario.voice;
-    const voiceId = voice.voiceId;
-    // We use optimize_streaming_latency=2 for real-time responsiveness.
-    const url = `https://api.elevenlabs.io/v1/text-to-speech/${voiceId}/stream?optimize_streaming_latency=2`;
-
-    const requestBody = {
-      text,
-      model_id: "eleven_turbo_v2_5",
-      voice_settings: {
-        stability: voice.stability,
-        similarity_boost: voice.similarityBoost,
-        style: voice.style,
-        use_speaker_boost: true,
+    const { MaxRetries, RetryBaseMs } = ServerConfig.ElevenLabs;
+    for (let attempt = 0; ; attempt += 1) {
+      const result = await this.request(text, voice, signal);
+      if (result.ok) {
+        this.log.info({ playerId, characters }, "Voice: line spoken");
+        return result;
       }
-    };
+      if (!result.retry || attempt >= MaxRetries || signal.aborted) {
+        this.log.warn({ playerId, detail: result.detail }, "Voice: request failed");
+        return { ok: false, reason: "failed" };
+      }
+      await this.sleep(RetryBaseMs * 2 ** attempt);
+    }
+  }
 
+  private async request(text: string, voice: Voice, signal: AbortSignal): Promise<Attempt> {
+    const { BaseUrl, Model, OutputFormat, RequestTimeoutMs } = ServerConfig.ElevenLabs;
+    const controller = new AbortController();
+    const stop = (): void => controller.abort();
+    if (signal.aborted) {
+      return { ok: false, retry: false, detail: "cancelled" };
+    }
+    signal.addEventListener("abort", stop, { once: true });
+    // Only until the audio starts arriving; after that it streams as fast as it's made.
+    const timer = setTimeout(stop, RequestTimeoutMs);
     try {
-      const response = await fetch(url, {
+      const url = `${BaseUrl}/${encodeURIComponent(voice.voiceId)}/stream?output_format=${OutputFormat}`;
+      const response = await this.fetch(url, {
         method: "POST",
         headers: {
-          "xi-api-key": process.env.ELEVENLABS_API_KEY,
+          "xi-api-key": this.apiKey,
           "Content-Type": "application/json",
-          "Accept": "audio/mpeg",
+          Accept: "audio/mpeg",
         },
-        body: JSON.stringify(requestBody),
+        body: JSON.stringify({
+          text,
+          model_id: Model,
+          voice_settings: {
+            stability: voice.stability,
+            similarity_boost: voice.similarityBoost,
+            style: voice.style,
+            use_speaker_boost: true,
+          },
+        }),
+        signal: controller.signal,
       });
-
-      if (!response.ok || !response.body) {
-        const errText = await response.text().catch(() => "Could not read error text");
-        console.error(`ElevenLabs API failed with status ${response.status}: ${errText}`);
-        reply.status(response.status).send({ error: "ElevenLabs API failed" });
-        return;
+      if (!response.ok || response.body === null) {
+        const body = await response.text().catch(() => "");
+        return {
+          ok: false,
+          retry: response.status === 429 || response.status >= 500,
+          detail: `status ${response.status}: ${body}`,
+        };
       }
-
-      // Add to usage
-      usage.charactersUsed += charCount;
-      this.globalUsage += charCount;
-
-      reply.header("Content-Type", "audio/mpeg");
-      // Fastify reply can stream Node.js Streams via `reply.send()` directly.
-      return reply.send(Readable.fromWeb(response.body as any));
+      return { ok: true, audio: Readable.fromWeb(response.body) };
     } catch (error) {
-      console.error("Voice streaming failed:", error);
-      reply.status(500).send({ error: "Internal error" });
+      // A network error or the timeout.
+      return { ok: false, retry: true, detail: String(error) };
+    } finally {
+      clearTimeout(timer);
     }
   }
 }
-

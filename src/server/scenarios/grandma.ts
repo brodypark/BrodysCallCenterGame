@@ -56,7 +56,7 @@ export const grandma: ScenarioInput = {
   suspicionThreshold: 100,
   trustLevel: 30,
   voice: {
-    voiceId: "0rEo3eAjssGDUCXHYENf", // Grandma Rachel - Wise Southern - ElevenLabs pre-made female voice
+    voiceId: "XrExE9yKIg1WjnnlVkGX", // Matilda - ElevenLabs pre-made female voice
     stability: 0.6,
     similarityBoost: 0.8,
     style: 0.0,

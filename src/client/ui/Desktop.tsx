@@ -22,10 +22,12 @@ import { StartMenu } from "@client/ui/StartMenu";
 import { Taskbar } from "@client/ui/Taskbar";
 import { TitleMenu } from "@client/ui/TitleMenu";
 import { useStats } from "@client/state/statsStore";
+import { useDesktopShake } from "@client/ui/desktopShake";
 import { useCallPopups } from "@client/ui/useCallPopups";
+import { useDesktopSounds } from "@client/ui/useDesktopSounds";
 import { useTitleMenuReset, useTitleMenuShown } from "@client/ui/useTitleMenuShown";
 import { useTutorialPopup } from "@client/ui/useTutorialPopup";
-import { unlockAudioOnFirstInput, unlockAudio } from "@client/voice/audioUnlock";
+import { keepAudioUnlocked, unlockAudio } from "@client/voice/audioUnlock";
 import { Windows } from "@client/ui/Windows";
 import styles from "@client/ui/Desktop.module.css";
 import "@client/ui/fonts.css";
@@ -37,21 +39,25 @@ export function Desktop(): ReactElement {
   );
   const screenRef = useRef<HTMLDivElement>(null);
   const desktop = useMemo<DesktopContextValue>(() => ({ store, screenRef }), [store]);
+  // What shakes when a victim hangs up: everything on the screen, inside its box.
+  const layersRef = useRef<HTMLDivElement>(null);
+  useDesktopShake(layersRef);
+  useDesktopSounds(store, screenRef);
   useCallPopups(store);
   useTitleMenuReset(store);
   useTutorialPopup(store);
   // The title menu covers the desk; keyboard focus mustn't reach what's under it.
   const menuShown = useTitleMenuShown(store);
   // Also after a refresh mid-shift, when there's no Clock In click to do it.
-  useEffect(() => unlockAudioOnFirstInput(), []);
+  useEffect(() => keepAudioUnlocked(), []);
   // While another tab has the game, nothing here can be clicked, typed in or focused.
   const replaced = useConnection().status === "replaced";
   // The save's equipped cosmetics (the defaults until a save is picked).
   const { theme, wallpaper } = useStats();
-  
+
   const activeSlot = useSaves()?.activeSlot ?? null;
   const { snapshot: shift } = useShift();
-  
+
   return (
     <DesktopContext value={desktop}>
       <div className={styles.host}>
@@ -63,16 +69,16 @@ export function Desktop(): ReactElement {
           data-theme={theme}
           data-wallpaper={wallpaper}
         >
-          <div className={styles.layers} inert={replaced}>
+          <div ref={layersRef} className={styles.layers} inert={replaced}>
             <div className={styles.desk} inert={menuShown}>
               {/* Clicking the bare wallpaper closes the start menu. */}
               <div className={styles.wallpaper} onClick={() => store.setStartMenuOpen(false)} />
-              
+
               {/* Floating Clock In button */}
               {activeSlot !== null && shift.status === "offShift" && !menuShown && (
                 <div className={styles.clockInWrapper}>
-                  <button 
-                    type="button" 
+                  <button
+                    type="button"
                     className={styles.clockInButton}
                     onClick={() => {
                       unlockAudio();

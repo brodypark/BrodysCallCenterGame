@@ -1,0 +1,57 @@
+.root {
+  position: relative;
+  display: flex;
+  align-items: center;
+  height: 100%;
+}
+
+/* A bare icon in the tray, like the clock beside it. */
+.toggle {
+  padding: 0 0.4cqh;
+  border: none;
+  background: none;
+  font: inherit;
+  font-size: 2cqh;
+  line-height: 1;
+  color: inherit;
+  cursor: pointer;
+}
+
+/* Pops up above the taskbar, right-aligned with the button. */
+.menu {
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + 1.4cqh);
+  z-index: var(--layer-start-menu);
+  display: flex;
+  flex-direction: column;
+  gap: 1cqh;
+  width: 24cqw;
+  padding: 1.2cqh;
+  white-space: normal;
+}
+
+.heading {
+  margin: 0;
+  font-weight: bold;
+  letter-spacing: 0.1em;
+}
+
+.songs {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6cqh;
+}
+
+.song,
+.volume {
+  display: flex;
+  align-items: center;
+  gap: 0.8cqh;
+  cursor: pointer;
+}
+
+.volume input {
+  flex: 1;
+  min-width: 0;
+}

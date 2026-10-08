@@ -47,6 +47,9 @@ import.meta.hot?.dispose(() => {
 });
 
 /** The current connection state; re-renders the component when it changes. */
+/** The connection state, and changes to it, for code outside React (e.g. sound cues). */
+export const connectionStore: Pick<typeof connection, "get" | "subscribe"> = connection;
+
 export function useConnection(): ConnectionState {
   return useStore(connection);
 }

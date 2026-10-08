@@ -133,6 +133,14 @@ describe("CallService: ringing", () => {
     expect(latest().status).toBe("idle");
     vi.advanceTimersByTime(1);
     expect(latest()).toMatchObject({ status: "ringing", caller: "Grandma Gertrude", turn: null });
+    // The client draws the caller's face from this.
+    expect(latest().face).toEqual(grandma.face);
+  });
+
+  it("only sends a face while a call is ringing or going", () => {
+    const { service, latest } = ringing();
+    service.decline(PlayerId);
+    expect(latest().face).toBeNull();
   });
 
   it("counts an unanswered call as missed, then rings the next one", () => {
@@ -278,6 +286,28 @@ describe("CallService: turns", () => {
     service.sendMessage(PlayerId, "hi");
     service.finishedSpeaking(PlayerId, lastLineId());
     expect(latest().turn).toBe("processing");
+  });
+
+  it("hands out each victim line's voice once, only while it's being said", () => {
+    const { service, lastLineId } = ringing();
+    service.answer(PlayerId);
+    const lineId = lastLineId();
+    expect(service.claimLineForVoice(PlayerId, lineId + 1)).toBeNull();
+    expect(service.claimLineForVoice(PlayerId, lineId)).toEqual({
+      text: greetings[0],
+      voice: grandma.voice,
+    });
+    // Asking again (a replay, or another tab) gets nothing, so it's never paid for twice.
+    expect(service.claimLineForVoice(PlayerId, lineId)).toBeNull();
+    expect(service.claimLineForVoice("someone-else", lineId)).toBeNull();
+
+    advanceSeconds(Config.Turn.MinSpeakingSeconds);
+    service.finishedSpeaking(PlayerId, lineId);
+    service.sendMessage(PlayerId, "hello");
+    // Still thinking: there's no line to voice yet.
+    expect(service.claimLineForVoice(PlayerId, lineId + 1)).toBeNull();
+    advanceSeconds(Config.Turn.ThinkingSeconds);
+    expect(service.claimLineForVoice(PlayerId, lineId + 1)?.text).toBe(fallbackReplies[0]?.reply);
   });
 
   it("doesn't end a line sooner than the shortest speaking time", () => {

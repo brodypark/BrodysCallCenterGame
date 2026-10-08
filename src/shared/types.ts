@@ -51,11 +51,35 @@ export interface Transcript {
   endReason: CallEndReason | null;
 }
 
+export type HairStyle = "Bun" | "Long" | "Short" | "Bald";
+export type HatStyle = "Tricorn" | "TinFoil" | "Deerstalker" | "Headband";
+export type FacialHair = "Mustache" | "Beard";
+
+/** How a victim's cartoon face is drawn (ui/Face). Colors are like "#ffdcbe". */
+export interface FaceLook {
+  skin: string;
+  hair: string;
+  hairStyle: HairStyle;
+  glasses: boolean;
+  earrings: boolean;
+  // Rosy cheeks.
+  blush: boolean;
+  // Extras; left out for none.
+  hat?: { style: HatStyle; color: string };
+  // Drawn in the hair color. A beard comes with a mustache.
+  facialHair?: FacialHair;
+  // Over the left eye.
+  eyepatch?: boolean;
+  antennae?: boolean;
+}
+
 /** Everything the client knows about the player's calls. Sent whenever any of it changes. */
 export interface CallSnapshot {
   status: CallStatus;
   // Who's calling, or on the line. null while idle.
   caller: string | null;
+  // How the caller looks. null while idle.
+  face: FaceLook | null;
   // Whose turn it is. null unless a call is in progress.
   turn: TurnState | null;
   // Messages the player has sent this call.

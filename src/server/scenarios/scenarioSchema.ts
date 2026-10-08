@@ -4,7 +4,7 @@
 
 import { z } from "zod";
 import { Config } from "@shared/Config";
-import type { Difficulty } from "@shared/types";
+import type { Difficulty, FaceLook } from "@shared/types";
 
 const text = z.string().trim().min(1);
 const textList = z.array(text).min(1);
@@ -57,7 +57,7 @@ const FaceSchema = z.strictObject({
   // Over the left eye.
   eyepatch: z.boolean().optional(),
   antennae: z.boolean().optional(),
-});
+}) satisfies z.ZodType<FaceLook>;
 
 /** What the AI replies each turn, and the shape of every scripted fallback reply. */
 export const AIReplySchema = z.strictObject({

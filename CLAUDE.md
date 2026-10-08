@@ -23,7 +23,7 @@ Phone (incoming call), Call (subtitles, push-to-talk, typed box, turn indicator,
 - Server: Node + Fastify (HTTP) + Socket.IO (game events)
 - Saves: SQLite (better-sqlite3)
 - AI: Gemini through the Gemini API (Google's official Node SDK; confirm the package in step 8)
-- Voice: ElevenLabs text-to-speech and speech-to-text, called from the server only
+- Voice: ElevenLabs text-to-speech, called from the server only; player speech uses the browser's own speech recognition (Web Speech API), which is free
 - Validation: Zod. Tests: Vitest. Lint and format: ESLint (typescript-eslint) + Prettier
 - Claude Code in VS Code
 
@@ -36,11 +36,11 @@ Phone (incoming call), Call (subtitles, push-to-talk, typed box, turn indicator,
 - src/client → React app
   - net/: the socket connection and typed event helpers
   - state/: client stores holding what the server last said
-  - voice/: VictimVoice (plays lines, measures loudness), PlayerVoice (push-to-talk recording)
-  - ui/: Desktop, Window, DesktopIcons, Taskbar, StartMenu, TitleMenu (home screen with Clock In, between shifts), ShiftResults, Face, Effects, Sounds, themes
+  - voice/: VictimVoice (plays lines, measures loudness), PlayerVoice + pushToTalk (push-to-talk with the browser's speech recognition)
+  - ui/: Desktop, Window, DesktopIcons, Taskbar, StartMenu, TitleMenu (home screen with Clock In, between shifts), ShiftResults, Face (+ faceParts), Effects (stamp, coins, rolling number, + desktopShake), sounds + soundCues, music + songs + MusicPicker, themes
   - ui/apps/: Phone, Call, Redeem, Wobblebucks, Stats, Shop, Tutorial
 - src/shared → used by both: Config, events (Socket.IO event types + Zod schemas), types, Levels, Upgrades
-- public/sounds, public/fonts → files we have the rights to (credited in docs/credits.md)
+- public/sounds (effects as <name>.mp3, missing ones skipped), public/sounds/music (looped songs), public/fonts → files we have the rights to (credited in docs/credits.md)
 - docs/ → design notes. data/ → SQLite file (gitignored)
 
 ## Architecture Rules
@@ -69,9 +69,9 @@ One module per scam type in src/server/scenarios/: id, displayName, difficulty, 
 
 ## Voice (turn-based)
 - Turn states (server): PlayerTurn → Processing → VictimTurn → PlayerTurn
-- Victim voice: the server turns each victim line into speech with ElevenLabs and streams the audio to the client over HTTP, only for that player's current line. The client plays it, moves the face's mouth with its loudness (Web Audio AnalyserNode), and reports FinishedSpeaking; the server has a safety timer.
-- Player voice: push-to-talk (hold V or the Talk button). The client records with MediaRecorder and uploads the clip; the server transcribes it with ElevenLabs speech-to-text and treats the text as the player's message. Mic is off during the victim's turn; max clip length is in Config.
-- Typed input always works and takes over automatically if the mic is denied, missing, or fails.
+- Victim voice: the server turns each victim line into speech with ElevenLabs (eleven_flash_v2_5) and streams it over HTTP, only for that player's current line and only once per line (CallService.claimLineForVoice). The client (voice/VictimVoice.ts) downloads it, plays it on one page-wide audio element, measures loudness for the face (Web Audio AnalyserNode), and reports FinishedSpeaking only when the audio ends; the audio stops the moment the turn moves on. No audio (off, over a limit, failed, autoplay blocked) means subtitles timed like a line without a voice. The server has a safety timer.
+- Player voice: push-to-talk (hold V outside a text box, or the Talk button). The browser's SpeechRecognition (webkitSpeechRecognition in Safari) turns it into text on the client, which is sent through call:send exactly like typed text, so the server's checks are the same and it costs nothing. Chrome, Edge and Safari have it; Firefox doesn't. Mic is off during the victim's turn; max talk length is Config.PlayerVoice.MaxTalkSeconds.
+- Typed input always works and takes over automatically if voice is unsupported, the mic is denied or missing, or recognition fails.
 - Browsers block sound until the player clicks something, so start audio on the first click (e.g. Clock In).
 - Read the current ElevenLabs docs before writing voice code; don't guess endpoints, model ids, or settings. Same for any browser API you aren't sure of.
 
@@ -113,4 +113,4 @@ Prompts are in docs/build-prompts.md.
 0 Tooling and scaffold · 1 Desktop shell · 2 Connection, player id, fake call flow · 3 Turn state machine · 4 Suspicion, redeem, payout · 5 Shifts · 6 Saving (SQLite) · 7 XP, levels, shop, tutorial · 8 AIService with Gemini (Grandma) · 9 Victim voice (ElevenLabs) · 10 Player voice · 11 Faces, sounds and effects · 12 All 6 scenarios and side problems · 13 Game modes (Career and Sandbox) · 14 Custom callers · 15 Facecam · 16 Player voice changer · 17 Deploy with cost guards
 
 ## Status
-Done through Step 8: scaffold, desktop shell, player id and connection, fake call flow, turn state machine, suspicion, code reveal, Redeem app, payout, shifts (overtime, report), saving with 3 save slots in SQLite (picker on every new visit; refresh within 30 s resumes; leaving mid-shift for longer counts as a failed shift), XP, levels, caller unlocks, the Shop (perks and cosmetics) and How to Play, and Gemini victim replies (AIService, Interactions API, gemini-3.1-flash-lite; scripted fallback when there's no key, the switch is on, a limit is hit or the AI fails; side problems still off until step 12). Shifts are 60 s for testing (Config.Shift.LengthSeconds; the design is 480). Next: Step 9.
+Done through Step 11: scaffold, desktop shell, player id and connection, fake call flow, turn state machine, suspicion, code reveal, Redeem app, payout, shifts (overtime, report), saving with 3 save slots in SQLite (picker on every new visit; refresh within 30 s resumes; leaving mid-shift for longer counts as a failed shift), XP, levels, caller unlocks, the Shop (perks and cosmetics) and How to Play, and Gemini victim replies (AIService, Interactions API, gemini-3.1-flash-lite; scripted fallback when there's no key, the switch is on, a limit is hit or the AI fails; side problems still off until step 12). Steps 9 and 10 are built: ElevenLabs victim voices (each line fetched once; her turn ends when the audio ends), and push-to-talk with the browser's speech recognition, sent like typed text. Step 11 is built: SVG faces (mood from the trust word, reactions to big swings, blink, bob, mouth follows the voice), effects (CALL ENDED stamp + shake, trust flash, coin burst, rolling earnings, report stamp), sound effects (files not added yet) and looped background music picked from the taskbar (two meme tracks, licenses unconfirmed). Shifts are 60 s for testing (Config.Shift.LengthSeconds; the design is 480). Next: Step 12.

@@ -65,6 +65,9 @@ interface PlayerCall {
   lineId: number;
   // When the current victim line was sent (Date.now()), so a client can't end it early.
   lineStartedAt: number;
+  // The newest line whose voice has been asked for, so each line is only ever voiced (and
+  // paid for) once.
+  voicedLineId: number;
   // The call in progress, or the last one answered: what the player sees, codes included.
   // The AI gets its own history (aiHistory) without the codes, saying only that one was
   // read out, so a prompt trick can never get it to repeat or change one.
@@ -178,6 +181,7 @@ export class CallService {
       nextReply: 0,
       lineId: 0,
       lineStartedAt: 0,
+      voicedLineId: 0,
       transcript: null,
       aiHistory: [],
       lastOutcome: null,
@@ -235,20 +239,29 @@ export class CallService {
     return call?.status === "inCall" && call.turn === "playerTurn";
   }
 
-  getCurrentVictimLine(playerId: string): { lineId: number; text: string; scenario: Scenario } | null {
+  /** The victim line `lineId` and the voice to say it in, if it's the line being said right
+   * now and its voice hasn't been asked for yet. Each line is handed out once, so a client
+   * can't make the server pay to voice the same line twice. */
+  claimLineForVoice(
+    playerId: string,
+    lineId: number,
+  ): { text: string; voice: Scenario["voice"] } | null {
     const call = this.calls.get(playerId);
-    if (!call || call.status !== "inCall" || call.turn !== "victimTurn" || !call.scenario) {
+    if (
+      call?.status !== "inCall" ||
+      call.turn !== "victimTurn" ||
+      call.scenario === null ||
+      call.lineId !== lineId ||
+      call.voicedLineId === lineId
+    ) {
       return null;
     }
-    const lastMessage = call.transcript?.messages.at(-1);
-    if (!lastMessage || lastMessage.speaker !== "victim" || lastMessage.lineId !== call.lineId) {
+    const line = call.transcript?.messages.at(-1);
+    if (line?.speaker !== "victim" || line.lineId !== lineId) {
       return null;
     }
-    return {
-      lineId: call.lineId,
-      text: lastMessage.text,
-      scenario: call.scenario,
-    };
+    call.voicedLineId = lineId;
+    return { text: line.text, voice: call.scenario.voice };
   }
 
   /** Forgets a player completely, cancelling anything pending. */
@@ -538,8 +551,8 @@ export class CallService {
   }
 
   /** The one way the victim's turn ends: the victim has finished saying line `lineId`, so
-   * the turn goes back to the player, or the call ends if that was their last line. Step 9
-   * calls this when real audio finishes. */
+   * the turn goes back to the player, or the call ends if that was their last line. The
+   * client reports it when the line's audio finishes. */
   private finishVictimTurn(playerId: string, call: PlayerCall, lineId: number): void {
     if (call.status !== "inCall" || call.turn !== "victimTurn" || call.lineId !== lineId) {
       return;
@@ -607,6 +620,7 @@ export class CallService {
     return {
       status: call.status,
       caller: onCall && call.scenario ? call.scenario.persona.name : null,
+      face: onCall && call.scenario ? call.scenario.face : null,
       turn: call.status === "inCall" ? call.turn : null,
       playerTurns: call.playerTurns,
       trust:

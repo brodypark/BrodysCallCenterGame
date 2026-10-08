@@ -11,3 +11,8 @@
 .idle {
   color: var(--text);
 }
+
+/* The coins burst out of the Redeem button. */
+.redeemButton {
+  position: relative;
+}

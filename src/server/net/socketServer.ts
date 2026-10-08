@@ -263,7 +263,10 @@ export function startGameServer(httpServer: HttpServer, options: GameServerOptio
       sendShift();
     });
     listen(socket, "saves:delete", log, ({ slot }) => saves.deleteSlot(playerId, slot));
-    listen(socket, "saves:leave", log, () => saves.leave(playerId));
+    listen(socket, "saves:leave", log, () => {
+      shifts.abandon(playerId, true);
+      saves.leave(playerId);
+    });
     // Nothing starts until a save is picked (ShiftService checks).
     listen(socket, "shift:clockIn", log, () => shifts.clockIn(playerId));
     listen(socket, "shift:resultSeen", log, () => shifts.resultSeen(playerId));

@@ -45,3 +45,51 @@
 .desk {
   display: contents;
 }
+
+/* Floating Clock In button on the desktop wallpaper */
+.clockInWrapper {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.5cqh;
+  pointer-events: none; /* Let clicks pass through the wrapper */
+}
+
+.clockInButton {
+  pointer-events: auto; /* Re-enable clicks for the button */
+  padding: 1.6cqh 5cqh;
+  font-family: var(--font-title);
+  font-size: 3.5cqh;
+  background: linear-gradient(#7fe35b, #3aa52c);
+  color: #ffffff;
+  border: 0.4cqh solid #1d4a12;
+  border-radius: 1cqh;
+  box-shadow: inset 0 0.4cqh 0 rgba(255, 255, 255, 0.4), 0 0.8cqh 0 #1d4a12, 0 1.2cqh 2cqh rgba(0, 0, 0, 0.4);
+  cursor: pointer;
+  transition: transform 0.1s, box-shadow 0.1s;
+}
+
+.clockInButton:hover {
+  filter: brightness(1.1);
+  transform: translateY(-0.2cqh);
+}
+
+.clockInButton:active {
+  transform: translateY(0.4cqh);
+  box-shadow: inset 0 0.4cqh 0 rgba(255, 255, 255, 0.4), 0 0.2cqh 0 #1d4a12;
+}
+
+.clockInTerms {
+  pointer-events: auto;
+  font-size: 2cqh;
+  color: #ffffff;
+  text-shadow: 0 0.2cqh 0 rgba(0, 0, 0, 0.5);
+  background: rgba(0, 0, 0, 0.6);
+  padding: 0.5cqh 1.2cqh;
+  border-radius: 0.8cqh;
+}
+

@@ -184,10 +184,10 @@ export class ShiftService {
 
   /** The player left for good mid-shift: the shift ends as if time ran out, so its results
    * (a fail if under quota, XP kept) are saved. Leaving can't dodge a FIRED. */
-  abandon(playerId: string): void {
+  abandon(playerId: string, quiet = false): void {
     const shift = this.shifts.get(playerId);
     if (shift && shift.status !== "offShift") {
-      this.endShift(playerId, shift);
+      this.endShift(playerId, shift, quiet);
     }
   }
 
@@ -265,7 +265,7 @@ export class ShiftService {
     this.publish(playerId, shift);
   }
 
-  private endShift(playerId: string, shift: PlayerShift): void {
+  private endShift(playerId: string, shift: PlayerShift, quiet = false): void {
     if (shift.status === "offShift") {
       return;
     }
@@ -312,8 +312,10 @@ export class ShiftService {
     shift.endsAt = null;
     shift.overtimeEndsAt = null;
     shift.earnings = 0;
-    shift.unseenResult = result;
-    this.options.sendResult(playerId, result);
+    shift.unseenResult = quiet ? null : result;
+    if (!quiet) {
+      this.options.sendResult(playerId, result);
+    }
     this.publish(playerId, shift);
   }
 

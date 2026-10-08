@@ -11,12 +11,6 @@ export interface TitleMenuInputs {
   titleMenuOpen: boolean;
 }
 
-/** Out of the way on shift and on the shift report; with no save picked it's always there,
- * behind the picker. */
 export function isTitleMenuShown(inputs: TitleMenuInputs): boolean {
-  return (
-    inputs.shiftStatus === "offShift" &&
-    !inputs.showingResult &&
-    (inputs.activeSlot === null || inputs.titleMenuOpen)
-  );
+  return inputs.activeSlot === null;
 }

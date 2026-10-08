@@ -26,6 +26,7 @@ export interface DesktopState {
   // Whether the title menu covers the desktop between shifts (the player can go to the desk
   // to use the Shop and Stats, and come back from the taskbar).
   readonly titleMenuOpen: boolean;
+  readonly savePickerOpen: boolean;
 }
 
 export interface DesktopStore {
@@ -43,6 +44,7 @@ export interface DesktopStore {
   setStartMenuOpen: (open: boolean) => void;
   toggleStartMenu: () => void;
   setTitleMenuOpen: (open: boolean) => void;
+  setSavePickerOpen: (open: boolean) => void;
 }
 
 function without(list: readonly AppId[], id: AppId): AppId[] {
@@ -69,6 +71,7 @@ export function createDesktopStore(
     ),
     startMenuOpen: false,
     titleMenuOpen: true,
+    savePickerOpen: false,
   };
 
   function update(changes: Partial<DesktopState>): void {
@@ -166,6 +169,12 @@ export function createDesktopStore(
     setTitleMenuOpen: (open) => {
       if (state.titleMenuOpen !== open) {
         update({ titleMenuOpen: open, startMenuOpen: false });
+      }
+    },
+    
+    setSavePickerOpen: (open) => {
+      if (state.savePickerOpen !== open) {
+        update({ savePickerOpen: open });
       }
     },
   };

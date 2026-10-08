@@ -1,32 +1,90 @@
+/* The save picker's own colors, matching the title menu's night-city art in every desktop
+   theme: dark glass over the skyline, warm gold and neon pink accents. */
 .shade {
+  --panel: rgb(16 12 46 / 78%);
+  --panel-edge: rgb(255 255 255 / 14%);
+  --card: rgb(255 255 255 / 6%);
+  --card-hover: rgb(255 255 255 / 10%);
+  --card-edge: rgb(255 255 255 / 12%);
+  --text: #fff3d6;
+  --text-muted: rgb(255 243 214 / 60%);
+  --gold: #ffd45e;
+  --neon: #ff5fa2;
+  --go: #7fe35b;
+  --go-deep: #3aa52c;
+  --go-edge: #1d4a12;
+  --danger: #ff6b6b;
+  --danger-deep: #c43a45;
+  --danger-edge: #5a1219;
+
   position: absolute;
   inset: 0;
   z-index: var(--layer-overlay);
   display: grid;
   place-items: center;
-  background: rgb(0 0 0 / 55%);
+  background: rgb(5 2 20 / 40%);
+  backdrop-filter: blur(0.5cqh);
+  animation: fade 0.3s ease-out both;
+}
+
+@keyframes fade {
+  from {
+    opacity: 0;
+  }
 }
 
 .dialog {
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: 1.4cqh;
-  width: 46cqw;
-  padding: 2cqh;
+  width: 52cqw;
+  padding: 3.2cqh 3.2cqh 3.6cqh;
+  border: 0.2cqh solid var(--panel-edge);
+  border-radius: 3cqh;
+  background:
+    radial-gradient(ellipse at 50% 0%, rgb(255 95 162 / 18%), transparent 60%), var(--panel);
+  box-shadow:
+    inset 0 0.2cqh 0 rgb(255 255 255 / 10%),
+    0 0 6cqh rgb(255 95 162 / 15%),
+    0 3cqh 6cqh rgb(0 0 0 / 50%);
+  color: var(--text);
+  font-family: var(--font-display);
+  animation: pop 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+@keyframes pop {
+  from {
+    opacity: 0;
+    transform: translateY(3cqh) scale(0.94);
+  }
 }
 
 .title {
   margin: 0;
-  font-size: 2.8cqh;
-  font-weight: bold;
+  font-family: var(--font-title);
+  font-size: 4.6cqh;
+  line-height: 1;
   text-align: center;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--gold);
+  text-shadow:
+    0 0.4cqh 0 rgb(42 18 6 / 80%),
+    0 0 2.4cqh rgb(255 212 94 / 45%);
+}
+
+.subtitle {
+  margin: 0 0 1cqh;
+  font-size: 2cqh;
+  text-align: center;
+  color: var(--text-muted);
 }
 
 .slots {
   display: flex;
   flex-direction: column;
-  gap: 1cqh;
+  gap: 1.2cqh;
   margin: 0;
   padding: 0;
   list-style: none;
@@ -35,10 +93,65 @@
 .slot {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 1.6cqh;
-  padding: 1.2cqh 1.6cqh;
-  background: var(--field);
+  gap: 2cqh;
+  min-height: 10cqh;
+  padding: 1.6cqh 2cqh;
+  border: 0.2cqh solid var(--card-edge);
+  border-radius: 2cqh;
+  background: var(--card);
+  transition:
+    background 0.15s ease-out,
+    border-color 0.15s ease-out,
+    transform 0.15s ease-out;
+  animation: rise 0.4s ease-out backwards;
+  animation-delay: calc(0.15s + var(--i, 0) * 0.07s);
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(2cqh);
+  }
+}
+
+.slot:hover,
+.slot:focus-within {
+  border-color: rgb(255 212 94 / 45%);
+  background: var(--card-hover);
+  transform: translateY(-0.2cqh);
+}
+
+.empty {
+  border-style: dashed;
+  background: transparent;
+}
+
+/* The big slot number on the left. */
+.number {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 6.4cqh;
+  height: 6.4cqh;
+  border-radius: 1.6cqh;
+  background: linear-gradient(rgb(255 95 162 / 35%), rgb(108 59 147 / 35%));
+  box-shadow: inset 0 0 0 0.2cqh rgb(255 255 255 / 15%);
+  font-family: var(--font-title);
+  font-size: 3.6cqh;
+  color: var(--text);
+}
+
+.empty .number {
+  background: rgb(255 255 255 / 5%);
+  color: var(--text-muted);
+}
+
+.details {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 0.6cqh;
+  min-width: 0;
 }
 
 .details p {
@@ -46,20 +159,164 @@
 }
 
 .slotName {
-  font-weight: bold;
+  font-family: var(--font-title);
+  font-size: 2.6cqh;
+  letter-spacing: 0.03em;
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6cqh;
+}
+
+.chip {
+  padding: 0.3cqh 1cqh;
+  border-radius: 99cqh;
+  background: rgb(255 255 255 / 9%);
+  font-size: 1.7cqh;
+}
+
+.money {
+  background: rgb(255 212 94 / 18%);
+  color: var(--gold);
 }
 
 .muted {
+  font-size: 1.7cqh;
   color: var(--text-muted);
 }
 
 .warning {
-  color: var(--error-text);
+  font-size: 1.9cqh;
+  color: var(--danger);
 }
 
 .actions {
   display: flex;
   flex: none;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 0.8cqh;
+  justify-content: flex-end;
+  gap: 1cqh;
+  max-width: 50%;
+}
+
+/* "Delete it for good?" sits on its own line above its two buttons. */
+.actions > .warning {
+  flex-basis: 100%;
+  text-align: right;
+}
+
+/* Pill buttons with a solid edge underneath that they press into, like the title menu's. */
+.button {
+  padding: 1cqh 2.4cqh 1.2cqh;
+  border: none;
+  border-radius: 99cqh;
+  font-family: var(--font-title);
+  font-size: 2.2cqh;
+  line-height: 1;
+  letter-spacing: 0.03em;
+  cursor: pointer;
+  transition:
+    transform 0.12s ease-out,
+    box-shadow 0.12s ease-out,
+    filter 0.12s ease-out;
+}
+
+.button:hover,
+.button:focus-visible {
+  filter: brightness(1.1);
+  transform: translateY(-0.3cqh);
+}
+
+.button:focus-visible {
+  outline: 0.35cqh solid var(--gold);
+  outline-offset: 0.35cqh;
+}
+
+.button:active {
+  transform: translateY(0.4cqh);
+}
+
+.primary {
+  background: linear-gradient(var(--go), var(--go-deep));
+  color: #ffffff;
+  text-shadow: 0 0.25cqh 0 var(--go-edge);
+  box-shadow:
+    inset 0 0.35cqh 0 rgb(255 255 255 / 40%),
+    0 0.6cqh 0 var(--go-edge),
+    0 1cqh 1.8cqh rgb(0 0 0 / 35%);
+}
+
+.primary:active {
+  box-shadow:
+    inset 0 0.35cqh 0 rgb(255 255 255 / 40%),
+    0 0.2cqh 0 var(--go-edge);
+}
+
+.danger {
+  background: linear-gradient(var(--danger), var(--danger-deep));
+  color: #ffffff;
+  text-shadow: 0 0.25cqh 0 var(--danger-edge);
+  box-shadow:
+    inset 0 0.35cqh 0 rgb(255 255 255 / 35%),
+    0 0.6cqh 0 var(--danger-edge),
+    0 1cqh 1.8cqh rgb(0 0 0 / 35%);
+}
+
+.danger:active {
+  box-shadow:
+    inset 0 0.35cqh 0 rgb(255 255 255 / 35%),
+    0 0.2cqh 0 var(--danger-edge);
+}
+
+/* Quiet: Delete and Keep it shouldn't compete with Continue. */
+.ghost {
+  background: rgb(255 255 255 / 8%);
+  color: var(--text);
+  box-shadow: inset 0 0 0 0.2cqh rgb(255 255 255 / 18%);
+}
+
+.ghost:hover,
+.ghost:focus-visible {
+  background: rgb(255 255 255 / 14%);
+}
+
+.closeButton {
+  position: absolute;
+  top: 1.5cqh;
+  right: 1.5cqh;
+  width: 4cqh;
+  height: 4cqh;
+  display: grid;
+  place-items: center;
+  border: none;
+  border-radius: 50%;
+  background: var(--card);
+  color: var(--text-muted);
+  font-family: var(--font-display);
+  font-size: 2.2cqh;
+  cursor: pointer;
+  transition: background 0.15s ease-out, color 0.15s ease-out;
+}
+
+.closeButton:hover,
+.closeButton:focus-visible {
+  background: var(--danger);
+  color: #fff;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .shade,
+  .dialog,
+  .slot {
+    animation: none;
+  }
+
+  .slot,
+  .button {
+    transform: none !important;
+    transition: none;
+  }
 }

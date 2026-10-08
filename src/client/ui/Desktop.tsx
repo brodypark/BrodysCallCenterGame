@@ -7,6 +7,10 @@
 import { type ReactElement, useEffect, useMemo, useRef, useState } from "react";
 import { AppList } from "@client/ui/appList";
 import { useConnection } from "@client/state/connectionStore";
+import { useSaves } from "@client/state/savesStore";
+import { useShift } from "@client/state/shiftStore";
+import { clockIn } from "@client/net/shiftActions";
+import { formatClock } from "@shared/time";
 import { DesktopContext, type DesktopContextValue } from "@client/ui/DesktopContext";
 import { DesktopIcons } from "@client/ui/DesktopIcons";
 import { createDesktopStore } from "@client/ui/desktopStore";
@@ -21,7 +25,7 @@ import { useStats } from "@client/state/statsStore";
 import { useCallPopups } from "@client/ui/useCallPopups";
 import { useTitleMenuReset, useTitleMenuShown } from "@client/ui/useTitleMenuShown";
 import { useTutorialPopup } from "@client/ui/useTutorialPopup";
-import { unlockAudioOnFirstInput } from "@client/voice/audioUnlock";
+import { unlockAudioOnFirstInput, unlockAudio } from "@client/voice/audioUnlock";
 import { Windows } from "@client/ui/Windows";
 import styles from "@client/ui/Desktop.module.css";
 import "@client/ui/fonts.css";
@@ -44,7 +48,10 @@ export function Desktop(): ReactElement {
   const replaced = useConnection().status === "replaced";
   // The save's equipped cosmetics (the defaults until a save is picked).
   const { theme, wallpaper } = useStats();
-
+  
+  const activeSlot = useSaves()?.activeSlot ?? null;
+  const { snapshot: shift } = useShift();
+  
   return (
     <DesktopContext value={desktop}>
       <div className={styles.host}>
@@ -60,6 +67,26 @@ export function Desktop(): ReactElement {
             <div className={styles.desk} inert={menuShown}>
               {/* Clicking the bare wallpaper closes the start menu. */}
               <div className={styles.wallpaper} onClick={() => store.setStartMenuOpen(false)} />
+              
+              {/* Floating Clock In button */}
+              {activeSlot !== null && shift.status === "offShift" && !menuShown && (
+                <div className={styles.clockInWrapper}>
+                  <button 
+                    type="button" 
+                    className={styles.clockInButton}
+                    onClick={() => {
+                      unlockAudio();
+                      clockIn();
+                    }}
+                  >
+                    Clock In
+                  </button>
+                  <p className={styles.clockInTerms}>
+                    Earn <b>${shift.quota}</b> in <b>{formatClock(shift.lengthSeconds)}</b>
+                  </p>
+                </div>
+              )}
+
               <DesktopIcons />
               <Windows />
               <Taskbar />

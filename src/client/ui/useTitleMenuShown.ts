@@ -30,6 +30,7 @@ export function useTitleMenuReset(store: DesktopStore): void {
         store.closeApp(id);
       }
       store.setTitleMenuOpen(true);
+      store.setSavePickerOpen(false);
     }
   }, [activeSlot, store]);
 }

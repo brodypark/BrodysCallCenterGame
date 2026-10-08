@@ -6,20 +6,13 @@
 
 import { type CSSProperties, type ReactElement, useEffect, useState } from "react";
 import { GameInfo } from "@shared/gameInfo";
-import { levelOf } from "@shared/Levels";
-import { formatClock } from "@shared/time";
-import { leaveSave } from "@client/net/saveActions";
-import { clockIn } from "@client/net/shiftActions";
 import { useConnection } from "@client/state/connectionStore";
 import { useSaves } from "@client/state/savesStore";
-import { useShift } from "@client/state/shiftStore";
-import { useStats } from "@client/state/statsStore";
 import type { AppId } from "@client/ui/appList";
 import { cx } from "@client/ui/classNames";
 import { useDesktop } from "@client/ui/DesktopContext";
 import { TitleBackground } from "@client/ui/TitleBackground";
 import { useTitleMenuShown } from "@client/ui/useTitleMenuShown";
-import { unlockAudio } from "@client/voice/audioUnlock";
 import styles from "@client/ui/TitleMenu.module.css";
 
 // Bulbs around the title sign: how many along each long and short side.
@@ -75,8 +68,6 @@ function OutlinedText({
 export function TitleMenu(): ReactElement | null {
   const { store } = useDesktop();
   const shown = useTitleMenuShown(store);
-  const { snapshot } = useShift();
-  const stats = useStats();
   const online = useConnection().status === "connected";
   const activeSlot = useSaves()?.activeSlot ?? null;
   // Counts "Coming soon!" clicks; a new value restarts the toast. Null when it's hidden.
@@ -105,13 +96,7 @@ export function TitleMenu(): ReactElement | null {
     }
   }
 
-  // Placeholders say "Coming soon!" for now. Discord has no link yet: the content rules
-  // keep off-site links out until we decide on it.
   const menu: readonly { label: string; onClick: () => void; needsServer?: boolean }[] = [
-    { label: "Go to Desk", onClick: () => goTo() },
-    { label: "How to Play", onClick: () => goTo("Tutorial") },
-    { label: "Shop", onClick: () => goTo("Shop") },
-    { label: "Switch Save", onClick: leaveSave, needsServer: true },
     { label: "Settings", onClick: comingSoon },
     { label: "Patch Notes", onClick: comingSoon },
     { label: "Credits", onClick: comingSoon },
@@ -142,35 +127,32 @@ export function TitleMenu(): ReactElement | null {
           </p>
         </div>
 
-        {activeSlot === null && !online && (
+        {!online && (
           <p className={styles.terms}>Connecting to the office...</p>
         )}
-        {activeSlot !== null && (
+        {online && (
           <>
-            <button
-              type="button"
-              className={cx(styles.button, styles.clockIn)}
-              style={entrance(0)}
-              disabled={!online}
-              // Keyboard players start here; the desk underneath can't be reached.
-              autoFocus
-              onClick={() => {
-                unlockAudio();
-                clockIn();
-              }}
-            >
-              Clock In
-            </button>
-            <p className={styles.terms} style={entrance(1)}>
-              {online ? (
-                <>
-                  Earn <b>${snapshot.quota}</b> in <b>{formatClock(snapshot.lengthSeconds)}</b> to
-                  get PROMOTED
-                </>
-              ) : (
-                "Connecting to the office..."
-              )}
-            </p>
+            <div className={styles.playGroup}>
+              <button
+                type="button"
+                className={cx(styles.button, styles.clockIn)}
+                style={entrance(0)}
+                disabled={!online}
+                autoFocus
+                onClick={() => store.setSavePickerOpen(true)}
+              >
+                Campaign
+              </button>
+              <button
+                type="button"
+                className={cx(styles.button, styles.clockIn)}
+                style={entrance(1)}
+                disabled={!online}
+                onClick={comingSoon}
+              >
+                Sandbox
+              </button>
+            </div>
             <div className={styles.grid}>
               {menu.map((item, index) => (
                 <button
@@ -189,13 +171,6 @@ export function TitleMenu(): ReactElement | null {
         )}
       </div>
 
-      {activeSlot !== null && (
-        <p className={styles.badge}>
-          Slot {activeSlot} <span className={styles.dot}>•</span> Level {levelOf(stats.xp)}{" "}
-          <span className={styles.dot}>•</span> ${stats.money}
-        </p>
-      )}
-      {/* Always mounted, so screen readers announce the text when it appears. */}
       <div className={styles.toastArea} role="status">
         {toastKey !== null && (
           <p key={toastKey} className={styles.toast}>

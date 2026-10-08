@@ -8,9 +8,9 @@ import { cx } from "@client/ui/classNames";
 import controls from "@client/ui/controls.module.css";
 import { useDesktop, useDesktopState } from "@client/ui/DesktopContext";
 import { useNow } from "@client/ui/useNow";
+import { leaveSave } from "@client/net/saveActions";
 import { type ConnectionStatus, useConnection } from "@client/state/connectionStore";
 import { secondsUntil, type ShiftState, useShift } from "@client/state/shiftStore";
-import { useTitleMenuShown } from "@client/ui/useTitleMenuShown";
 import styles from "@client/ui/Taskbar.module.css";
 
 // How often the clock and the shift countdown are redrawn.
@@ -23,9 +23,6 @@ export function Taskbar(): ReactElement {
   const { openOrder, stackOrder, startMenuOpen } = useDesktopState();
   const shift = useShift();
   const focused = stackOrder.at(-1);
-  const menuShown = useTitleMenuShown(store);
-  // Back to the title menu from the desk, between shifts.
-  const canOpenMenu = !menuShown && shift.snapshot.status === "offShift" && !shift.result;
 
   return (
     // Clicking any empty part of the taskbar closes the start menu.
@@ -44,18 +41,16 @@ export function Taskbar(): ReactElement {
       >
         Start
       </button>
-      {canOpenMenu && (
-        <button
-          type="button"
-          className={cx(controls.button, styles.mainMenu)}
-          onClick={(event) => {
-            event.stopPropagation();
-            store.setTitleMenuOpen(true);
-          }}
-        >
-          Main Menu
-        </button>
-      )}
+      <button
+        type="button"
+        className={cx(controls.button, styles.mainMenu)}
+        onClick={(event) => {
+          event.stopPropagation();
+          leaveSave();
+        }}
+      >
+        Quit to Title
+      </button>
 
       <div className={styles.windowButtons}>
         {openOrder.map((id) => {

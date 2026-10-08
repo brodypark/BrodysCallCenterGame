@@ -275,10 +275,18 @@
   color: var(--title-top);
 }
 
+.playGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5cqh;
+  align-items: center;
+}
+
 .grid {
   display: grid;
   grid-template-columns: repeat(4, 18cqw);
   gap: 1.4cqh 1.2cqw;
+  margin-top: 8cqh;
 }
 
 .secondary {

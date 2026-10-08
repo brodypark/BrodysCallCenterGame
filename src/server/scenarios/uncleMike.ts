@@ -59,7 +59,7 @@ export const uncleMike: ScenarioInput = {
     voiceId: "SfQuIXxwn5jrinlyqk0z", // Uncle Mike - custom voice
     stability: 0.5,
     similarityBoost: 0.75,
-    style: 0.35,
+    style: 0.25,
   },
   // Bald, with a big grey mustache.
   face: {

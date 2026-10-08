@@ -16,6 +16,9 @@ export interface ServerEnv {
   shiftSecondsOverride: number | undefined;
   // Optional: without them, victims use scripted replies and don't speak.
   geminiApiKey: string | undefined;
+  // Optional: tried when the main key fails. Gemini limits are per Google Cloud project, so
+  // it only helps with limits if it's from a different project.
+  geminiBackupApiKey: string | undefined;
   elevenLabsApiKey: string | undefined;
 }
 
@@ -69,6 +72,7 @@ export function readServerEnv(env: NodeJS.ProcessEnv): ServerEnv {
       ? undefined
       : parseSeconds("SHIFT_SECONDS", env.SHIFT_SECONDS),
     geminiApiKey: optionalString(env.GEMINI_API_KEY),
+    geminiBackupApiKey: optionalString(env.GEMINI_API_KEY_BACKUP),
     elevenLabsApiKey: optionalString(env.ELEVENLABS_API_KEY),
   };
 }

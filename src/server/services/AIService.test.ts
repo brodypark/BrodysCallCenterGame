@@ -21,7 +21,7 @@ function loadGrandma(): Scenario {
 }
 const scenario = loadGrandma();
 const PlayerId = "player-1";
-const Attempts = Config.AI.MaxRetries + 1;
+const Models = [Config.AI.Model, ...Config.AI.FallbackModels];
 
 function completed(text: string): ModelResponse {
   return { text, status: "completed", usage: { input: 100, output: 20, cached: 0, thought: 5 } };
@@ -30,15 +30,19 @@ const good = completed(
   JSON.stringify({ reply: "Hello, dear!", suspicionChange: -5, revealsCode: false }),
 );
 const bad = completed("not json at all");
+const blocked: ModelResponse = { ...good, status: "failed", text: null };
 
 type Generate = (request: ModelRequest) => Promise<ModelResponse>;
 
-function setup(options: { generate?: Generate; allow?: boolean; random?: number } = {}) {
+function setup(
+  options: { generate?: Generate; backup?: Generate; allow?: boolean; random?: number } = {},
+) {
   const generate = vi.fn<Generate>(options.generate ?? (() => Promise.resolve(good)));
+  const backup = vi.fn<Generate>(options.backup ?? (() => Promise.resolve(good)));
   const log = { debug: vi.fn(), info: vi.fn(), warn: vi.fn() } satisfies AILog;
   const allowRequest = vi.fn(() => options.allow ?? true);
   const service = new AIService({
-    model: { generate },
+    models: options.backup ? [{ generate }, { generate: backup }] : [{ generate }],
     allowRequest,
     log,
     random: () => options.random ?? 0.99,
@@ -57,7 +61,12 @@ function setup(options: { generate?: Generate; allow?: boolean; random?: number 
     stillWanted: () => true,
     ...overrides,
   });
-  return { service, generate, log, allowRequest, request };
+  return { service, generate, backup, log, allowRequest, request };
+}
+
+/** The models asked, in order. */
+function modelsAsked(generate: ReturnType<typeof vi.fn<Generate>>): string[] {
+  return generate.mock.calls.map(([sent]) => sent.model);
 }
 
 /** A model call that never answers, but rejects when its signal fires (like the SDK). */
@@ -83,6 +92,7 @@ describe("AIService", () => {
       revealsCard: false,
     });
     const sent = generate.mock.calls[0]?.[0];
+    expect(sent?.model).toBe(Config.AI.Model);
     expect(sent?.systemInstruction).toBe(systemPrompt(scenario));
     expect(sent?.input).toContain('Help line: "Hi, how can I help?"');
   });
@@ -97,52 +107,232 @@ describe("AIService", () => {
     expect(rarely.generate.mock.calls[0]?.[0].input).toContain("Don't bring up your obsession");
   });
 
-  it("retries a bad reply, with backoff, and uses the next good one", async () => {
+  it("moves straight on to the next model after a bad reply", async () => {
     const { service, generate, request } = setup();
     generate.mockResolvedValueOnce(bad);
-    const reply = service.getReply(request());
-    await vi.advanceTimersByTimeAsync(secondsToMs(Config.AI.RetryBaseSeconds));
-    await expect(reply).resolves.toMatchObject({ reply: "Hello, dear!" });
-    expect(generate).toHaveBeenCalledTimes(2);
+    await expect(service.getReply(request())).resolves.toMatchObject({ reply: "Hello, dear!" });
+    expect(modelsAsked(generate)).toEqual(Models.slice(0, 2));
   });
 
-  it("doesn't retry a reply that didn't complete (e.g. a safety block)", async () => {
+  it("tries another model after a safety block instead of going scripted", async () => {
     const { service, generate, request } = setup();
-    generate.mockResolvedValueOnce({ ...good, status: "failed", text: null });
-    await expect(service.getReply(request())).resolves.toBeNull();
-    expect(generate).toHaveBeenCalledTimes(1);
+    generate.mockResolvedValueOnce(blocked);
+    await expect(service.getReply(request())).resolves.not.toBeNull();
+    expect(modelsAsked(generate)).toEqual(Models.slice(0, 2));
   });
 
-  it("gives up after MaxRetries and returns null for a scripted line", async () => {
-    const { service, generate, request } = setup({ generate: () => Promise.resolve(bad) });
+  it("tries another model after a rate-limited or server error", async () => {
+    const { service, generate, request } = setup();
+    generate.mockRejectedValueOnce(new ModelRequestError("Too many requests", 429));
+    generate.mockRejectedValueOnce(new ModelRequestError("Overloaded", 503));
+    await expect(service.getReply(request())).resolves.not.toBeNull();
+    expect(modelsAsked(generate)).toEqual(Models.slice(0, 3));
+  });
+
+  it("starts a backup request alongside a slow one, and the first good reply wins", async () => {
+    const { service, generate, log, request } = setup();
+    generate.mockImplementationOnce(hang);
+    const reply = service.getReply(request());
+    await vi.advanceTimersByTimeAsync(secondsToMs(Config.AI.HedgeAfterSeconds));
+    await expect(reply).resolves.toMatchObject({ reply: "Hello, dear!" });
+    expect(modelsAsked(generate)).toEqual(Models.slice(0, 2));
+    // The slow one is stopped.
+    expect(generate.mock.calls[0]?.[0].signal.aborted).toBe(true);
+    service.callEnded(PlayerId);
+    expect(log.info).toHaveBeenCalledWith(
+      expect.objectContaining({ hedges: 1, backupReplies: 1, scriptedReplies: 0 }),
+      "AI usage for call",
+    );
+  });
+
+  it("keeps the slow request's reply if it beats the backup", async () => {
+    const { service, generate, request } = setup();
+    const slowMs = secondsToMs(Config.AI.HedgeAfterSeconds) + 500;
+    generate.mockImplementationOnce(
+      () => new Promise((resolve) => setTimeout(() => resolve(good), slowMs)),
+    );
+    generate.mockImplementationOnce(hang);
+    const reply = service.getReply(request());
+    await vi.advanceTimersByTimeAsync(slowMs);
+    await expect(reply).resolves.not.toBeNull();
+    expect(generate.mock.calls[1]?.[0].signal.aborted).toBe(true);
+  });
+
+  it("uses the backup key once the main key is refused", async () => {
+    const { service, generate, backup, request } = setup({
+      generate: () => Promise.reject(new ModelRequestError("API key not valid", 400)),
+      backup: () => Promise.resolve(good),
+    });
+    await expect(service.getReply(request())).resolves.not.toBeNull();
+    // Every model on the main key is skipped after the first refusal.
+    expect(generate).toHaveBeenCalledTimes(1);
+    expect(modelsAsked(backup)).toEqual([Config.AI.Model]);
+  });
+
+  it("tries the backup key's models after the main key's", async () => {
+    const { service, generate, backup, request } = setup({
+      generate: () => Promise.reject(new ModelRequestError("Overloaded", 503)),
+      backup: () => Promise.resolve(good),
+    });
+    await expect(service.getReply(request())).resolves.not.toBeNull();
+    expect(modelsAsked(generate)).toEqual(Models);
+    expect(backup).toHaveBeenCalledTimes(1);
+  });
+
+  it("doesn't ask the backup key for a model that blocked the reply", async () => {
+    const { service, generate, backup, request } = setup({
+      generate: () => Promise.resolve(blocked),
+      backup: () => Promise.resolve(blocked),
+    });
+    await expect(service.getReply(request())).resolves.toBeNull();
+    expect(modelsAsked(generate)).toEqual(Models);
+    expect(backup).not.toHaveBeenCalled();
+  });
+
+  it("skips only the model, not the key, on a 403 that isn't about the key", async () => {
+    const { service, generate, request } = setup();
+    generate.mockRejectedValueOnce(new ModelRequestError("Model not allowed", 403));
+    await expect(service.getReply(request())).resolves.not.toBeNull();
+    expect(modelsAsked(generate)).toEqual(Models.slice(0, 2));
+  });
+
+  it("calls the rate limiter once per request, hedges included", async () => {
+    const { service, generate, allowRequest, request } = setup();
+    generate.mockImplementationOnce(hang);
+    const reply = service.getReply(request());
+    await vi.advanceTimersByTimeAsync(secondsToMs(Config.AI.HedgeAfterSeconds));
+    await reply;
+    expect(allowRequest).toHaveBeenCalledTimes(generate.mock.calls.length);
+  });
+
+  it("never runs more than MaxParallelRequests at once", async () => {
+    const { service, generate, request } = setup({ generate: hang });
+    const reply = service.getReply(request());
+    await vi.advanceTimersByTimeAsync(secondsToMs(Config.AI.RequestTimeoutSeconds) - 1);
+    expect(generate).toHaveBeenCalledTimes(Config.AI.MaxParallelRequests);
+    await vi.advanceTimersByTimeAsync(secondsToMs(Config.AI.ReplyDeadlineSeconds));
+    await expect(reply).resolves.toBeNull();
+  });
+
+  it("doesn't start a request with too little time left to answer", async () => {
+    const startedAt: number[] = [];
+    const { service, request } = setup({
+      generate: (sent) => {
+        startedAt.push(Date.now());
+        return hang(sent);
+      },
+    });
+    const begin = Date.now();
     const reply = service.getReply(request());
     await vi.advanceTimersByTimeAsync(secondsToMs(Config.AI.ReplyDeadlineSeconds));
     await expect(reply).resolves.toBeNull();
-    expect(generate).toHaveBeenCalledTimes(Attempts);
+    const latestStart = secondsToMs(Config.AI.ReplyDeadlineSeconds - Config.AI.MinRequestSeconds);
+    for (const time of startedAt) {
+      expect(time - begin).toBeLessThanOrEqual(latestStart);
+    }
   });
 
-  it("times out a request that never answers, and never waits past the deadline", async () => {
+  it("uses the backup key once the main key is refused", async () => {
+    const { service, generate, backup, request } = setup({
+      generate: () => Promise.reject(new ModelRequestError("API key not valid", 400)),
+      backup: () => Promise.resolve(good),
+    });
+    await expect(service.getReply(request())).resolves.not.toBeNull();
+    // Every model on the main key is skipped after the first refusal.
+    expect(generate).toHaveBeenCalledTimes(1);
+    expect(modelsAsked(backup)).toEqual([Config.AI.Model]);
+  });
+
+  it("tries the backup key's models after the main key's", async () => {
+    const { service, generate, backup, request } = setup({
+      generate: () => Promise.reject(new ModelRequestError("Overloaded", 503)),
+      backup: () => Promise.resolve(good),
+    });
+    await expect(service.getReply(request())).resolves.not.toBeNull();
+    expect(modelsAsked(generate)).toEqual(Models);
+    expect(backup).toHaveBeenCalledTimes(1);
+  });
+
+  it("doesn't ask the backup key for a model that blocked the reply", async () => {
+    const { service, generate, backup, request } = setup({
+      generate: () => Promise.resolve(blocked),
+      backup: () => Promise.resolve(blocked),
+    });
+    await expect(service.getReply(request())).resolves.toBeNull();
+    expect(modelsAsked(generate)).toEqual(Models);
+    expect(backup).not.toHaveBeenCalled();
+  });
+
+  it("skips only the model, not the key, on a 403 that isn't about the key", async () => {
+    const { service, generate, request } = setup();
+    generate.mockRejectedValueOnce(new ModelRequestError("Model not allowed", 403));
+    await expect(service.getReply(request())).resolves.not.toBeNull();
+    expect(modelsAsked(generate)).toEqual(Models.slice(0, 2));
+  });
+
+  it("calls the rate limiter once per request, hedges included", async () => {
+    const { service, generate, allowRequest, request } = setup();
+    generate.mockImplementationOnce(hang);
+    const reply = service.getReply(request());
+    await vi.advanceTimersByTimeAsync(secondsToMs(Config.AI.HedgeAfterSeconds));
+    await reply;
+    expect(allowRequest).toHaveBeenCalledTimes(generate.mock.calls.length);
+  });
+
+  it("never runs more than MaxParallelRequests at once", async () => {
+    const { service, generate, request } = setup({ generate: hang });
+    const reply = service.getReply(request());
+    await vi.advanceTimersByTimeAsync(secondsToMs(Config.AI.RequestTimeoutSeconds) - 1);
+    expect(generate).toHaveBeenCalledTimes(Config.AI.MaxParallelRequests);
+    await vi.advanceTimersByTimeAsync(secondsToMs(Config.AI.ReplyDeadlineSeconds));
+    await expect(reply).resolves.toBeNull();
+  });
+
+  it("doesn't start a request with too little time left to answer", async () => {
     const { service, generate, request } = setup({ generate: hang });
     const reply = service.getReply(request());
     await vi.advanceTimersByTimeAsync(secondsToMs(Config.AI.ReplyDeadlineSeconds));
     await expect(reply).resolves.toBeNull();
-    expect(generate.mock.calls[0]?.[0].signal.aborted).toBe(true);
+    const latestStart = secondsToMs(Config.AI.ReplyDeadlineSeconds - Config.AI.MinRequestSeconds);
+    for (const [sent] of generate.mock.calls) {
+      expect(sent.signal.aborted).toBe(true);
+    }
+    expect(Date.now()).toBeGreaterThanOrEqual(latestStart);
   });
 
-  it("doesn't retry an error that won't fix itself, like a bad key", async () => {
+  it("gives up on a refused key with no backup", async () => {
     const { service, generate, request } = setup({
-      generate: () => Promise.reject(new ModelRequestError("API key not valid", 400)),
+      generate: () => Promise.reject(new ModelRequestError("Unauthenticated", 401)),
     });
     await expect(service.getReply(request())).resolves.toBeNull();
     expect(generate).toHaveBeenCalledTimes(1);
   });
 
-  it("retries a rate-limited or server error", async () => {
-    const { service, generate, request } = setup();
-    generate.mockRejectedValueOnce(new ModelRequestError("Too many requests", 429));
+  it("skips a model with an error that won't fix itself, but tries the others", async () => {
+    const { service, generate, request } = setup({
+      generate: () => Promise.reject(new ModelRequestError("Bad request", 400)),
+    });
+    await expect(service.getReply(request())).resolves.toBeNull();
+    expect(modelsAsked(generate)).toEqual(Models);
+  });
+
+  it("goes round the models again, with backoff, up to MaxAttempts", async () => {
+    const { service, generate, request } = setup({ generate: () => Promise.resolve(bad) });
     const reply = service.getReply(request());
-    await vi.advanceTimersByTimeAsync(secondsToMs(Config.AI.RetryBaseSeconds));
-    await expect(reply).resolves.not.toBeNull();
+    await vi.advanceTimersByTimeAsync(secondsToMs(Config.AI.ReplyDeadlineSeconds));
+    await expect(reply).resolves.toBeNull();
+    expect(generate).toHaveBeenCalledTimes(Config.AI.MaxAttempts);
+    expect(modelsAsked(generate).slice(0, Models.length * 2)).toEqual([...Models, ...Models]);
+  });
+
+  it("times out requests that never answer, and never waits past the deadline", async () => {
+    const { service, generate, request } = setup({ generate: hang });
+    const reply = service.getReply(request());
+    await vi.advanceTimersByTimeAsync(secondsToMs(Config.AI.ReplyDeadlineSeconds));
+    await expect(reply).resolves.toBeNull();
+    for (const [sent] of generate.mock.calls) {
+      expect(sent.signal.aborted).toBe(true);
+    }
   });
 
   it("doesn't call the AI when the rate limit says no", async () => {
@@ -161,18 +351,18 @@ describe("AIService", () => {
     expect(generate.mock.calls[0]?.[0].signal.aborted).toBe(true);
   });
 
-  it("doesn't retry once the reply is no longer wanted", async () => {
-    const { service, generate, request } = setup({ generate: () => Promise.resolve(bad) });
+  it("doesn't try again once the reply is no longer wanted", async () => {
+    const { service, generate, request } = setup({ generate: hang });
     let wanted = true;
     const reply = service.getReply(request({ stillWanted: () => wanted }));
     await vi.advanceTimersByTimeAsync(0);
     wanted = false;
-    await vi.advanceTimersByTimeAsync(secondsToMs(Config.AI.RetryBaseSeconds));
+    await vi.advanceTimersByTimeAsync(secondsToMs(Config.AI.RequestTimeoutSeconds));
     await expect(reply).resolves.toBeNull();
     expect(generate).toHaveBeenCalledTimes(1);
   });
 
-  it("keeps one request in flight per player", async () => {
+  it("keeps one reply in flight per player", async () => {
     const { service, generate, request } = setup({ generate: hang });
     const first = service.getReply(request());
     await expect(service.getReply(request())).resolves.toBeNull();

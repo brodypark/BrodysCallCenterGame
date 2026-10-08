@@ -27,6 +27,8 @@ export interface TokenUsage {
 }
 
 export interface ModelRequest {
+  // Config.AI.Model or one of Config.AI.FallbackModels.
+  model: string;
   systemInstruction: string;
   input: string;
   // Fires when AIService stops waiting (timeout, call over, player gone).
@@ -41,7 +43,8 @@ export interface ModelResponse {
   usage: TokenUsage;
 }
 
-/** Something that writes a victim's reply. Rejects with a ModelRequestError on failure. */
+/** Something that writes a victim's reply (one per API key). Rejects with a
+ * ModelRequestError on failure. */
 export interface VictimModel {
   generate: (request: ModelRequest) => Promise<ModelResponse>;
 }
@@ -76,11 +79,11 @@ export function createGeminiModel(apiKey: string): VictimModel {
   const scrub = (text: string): string => text.replaceAll(apiKey, "[GEMINI_API_KEY]");
 
   return {
-    generate: async ({ systemInstruction, input, signal }) => {
+    generate: async ({ model, systemInstruction, input, signal }) => {
       try {
         const interaction = await ai.interactions.create(
           {
-            model: Config.AI.Model,
+            model,
             system_instruction: systemInstruction,
             input,
             store: false,

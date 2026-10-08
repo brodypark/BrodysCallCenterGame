@@ -31,6 +31,7 @@ describe("readServerEnv", () => {
       usingDevCookieSecret: true,
       shiftSecondsOverride: undefined,
       geminiApiKey: undefined,
+      geminiBackupApiKey: undefined,
       elevenLabsApiKey: undefined,
     });
   });
@@ -42,6 +43,7 @@ describe("readServerEnv", () => {
       PORT: "4000",
       COOKIE_SECRET: secret,
       GEMINI_API_KEY: "gemini-test",
+      GEMINI_API_KEY_BACKUP: "gemini-backup",
       ELEVENLABS_API_KEY: "eleven-test",
     });
     expect(env.isProduction).toBe(true);
@@ -49,6 +51,7 @@ describe("readServerEnv", () => {
     expect(env.cookieSecret).toBe(secret);
     expect(env.usingDevCookieSecret).toBe(false);
     expect(env.geminiApiKey).toBe("gemini-test");
+    expect(env.geminiBackupApiKey).toBe("gemini-backup");
     expect(env.elevenLabsApiKey).toBe("eleven-test");
   });
 

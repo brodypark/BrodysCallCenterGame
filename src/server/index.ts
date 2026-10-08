@@ -46,7 +46,11 @@ let replies: AIService | undefined;
 if (Config.AI.UseScriptedReplies) {
   app.log.info("Config.AI.UseScriptedReplies is on, so victims use scripted replies.");
 } else if (env.geminiApiKey === undefined) {
-  app.log.warn("GEMINI_API_KEY isn't set, so victims use scripted replies.");
+  app.log.warn(
+    env.geminiBackupApiKey === undefined
+      ? "GEMINI_API_KEY isn't set, so victims use scripted replies."
+      : "GEMINI_API_KEY isn't set (GEMINI_API_KEY_BACKUP is only a backup), so victims use scripted replies.",
+  );
 } else {
   const { PerMinute, PerDay, GlobalPerDay } = ServerConfig.AILimits;
   const limiter = new RateLimiter({
@@ -54,12 +58,18 @@ if (Config.AI.UseScriptedReplies) {
     perDay: PerDay,
     globalPerDay: GlobalPerDay,
   });
+  const keys = [env.geminiApiKey, env.geminiBackupApiKey].filter(
+    (key): key is string => key !== undefined,
+  );
   replies = new AIService({
-    model: createGeminiModel(env.geminiApiKey),
+    models: keys.map((key) => createGeminiModel(key)),
     allowRequest: (playerId) => limiter.tryTake(playerId),
     log: app.log,
   });
-  app.log.info({ model: Config.AI.Model }, "Victims reply with Gemini.");
+  app.log.info(
+    { models: [Config.AI.Model, ...Config.AI.FallbackModels], keys: keys.length },
+    "Victims reply with Gemini.",
+  );
 }
 
 const game = startGameServer(app.server, {

@@ -197,14 +197,27 @@ export const Config = {
     // Chance (0 to 1) that a reply brings up the victim's obsession. The server rolls it each
     // turn and tells the AI, since left to itself it overdoes running gags.
     ObsessionChance: 0.2,
+    // Backups for Model, tried in this order when it fails or is slow. Gemini's rate limits
+    // and overloads are per model, so another model usually still answers. All of them must
+    // accept ThinkingLevel (checked in ai.google.dev/gemini-api/docs/thinking, 2026-10-08).
+    FallbackModels: ["gemini-3.5-flash-lite", "gemini-3.5-flash"],
     // One request gives up after RequestTimeoutSeconds. A failed one (timeout, error, safety
-    // block, bad JSON) is tried again up to MaxRetries times, waiting RetryBaseSeconds, then
-    // twice that. No new try starts once ReplyDeadlineSeconds have passed since the player
-    // spoke; the victim says a scripted line instead.
+    // block, bad JSON) moves on to the next model (and then the backup key), up to
+    // MaxAttempts requests in all. Going back to one already tried waits RetryBaseSeconds,
+    // then twice that. If a request hasn't answered after HedgeAfterSeconds, the next one
+    // starts alongside it and the first good reply wins. No new try starts once
+    // ReplyDeadlineSeconds have passed since the player spoke; the victim says a scripted
+    // line instead.
     RequestTimeoutSeconds: 6,
-    MaxRetries: 2,
+    MaxAttempts: 6,
     RetryBaseSeconds: 0.5,
+    HedgeAfterSeconds: 3,
+    // Most requests running at once for one reply (the slow one plus its hedge).
+    MaxParallelRequests: 2,
     ReplyDeadlineSeconds: 12,
+    // No new try starts with less than this left before ReplyDeadlineSeconds: it couldn't
+    // answer in time, but would still count against the limits.
+    MinRequestSeconds: 2,
     // If no reply (not even a fallback) has come this long after the player spoke, the
     // victim says a scripted line anyway. Only a bug would ever need it.
     ReplyGuardSeconds: 15,

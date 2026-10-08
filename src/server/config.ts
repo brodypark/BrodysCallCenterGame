@@ -35,10 +35,13 @@ export const ServerConfig = {
     // Per player, in any rolling minute. A turn takes several seconds, so real play stays
     // well under this.
     PerMinute: 20,
-    // Per player, per UTC day: about 30 calls.
+    // Per player, per UTC day: about 30 calls when the first model answers. Backup models
+    // and hedges (AIService) use extra requests on a bad turn.
     PerDay: 300,
     // All players together, per UTC day. New anonymous players are free to make, so this is
-    // the real ceiling on the bill: about $4 a day at Config.AI.Model's prices.
+    // the real ceiling on the bill: about $4 a day at Config.AI.Model's prices, more if many
+    // requests go to the pricier backup models. A hedge that loses is stopped but may still
+    // be billed, and its tokens aren't in the per-call log.
     GlobalPerDay: 5000,
   },
 

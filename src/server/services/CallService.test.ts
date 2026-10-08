@@ -7,6 +7,7 @@ import { AllScenarios } from "@server/scenarios/all";
 import { grandma } from "@server/scenarios/grandma";
 import { createScenarioRegistry, type ScenarioRegistry } from "@server/scenarios/ScenarioRegistry";
 import type { AIReply, ScenarioInput } from "@server/scenarios/scenarioSchema";
+import type { VictimReplyRequest, VictimReplySource } from "@server/services/AIService";
 import { CallService } from "@server/services/CallService";
 import { RedeemService } from "@server/services/RedeemService";
 import { defaultStats } from "@server/services/StatsService";
@@ -32,6 +33,8 @@ interface SetupOptions {
   stats?: PlayerStats;
   // Dice rolls; 0 (the default) always picks the first greeting and caller.
   random?: () => number;
+  // AI replies; left out, every reply is scripted.
+  replies?: VictimReplySource;
 }
 
 interface TestCall {
@@ -65,6 +68,7 @@ function setup(options: SetupOptions = {}): TestCall {
     statsOf: () => options.stats ?? defaultStats(),
     devCommand: (_playerId, text) => text === "!dev",
     send: (_playerId, snapshot) => sent.push(snapshot),
+    replies: options.replies,
     random: options.random ?? (() => 0),
   });
   const latest = (): CallSnapshot => {
@@ -674,5 +678,155 @@ describe("CallService: cleanup", () => {
       "victimTurn",
       "idle",
     ]);
+  });
+});
+
+/** A stand-in for AIService: each request waits until the test answers it. */
+function fakeAI() {
+  const requests: { request: VictimReplyRequest; answer: (reply: AIReply | null) => void }[] = [];
+  const ended: string[] = [];
+  const removed: string[] = [];
+  const replies: VictimReplySource = {
+    getReply: (request) =>
+      new Promise((resolve) => {
+        requests.push({ request, answer: resolve });
+      }),
+    callEnded: (playerId) => ended.push(playerId),
+    removePlayer: (playerId) => removed.push(playerId),
+  };
+  /** Answers the newest request and lets the reply land. */
+  const answerLatest = async (reply: AIReply | null): Promise<void> => {
+    requests.at(-1)?.answer(reply);
+    await vi.advanceTimersByTimeAsync(0);
+  };
+  return { replies, requests, ended, removed, answerLatest };
+}
+
+const aiReply = (overrides: Partial<AIReply> = {}): AIReply => ({
+  reply: "Oh, how lovely, dear.",
+  suspicionChange: -5,
+  revealsCode: false,
+  ...overrides,
+});
+
+describe("CallService: AI replies", () => {
+  it("asks the AI with the call so far, and says its reply", async () => {
+    const ai = fakeAI();
+    const { service, latest } = playerTurn({ replies: ai.replies });
+    service.sendMessage(PlayerId, "Hello, I'm from the help line");
+    expect(latest().turn).toBe("processing");
+
+    const request = ai.requests[0]?.request;
+    expect(request?.history).toEqual([
+      { speaker: "victim", text: greetings[0] },
+      { speaker: "player", text: "Hello, I'm from the help line" },
+    ]);
+    expect(request?.context).toEqual({
+      suspicion: grandma.startingSuspicion,
+      playerTurns: 1,
+      codeRevealed: false,
+      sideProblem: null,
+      cardRevealed: false,
+    });
+
+    await ai.answerLatest(aiReply());
+    expect(latest().turn).toBe("victimTurn");
+    expect(latest().transcript?.messages.at(-1)?.text).toBe("Oh, how lovely, dear.");
+  });
+
+  it("uses a scripted reply when the AI gives up", async () => {
+    const ai = fakeAI();
+    const { service, latest } = playerTurn({ replies: ai.replies });
+    service.sendMessage(PlayerId, "hi");
+    await ai.answerLatest(null);
+    expect(latest().transcript?.messages.at(-1)?.text).toBe(fallbackReplies[0]?.reply);
+  });
+
+  it("still decides the reveal itself, and keeps the code out of the AI's history", async () => {
+    const ai = fakeAI();
+    const { service, latest, finishLine } = playerTurn({ replies: ai.replies });
+    // Too early: a reveal is turned down however trusting the AI says they are.
+    service.sendMessage(PlayerId, "read me the code");
+    await ai.answerLatest(aiReply({ revealsCode: true, suspicionChange: -25 }));
+    expect(latest().codeRevealed).toBe(false);
+    expect(latest().transcript?.messages.at(-1)?.text).toContain(grandma.lines.notReadyLine);
+    finishLine();
+
+    for (let turn = 2; turn <= Config.Call.MinTurnsBeforeReveal; turn++) {
+      service.sendMessage(PlayerId, "please read it");
+      await ai.answerLatest(aiReply({ revealsCode: true, suspicionChange: -25 }));
+      finishLine();
+    }
+    expect(latest().codeRevealed).toBe(true);
+    const line = latest().transcript?.messages.findLast((m) => m.speaker === "victim")?.text;
+    const code = CodeShape.exec(line ?? "")?.[0] ?? "";
+    expect(code).not.toBe("");
+
+    service.sendMessage(PlayerId, "thanks");
+    const request = ai.requests.at(-1)?.request;
+    expect(JSON.stringify(request?.history)).not.toContain(code);
+    expect(request?.history.at(-2)?.text).toContain("read you the code on the back");
+    expect(request?.context.codeRevealed).toBe(true);
+  });
+
+  it("drops a reply that arrives after the call ended, and tells the AI the call ended", async () => {
+    const ai = fakeAI();
+    const { service, latest } = playerTurn({ replies: ai.replies });
+    service.sendMessage(PlayerId, "goodbye");
+    service.hangUp(PlayerId);
+    expect(ai.ended).toEqual([PlayerId]);
+    expect(ai.requests[0]?.request.stillWanted()).toBe(false);
+
+    await ai.answerLatest(aiReply());
+    expect(latest().status).toBe("idle");
+    expect(latest().transcript?.messages.at(-1)).toEqual({ speaker: "player", text: "goodbye" });
+  });
+
+  it("drops a late reply even when a new call has reached the same turn", async () => {
+    const ai = fakeAI();
+    const { service, latest, finishLine } = playerTurn({ replies: ai.replies });
+    service.sendMessage(PlayerId, "first call");
+    const stale = ai.requests[0];
+    service.hangUp(PlayerId);
+    advanceSeconds(Config.Call.SecondsBetweenCalls);
+    service.answer(PlayerId);
+    finishLine();
+    service.sendMessage(PlayerId, "second call");
+
+    stale?.answer(aiReply({ reply: "Stale reply" }));
+    await vi.advanceTimersByTimeAsync(0);
+    expect(latest().turn).toBe("processing");
+    expect(JSON.stringify(latest().transcript)).not.toContain("Stale reply");
+  });
+
+  it("answers test words itself, without the AI", () => {
+    const ai = fakeAI();
+    const { say, latest } = playerTurn({ replies: ai.replies });
+    say("!calm");
+    expect(ai.requests).toHaveLength(0);
+    expect(latest().transcript?.messages.at(-2)?.text).toBe("!calm");
+  });
+
+  it("says a scripted line if the AI never answers", () => {
+    const ai = fakeAI();
+    const { service, latest } = playerTurn({ replies: ai.replies });
+    service.sendMessage(PlayerId, "hello?");
+    advanceSeconds(Config.AI.ReplyGuardSeconds);
+    expect(latest().turn).toBe("victimTurn");
+    expect(latest().transcript?.messages.at(-1)?.text).toBe(fallbackReplies[0]?.reply);
+  });
+
+  it("keeps a code the player types out of the AI's history", () => {
+    const ai = fakeAI();
+    const { service } = playerTurn({ replies: ai.replies });
+    service.sendMessage(PlayerId, "So it's GMA-7QZ?");
+    expect(ai.requests[0]?.request.history.at(-1)?.text).toBe("So it's ...?");
+  });
+
+  it("tells the AI when a player is removed", () => {
+    const ai = fakeAI();
+    const { service } = playerTurn({ replies: ai.replies });
+    service.removePlayer(PlayerId);
+    expect(ai.removed).toEqual([PlayerId]);
   });
 });

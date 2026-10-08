@@ -20,6 +20,7 @@ import {
 import { ServerConfig } from "@server/config";
 import { isAllowedOrigin } from "@server/net/origin";
 import type { ScenarioRegistry } from "@server/scenarios/ScenarioRegistry";
+import type { VictimReplySource } from "@server/services/AIService";
 import { CallService } from "@server/services/CallService";
 import { PlayerService } from "@server/services/PlayerService";
 import { extraRedeemTries } from "@shared/Upgrades";
@@ -52,6 +53,8 @@ export interface GameServerOptions {
   allowTestWords: boolean;
   // A shorter shift for testing (development only).
   shiftSecondsOverride: number | undefined;
+  // Where victims' AI replies come from; undefined means scripted replies only.
+  replies: VictimReplySource | undefined;
   log: FastifyBaseLogger;
 }
 
@@ -176,6 +179,7 @@ export function startGameServer(httpServer: HttpServer, options: GameServerOptio
           return change !== null;
         },
     send: (playerId, snapshot) => toPlayer(playerId)?.emit("call:snapshot", snapshot),
+    replies: options.replies,
   });
   const shifts: ShiftService = new ShiftService({
     calls,

@@ -80,8 +80,8 @@ export const Config = {
   },
 
   Turn: {
-    // Fake "thinking" time before a scripted reply. AI replies (step 8) take as long as the
-    // AI does instead.
+    // Fake "thinking" time before a scripted reply (or a test word's). AI replies take as
+    // long as the AI does instead.
     ThinkingSeconds: 1.5,
     // How long a victim line "takes" when there's no voice to play: this many seconds per
     // character, kept between Min and Max. MinSpeakingSeconds is also the soonest the server
@@ -159,8 +159,35 @@ export const Config = {
   },
 
   AI: {
+    // The cost switch: true makes every victim use their scenario's scripted replies and
+    // never calls Gemini. Victims are scripted anyway when GEMINI_API_KEY isn't set.
+    UseScriptedReplies: false,
+    // A fast, cheap Gemini model (ai.google.dev/gemini-api/docs/models), and how much it
+    // thinks before replying. Less thinking means faster replies.
+    Model: "gemini-3.1-flash-lite",
+    ThinkingLevel: "minimal",
+    // Longest reply the model may write, in tokens. A MaxReplyLength reply plus the JSON
+    // around it is well under this; the rest is room for any thinking.
+    MaxOutputTokens: 400,
     // Longest victim line, in characters (voice cost grows with characters). Scripted lines
     // are checked against it too.
     MaxReplyLength: 200,
+    // Most recent conversation lines sent with each request. Calls have no turn cap, so
+    // without this a long call would keep growing the request.
+    MaxHistoryLines: 30,
+    // Chance (0 to 1) that a reply brings up the victim's obsession. The server rolls it each
+    // turn and tells the AI, since left to itself it overdoes running gags.
+    ObsessionChance: 0.2,
+    // One request gives up after RequestTimeoutSeconds. A failed one (timeout, error, safety
+    // block, bad JSON) is tried again up to MaxRetries times, waiting RetryBaseSeconds, then
+    // twice that. No new try starts once ReplyDeadlineSeconds have passed since the player
+    // spoke; the victim says a scripted line instead.
+    RequestTimeoutSeconds: 6,
+    MaxRetries: 2,
+    RetryBaseSeconds: 0.5,
+    ReplyDeadlineSeconds: 12,
+    // If no reply (not even a fallback) has come this long after the player spoke, the
+    // victim says a scripted line anyway. Only a bug would ever need it.
+    ReplyGuardSeconds: 15,
   },
 } as const;

@@ -21,6 +21,7 @@
   "dependencies": {
     "@fastify/cookie": "^11.1.2",
     "@fastify/static": "^10.1.5",
+    "@google/genai": "^2.28.0",
     "better-sqlite3": "^13.0.3",
     "fastify": "^5.12.5",
     "react": "^19.3.0",

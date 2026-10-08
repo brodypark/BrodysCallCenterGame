@@ -1,6 +1,7 @@
 // Rings calls and runs each player's calls, keyed by player id, so more players just means
-// more entries. Ported from the Roblox CallService. For now the victim answers with their
-// scenario's next scripted reply; the AI (step 8) will slot in where that reply is taken.
+// more entries. Ported from the Roblox CallService. The victim's replies come from the AI
+// when it's on (AIService), and from their scenario's scripted replies when it's off, over
+// a limit, or fails.
 //
 // A call: idle -> ringing -> (answered) inCall -> idle, or ringing -> (declined or missed)
 // idle. Calls only ring while the shift has turned them on (startCalls / stopCalls); the next
@@ -34,13 +35,16 @@ import type { PlayerStats } from "@shared/stats";
 import { lowerStartingSuspicion } from "@shared/Upgrades";
 import { matchTestWord } from "@server/prompts/DebugReplies";
 import type { ScenarioRegistry } from "@server/scenarios/ScenarioRegistry";
+import type { HistoryLine } from "@server/prompts/VictimPrompt";
 import type { AIReply, Scenario } from "@server/scenarios/scenarioSchema";
+import type { VictimReplySource } from "@server/services/AIService";
+import { maskCodes } from "@server/services/aiReply";
 import { applySuspicionChange, trustMeter } from "@server/services/suspicion";
 
 interface PlayerCall {
   status: CallStatus;
   // Goes up by one every time the phone rings, so a reply that arrives late (e.g. from the
-  // AI, step 8) can tell whether the call it was for is still going.
+  // AI) can tell whether the call it was for is still going.
   callId: number;
   // Who's calling or on the line, or who called last. null before the first call.
   scenario: Scenario | null;
@@ -62,13 +66,15 @@ interface PlayerCall {
   // When the current victim line was sent (Date.now()), so a client can't end it early.
   lineStartedAt: number;
   // The call in progress, or the last one answered: what the player sees, codes included.
-  // The AI (step 8) must get its own history without the codes, saying only that one was
+  // The AI gets its own history (aiHistory) without the codes, saying only that one was
   // read out, so a prompt trick can never get it to repeat or change one.
   transcript: {
     callerName: string;
     messages: ChatMessage[];
     endReason: CallEndReason | null;
   } | null;
+  // The call as the AI hears it: the latest Config.AI.MaxHistoryLines lines, no codes.
+  aiHistory: HistoryLine[];
   lastOutcome: CallEndReason | null;
   // True while new calls may ring (during a shift, before the timer runs out).
   acceptingCalls: boolean;
@@ -95,11 +101,17 @@ export interface CallListener {
   turnChanged: (playerId: string) => void;
 }
 
-// What the victim says next, and how the call ends after it (if it does).
+// What the victim says next, and how the call ends after it (if it does). `heard` is the
+// line as the AI's history keeps it, when that differs (no code in it).
 interface Line {
   text: string;
   endAfter: CallEndReason | null;
+  heard?: string;
 }
+
+// Stands in for the reveal line in the AI's history, so it knows the code was read out.
+// Plain speech, so the model doesn't copy a stage direction into its own replies.
+const CodeReadOutNote = "Oh, here it is! There, I've read you the code on the back.";
 
 export interface CallServiceOptions {
   scenarios: ScenarioRegistry;
@@ -114,6 +126,8 @@ export interface CallServiceOptions {
   devCommand?: (playerId: string, text: string) => boolean;
   // Sends a player their latest snapshot. Called after every change.
   send: (playerId: string, snapshot: CallSnapshot) => void;
+  // Where AI replies come from. Left out, every victim uses scripted replies.
+  replies?: VictimReplySource;
   // A random number from 0 up to 1. Tests pass a predictable one.
   random?: () => number;
 }
@@ -126,6 +140,7 @@ export class CallService {
   private readonly send: CallServiceOptions["send"];
   private readonly statsOf: CallServiceOptions["statsOf"];
   private readonly devCommand: NonNullable<CallServiceOptions["devCommand"]>;
+  private readonly replies: VictimReplySource | null;
   private readonly random: () => number;
   private listener: CallListener | null = null;
 
@@ -136,6 +151,7 @@ export class CallService {
     this.send = options.send;
     this.statsOf = options.statsOf;
     this.devCommand = options.devCommand ?? (() => false);
+    this.replies = options.replies ?? null;
     this.random = options.random ?? Math.random;
   }
 
@@ -163,6 +179,7 @@ export class CallService {
       lineId: 0,
       lineStartedAt: 0,
       transcript: null,
+      aiHistory: [],
       lastOutcome: null,
       acceptingCalls: false,
       timer: null,
@@ -225,6 +242,7 @@ export class CallService {
       this.cancelTimer(call);
       this.calls.delete(playerId);
     }
+    this.replies?.removePlayer(playerId);
   }
 
   /** Forgets every player, e.g. when the server shuts down. */
@@ -259,6 +277,7 @@ export class CallService {
     call.status = "inCall";
     call.playerTurns = 0;
     call.transcript = { callerName: call.scenario.persona.name, messages: [], endReason: null };
+    call.aiHistory = [];
     this.speak(playerId, call, { text: greeting, endAfter: null });
   }
 
@@ -277,7 +296,8 @@ export class CallService {
   }
 
   /** The player said something. Only accepted on their turn, and if it isn't empty or too
-   * long. The victim thinks for a moment, then replies. */
+   * long. The victim replies once the AI has, or after a moment's fake thinking when the
+   * reply is scripted (or a test word's). */
   sendMessage(playerId: string, text: string): void {
     const call = this.calls.get(playerId);
     if (call?.status !== "inCall" || call.turn !== "playerTurn" || !call.scenario) {
@@ -292,10 +312,33 @@ export class CallService {
     const testReply = this.allowTestWords ? matchTestWord(cleaned) : null;
     call.playerTurns += 1;
     this.addMessage(call, { speaker: "player", text: cleaned });
+    // A player repeating their code back mustn't put it in front of the AI.
+    this.remember(call, { speaker: "player", text: maskCodes(cleaned, scenario.codePrefix) });
     call.turn = "processing";
     this.publish(playerId, call);
     this.listener?.turnChanged(playerId);
 
+    if (testReply === null && this.replies && !Config.AI.UseScriptedReplies) {
+      // A guard in case the reply never comes (AIService always answers by its deadline):
+      // say a scripted line instead. Whichever comes second finds the turn has moved on.
+      this.startTimer(call, Config.AI.ReplyGuardSeconds, () => {
+        if (call.callId === callId && call.status === "inCall" && call.turn === "processing") {
+          this.speak(
+            playerId,
+            call,
+            this.decideLine(
+              playerId,
+              call,
+              scenario,
+              this.takeFallbackReply(call, scenario),
+              false,
+            ),
+          );
+        }
+      });
+      void this.replyFromAI(playerId, call, scenario, this.replies);
+      return;
+    }
     // Waiting on the reply is the processing turn. Hanging up cancels this timer, and the
     // check makes sure a reply never lands on a call that has moved on.
     this.startTimer(call, Config.Turn.ThinkingSeconds, () => {
@@ -333,6 +376,57 @@ export class CallService {
     }
   }
 
+  /** Asks the AI for the victim's reply, falling back to a scripted one. Ending the call
+   * stops the request (endCall), and a reply that arrives after the call has moved on is
+   * dropped. */
+  private async replyFromAI(
+    playerId: string,
+    call: PlayerCall,
+    scenario: Scenario,
+    replies: VictimReplySource,
+  ): Promise<void> {
+    const callId = call.callId;
+    const stillWanted = (): boolean =>
+      this.calls.get(playerId) === call &&
+      call.callId === callId &&
+      call.status === "inCall" &&
+      call.turn === "processing";
+    let reply: AIReply | null;
+    try {
+      reply = await replies.getReply({
+        playerId,
+        scenario,
+        history: [...call.aiHistory],
+        context: {
+          suspicion: call.suspicion,
+          playerTurns: call.playerTurns,
+          codeRevealed: call.code !== null,
+          // TODO(step 12): the side problem and Wobblebucks Card.
+          sideProblem: null,
+          cardRevealed: false,
+        },
+        stillWanted,
+      });
+    } catch {
+      // getReply shouldn't reject; if it does, the victim just says a scripted line.
+      reply = null;
+    }
+    if (!stillWanted()) {
+      return;
+    }
+    this.speak(
+      playerId,
+      call,
+      this.decideLine(
+        playerId,
+        call,
+        scenario,
+        reply ?? this.takeFallbackReply(call, scenario),
+        false,
+      ),
+    );
+  }
+
   private ring(playerId: string, call: PlayerCall): void {
     call.callId += 1;
     const stats = this.statsOf(playerId);
@@ -357,6 +451,8 @@ export class CallService {
     }
     call.status = "idle";
     call.lastOutcome = reason;
+    // Stops a reply still on its way from the AI, and logs what the call used.
+    this.replies?.callEnded(playerId);
     // Also cancels whatever the call was waiting on (a reply or a line being said).
     if (call.acceptingCalls) {
       this.startTimer(call, Config.Call.SecondsBetweenCalls, () => this.ring(playerId, call));
@@ -404,6 +500,7 @@ export class CallService {
     return {
       text: `${reply.reply} ${lines.revealLine.replaceAll("{code}", call.code)}`,
       endAfter: null,
+      heard: `${reply.reply} ${CodeReadOutNote}`,
     };
   }
 
@@ -416,6 +513,7 @@ export class CallService {
     call.turn = "victimTurn";
     call.endAfterLine = line.endAfter;
     this.addMessage(call, { speaker: "victim", text: line.text, lineId });
+    this.remember(call, { speaker: "victim", text: line.heard ?? line.text });
     this.startTimer(call, safetySeconds(line.text), () =>
       this.finishVictimTurn(playerId, call, lineId),
     );
@@ -448,6 +546,14 @@ export class CallService {
     messages.push(message);
     if (messages.length > Config.Call.MaxTranscriptMessages) {
       messages.splice(0, messages.length - Config.Call.MaxTranscriptMessages);
+    }
+  }
+
+  /** Adds a line to the AI's history, keeping only the latest Config.AI.MaxHistoryLines. */
+  private remember(call: PlayerCall, line: HistoryLine): void {
+    call.aiHistory.push(line);
+    if (call.aiHistory.length > Config.AI.MaxHistoryLines) {
+      call.aiHistory.splice(0, call.aiHistory.length - Config.AI.MaxHistoryLines);
     }
   }
 

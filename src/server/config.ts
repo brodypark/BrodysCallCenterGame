@@ -29,6 +29,19 @@ export const ServerConfig = {
     RetryBaseMs: 50,
   },
 
+  // Cost guards on Gemini requests (one per victim reply). Kept on the server so players
+  // can't see how close they are. A request over any limit gets a scripted reply instead.
+  AILimits: {
+    // Per player, in any rolling minute. A turn takes several seconds, so real play stays
+    // well under this.
+    PerMinute: 20,
+    // Per player, per UTC day: about 30 calls.
+    PerDay: 300,
+    // All players together, per UTC day. New anonymous players are free to make, so this is
+    // the real ceiling on the bill: about $4 a day at Config.AI.Model's prices.
+    GlobalPerDay: 5000,
+  },
+
   PlayerCookie: {
     Name: "scamgpt_player",
     // A year. Every visit starts it again.

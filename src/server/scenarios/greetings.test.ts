@@ -12,6 +12,7 @@ const ObsessionWords: Readonly<Record<string, RegExp>> = {
   uncleMike: /Georgia/,
   evan: /CJ's sister/,
   cj: /skibidi|aura|sigma|Ohio/i,
+  jordan: /\b(bet|betting|odds|double or nothing|streak|lucky)\b/i,
 };
 
 describe("Scenario greetings", () => {

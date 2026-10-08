@@ -60,6 +60,16 @@ describe("ScenarioRegistry", () => {
     expect(registry.unlockedFor(4).map((scenario) => scenario.id)).toEqual(["grandma", "zorp"]);
   });
 
+  it("lists the scenarios unlocked by going from one level to another", () => {
+    const between = (from: number, to: number): string[] =>
+      registry.unlockedBetween(from, to).map((scenario) => scenario.id);
+    expect(between(1, 3)).toEqual(["zorp"]);
+    expect(between(3, 5)).toEqual(["bill"]);
+    expect(between(2, 6)).toEqual(["zorp", "bill"]);
+    expect(between(3, 4)).toEqual([]);
+    expect(between(3, 3)).toEqual([]);
+  });
+
   it("never picks the same scenario twice in a row when there's a choice", () => {
     for (const roll of [0, 0.5, 0.99]) {
       expect(registry.pick(5, "zorp", () => roll).id).not.toBe("zorp");

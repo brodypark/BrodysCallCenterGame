@@ -29,13 +29,13 @@ import type {
   Difficulty,
   TurnState,
 } from "@shared/types";
+import { levelOf } from "@shared/Levels";
+import type { PlayerStats } from "@shared/stats";
+import { lowerStartingSuspicion } from "@shared/Upgrades";
 import { matchTestWord } from "@server/prompts/DebugReplies";
 import type { ScenarioRegistry } from "@server/scenarios/ScenarioRegistry";
 import type { AIReply, Scenario } from "@server/scenarios/scenarioSchema";
 import { applySuspicionChange, trustMeter } from "@server/services/suspicion";
-
-// Until levels exist (step 7), everyone is level 1.
-const DefaultLevel = 1;
 
 interface PlayerCall {
   status: CallStatus;
@@ -106,6 +106,12 @@ export interface CallServiceOptions {
   codes: CodeIssuer;
   // Whether the test words (!reveal, !sus, !calm) work. Never in production.
   allowTestWords: boolean;
+  // The stats of the save the player is playing: their level picks who can call, and the
+  // Smooth Talker perk lowers starting suspicion.
+  statsOf: (playerId: string) => PlayerStats;
+  // Development commands typed as messages (e.g. !xp); returns true if `text` was one, so
+  // it isn't sent to the victim. Never in production.
+  devCommand?: (playerId: string, text: string) => boolean;
   // Sends a player their latest snapshot. Called after every change.
   send: (playerId: string, snapshot: CallSnapshot) => void;
   // A random number from 0 up to 1. Tests pass a predictable one.
@@ -118,6 +124,8 @@ export class CallService {
   private readonly codes: CodeIssuer;
   private readonly allowTestWords: boolean;
   private readonly send: CallServiceOptions["send"];
+  private readonly statsOf: CallServiceOptions["statsOf"];
+  private readonly devCommand: NonNullable<CallServiceOptions["devCommand"]>;
   private readonly random: () => number;
   private listener: CallListener | null = null;
 
@@ -126,6 +134,8 @@ export class CallService {
     this.codes = options.codes;
     this.allowTestWords = options.allowTestWords;
     this.send = options.send;
+    this.statsOf = options.statsOf;
+    this.devCommand = options.devCommand ?? (() => false);
     this.random = options.random ?? Math.random;
   }
 
@@ -274,7 +284,7 @@ export class CallService {
       return;
     }
     const cleaned = cleanMessage(text);
-    if (cleaned === null) {
+    if (cleaned === null || (this.allowTestWords && this.devCommand(playerId, cleaned))) {
       return;
     }
     const scenario = call.scenario;
@@ -325,10 +335,15 @@ export class CallService {
 
   private ring(playerId: string, call: PlayerCall): void {
     call.callId += 1;
-    call.scenario = this.scenarios.pick(DefaultLevel, call.scenario?.id ?? null, this.random);
+    const stats = this.statsOf(playerId);
+    call.scenario = this.scenarios.pick(levelOf(stats.xp), call.scenario?.id ?? null, this.random);
     call.status = "ringing";
     call.nextReply = 0;
-    call.suspicion = call.scenario.startingSuspicion;
+    // The Smooth Talker perk. It never takes a victim below their trust level, so nobody
+    // starts out ready to read their code.
+    const start = call.scenario.startingSuspicion;
+    const floor = Math.max(Config.Suspicion.Min, Math.min(start, call.scenario.trustLevel));
+    call.suspicion = Math.max(floor, start - lowerStartingSuspicion(stats));
     call.code = null;
     call.endAfterLine = null;
     call.lastOutcome = null;

@@ -1,0 +1,97 @@
+// The upgrades shop (docs/design.md "Upgrades"): buying perks and cosmetics with banked
+// money, and equipping owned wallpapers and themes. Only between shifts. The server checks
+// every purchase; the client only asks.
+
+import type { ShopResult } from "@shared/types";
+import { getUpgrade, maxTier, nextPrice, tierOf } from "@shared/Upgrades";
+import type { StatsService } from "@server/services/StatsService";
+
+export interface ShopServiceOptions {
+  stats: StatsService;
+  // Why the shop is closed for the player right now, or null while it's open.
+  closedReason: (playerId: string) => ShopClosedReason | null;
+}
+
+export type ShopClosedReason = "onShift" | "noSave";
+
+const ClosedMessages: Readonly<Record<ShopClosedReason, string>> = {
+  onShift: "The shop is closed during shifts.",
+  noSave: "Pick a save first.",
+};
+
+function result(success: boolean, message: string): ShopResult {
+  return { success, message };
+}
+
+export class ShopService {
+  private readonly options: ShopServiceOptions;
+
+  constructor(options: ShopServiceOptions) {
+    this.options = options;
+  }
+
+  /** Buys the next tier of a perk, or a cosmetic (which is equipped straight away). */
+  buy(playerId: string, id: string): ShopResult {
+    const upgrade = getUpgrade(id);
+    if (!upgrade) {
+      return result(false, "That isn't for sale.");
+    }
+    const closed = this.options.closedReason(playerId);
+    if (closed !== null) {
+      return result(false, ClosedMessages[closed]);
+    }
+    const stats = this.options.stats.get(playerId);
+    const price = nextPrice(stats, upgrade);
+    if (price === null) {
+      return result(
+        false,
+        upgrade.kind === "perk"
+          ? `${upgrade.name} is maxed out.`
+          : `You already own ${upgrade.name}.`,
+      );
+    }
+    if (stats.money < price) {
+      return result(false, `Not enough money: ${upgrade.name} costs $${price}.`);
+    }
+    const tier = tierOf(stats, upgrade.id) + 1;
+    this.options.stats.update(playerId, (current) => {
+      current.money -= price;
+      current.upgrades = { ...current.upgrades, [upgrade.id]: tier };
+      if (upgrade.kind === "wallpaper") {
+        current.wallpaper = upgrade.id;
+      } else if (upgrade.kind === "theme") {
+        current.theme = upgrade.id;
+      }
+    });
+    return upgrade.kind === "perk"
+      ? result(true, `Bought ${upgrade.name} tier ${tier} of ${maxTier(upgrade)}.`)
+      : result(true, `Bought and equipped ${upgrade.name}.`);
+  }
+
+  /** Equips an owned wallpaper or theme. Free. */
+  equip(playerId: string, id: string): ShopResult {
+    const upgrade = getUpgrade(id);
+    if (!upgrade || upgrade.kind === "perk") {
+      return result(false, "That can't be equipped.");
+    }
+    const closed = this.options.closedReason(playerId);
+    if (closed !== null) {
+      return result(false, ClosedMessages[closed]);
+    }
+    const stats = this.options.stats.get(playerId);
+    if (tierOf(stats, upgrade.id) === 0) {
+      return result(false, `You don't own ${upgrade.name} yet.`);
+    }
+    if (stats.wallpaper === upgrade.id || stats.theme === upgrade.id) {
+      return result(true, `${upgrade.name} is already equipped.`);
+    }
+    this.options.stats.update(playerId, (current) => {
+      if (upgrade.kind === "wallpaper") {
+        current.wallpaper = upgrade.id;
+      } else {
+        current.theme = upgrade.id;
+      }
+    });
+    return result(true, `Equipped ${upgrade.name}.`);
+  }
+}

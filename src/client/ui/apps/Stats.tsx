@@ -1,8 +1,9 @@
-// Stats app: banked money, calls, success rate, shifts and XP. Levels and the XP bar arrive
-// in step 7.
+// Stats app: banked money, calls, success rate, shifts, the level, and a bar showing the XP
+// earned towards the next level.
 
 import type { ReactElement } from "react";
-import type { PlayerStats } from "@shared/types";
+import { levelProgress } from "@shared/Levels";
+import type { PlayerStats } from "@shared/stats";
 import { useStats } from "@client/state/statsStore";
 import { cx } from "@client/ui/classNames";
 import controls from "@client/ui/controls.module.css";
@@ -21,12 +22,14 @@ function rows(stats: PlayerStats): readonly { label: string; value: string }[] {
     { label: "Calls completed", value: String(stats.callsCompleted) },
     { label: "Success rate", value: successRate },
     { label: "Shifts passed / failed", value: `${stats.shiftsPassed} / ${stats.shiftsFailed}` },
-    { label: "XP", value: String(stats.xp) },
+    { label: "Level", value: String(levelProgress(stats.xp).level) },
   ];
 }
 
 export function Stats(): ReactElement {
   const stats = useStats();
+  const progress = levelProgress(stats.xp);
+  const percent = Math.round((progress.xpIntoLevel / progress.xpForNextLevel) * Percent);
 
   return (
     <div className={app.app}>
@@ -38,6 +41,19 @@ export function Stats(): ReactElement {
           </div>
         ))}
       </dl>
+      <p className={styles.xpLabel}>
+        {progress.xpIntoLevel} / {progress.xpForNextLevel} XP to level {progress.level + 1}
+      </p>
+      <div
+        className={cx(controls.sunken, styles.xpTrack)}
+        role="progressbar"
+        aria-label={`XP towards level ${progress.level + 1}`}
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-valuenow={percent}
+      >
+        <div className={styles.xpFill} style={{ width: `${percent}%` }} />
+      </div>
     </div>
   );
 }

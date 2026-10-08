@@ -23,3 +23,26 @@
   margin: 0;
   font-weight: bold;
 }
+
+.xpLabel {
+  margin: 0;
+  font-size: 1.6cqh;
+  color: var(--text-muted);
+}
+
+.xpTrack {
+  height: 2cqh;
+  background: var(--field);
+}
+
+.xpFill {
+  height: 100%;
+  background: var(--xp-fill);
+  transition: width 0.4s ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .xpFill {
+    transition: none;
+  }
+}

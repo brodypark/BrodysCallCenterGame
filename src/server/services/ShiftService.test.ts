@@ -7,7 +7,7 @@ import { createScenarioRegistry } from "@server/scenarios/ScenarioRegistry";
 import { CallService } from "@server/services/CallService";
 import { RedeemService } from "@server/services/RedeemService";
 import { ShiftService } from "@server/services/ShiftService";
-import { StatsService } from "@server/services/StatsService";
+import { defaultStats, StatsService } from "@server/services/StatsService";
 
 const PlayerId = "player-1";
 // Short enough to step through, long enough to fit a call.
@@ -32,7 +32,7 @@ function createGame(): {
 } {
   const results: ShiftResult[] = [];
   let lastShift: ShiftSnapshot | null = null;
-  const stats = new StatsService({ send: () => undefined, save: () => undefined });
+  const stats: StatsService = new StatsService({ send: () => undefined, save: () => undefined });
   const redeem = new RedeemService({
     onRedeemed: (playerId, card) => shifts.cardRedeemed(playerId, card),
     onLocked: (playerId) => shifts.cardLocked(playerId),
@@ -41,6 +41,7 @@ function createGame(): {
     scenarios: createScenarioRegistry([grandma]),
     codes: redeem,
     allowTestWords: true,
+    statsOf: (playerId) => stats.get(playerId),
     send: () => undefined,
     random: () => 0,
   });
@@ -50,6 +51,7 @@ function createGame(): {
     stats,
     lengthSeconds: ShiftSeconds,
     canClockIn: () => canPlay,
+    unlockedBetween: (from, to) => (from < 3 && to >= 3 ? ["Zorp the Alien"] : []),
     send: (_playerId, snapshot) => {
       lastShift = snapshot;
     },
@@ -149,6 +151,28 @@ describe("ShiftService: needing a save", () => {
   });
 });
 
+describe("ShiftService: levels and perks", () => {
+  it("reports a level up, and the callers it unlocks", () => {
+    const game = createGame();
+    game.stats.load(PlayerId, { ...defaultStats(), xp: 170 });
+    clockInAndRing(game);
+    answer(game);
+    const code = getCode(game);
+    game.calls.hangUp(PlayerId);
+    game.redeem.redeem(PlayerId, code);
+    advanceSeconds(ShiftSeconds);
+    // 170 + 10 XP = 180: level 3 (175 XP).
+    expect(game.results[0]).toMatchObject({ newLevel: 3, unlockedCallers: ["Zorp the Alien"] });
+  });
+
+  it("says nothing about levels when there wasn't one", () => {
+    const game = createGame();
+    game.shifts.clockIn(PlayerId);
+    advanceSeconds(ShiftSeconds);
+    expect(game.results[0]).toMatchObject({ newLevel: null, unlockedCallers: [] });
+  });
+});
+
 describe("ShiftService: the end of a shift", () => {
   it("passes when earnings reach the quota: banked, with the pass bonus", () => {
     const game = createGame();
@@ -173,6 +197,9 @@ describe("ShiftService: the end of a shift", () => {
         callsTaken: 3,
         successfulCalls: 3,
         xpEarned: 3 * Config.XP.PerSuccess.Easy + Config.XP.ShiftPassBonus,
+        // 55 XP: not yet level 2 (75).
+        newLevel: null,
+        unlockedCallers: [],
       },
     ]);
     expect(game.stats.get(PlayerId)).toMatchObject({

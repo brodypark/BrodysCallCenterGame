@@ -1,17 +1,10 @@
 // The client's copy of the player's stats: the last copy the server sent.
 
-import type { PlayerStats } from "@shared/types";
+import { type PlayerStats, PlayerStatsSchema } from "@shared/stats";
 import { socket } from "@client/net/socket";
 import { createStore, useStore } from "@client/state/createStore";
 
-const stats = createStore<PlayerStats>({
-  money: 0,
-  xp: 0,
-  callsCompleted: 0,
-  successfulCalls: 0,
-  shiftsPassed: 0,
-  shiftsFailed: 0,
-});
+const stats = createStore<PlayerStats>(PlayerStatsSchema.parse({}));
 
 function onStats(next: PlayerStats): void {
   stats.set(next);

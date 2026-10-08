@@ -7,6 +7,7 @@ import { Config } from "@shared/Config";
 import { redeemCode } from "@client/net/redeemActions";
 import { useConnection } from "@client/state/connectionStore";
 import { cx } from "@client/ui/classNames";
+import { upperCaseInput } from "@client/ui/upperCaseInput";
 import controls from "@client/ui/controls.module.css";
 import app from "@client/ui/apps/appStyles.module.css";
 import styles from "@client/ui/apps/Redeem.module.css";
@@ -66,7 +67,7 @@ export function Redeem(): ReactElement {
           spellCheck={false}
           // Locked while the server checks, so nothing typed meanwhile is wiped on success.
           readOnly={checking}
-          onChange={(event) => setCode(event.target.value)}
+          onChange={(event) => setCode(upperCaseInput(event.target))}
         />
       </label>
       <div className={app.row}>

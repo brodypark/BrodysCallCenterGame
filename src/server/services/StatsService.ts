@@ -2,17 +2,11 @@
 // SaveService loads them when a slot is picked; every change is sent to the player and
 // written to that slot.
 
-import type { PlayerStats } from "@shared/types";
+import { type PlayerStats, PlayerStatsSchema } from "@shared/stats";
 
+/** A fresh save's stats: every field at its schema default. */
 export function defaultStats(): PlayerStats {
-  return {
-    money: 0,
-    xp: 0,
-    callsCompleted: 0,
-    successfulCalls: 0,
-    shiftsPassed: 0,
-    shiftsFailed: 0,
-  };
+  return PlayerStatsSchema.parse({});
 }
 
 export interface StatsServiceOptions {
@@ -31,13 +25,13 @@ export class StatsService {
 
   /** A copy of the player's stats (defaults when no save is loaded). */
   get(playerId: string): PlayerStats {
-    return { ...(this.stats.get(playerId) ?? defaultStats()) };
+    return structuredClone(this.stats.get(playerId) ?? defaultStats());
   }
 
   /** Starts using `stats` (just loaded from a save) for the player. */
   load(playerId: string, stats: PlayerStats): void {
-    this.stats.set(playerId, { ...stats });
-    this.options.send(playerId, { ...stats });
+    this.stats.set(playerId, structuredClone(stats));
+    this.options.send(playerId, structuredClone(stats));
   }
 
   /** Changes the player's stats, saves them and sends them the result. */
@@ -45,8 +39,8 @@ export class StatsService {
     const stats = this.get(playerId);
     change(stats);
     this.stats.set(playerId, stats);
-    this.options.save(playerId, { ...stats });
-    this.options.send(playerId, { ...stats });
+    this.options.save(playerId, structuredClone(stats));
+    this.options.send(playerId, structuredClone(stats));
   }
 
   /** Forgets the player's stats in memory (they're already saved). */

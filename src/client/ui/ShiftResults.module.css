@@ -67,3 +67,22 @@
 .fired {
   color: var(--error-text);
 }
+
+/* A yellow banner when the shift's XP took the player up a level. */
+.levelUp {
+  align-self: stretch;
+  padding: 0.8cqh 1.2cqh;
+  border: var(--bevel-width) solid var(--level-up-text);
+  background: var(--level-up-banner);
+  color: var(--level-up-text);
+  text-align: center;
+}
+
+.levelUp p {
+  margin: 0;
+}
+
+.levelUpTitle {
+  font-size: 2.2cqh;
+  font-weight: bold;
+}

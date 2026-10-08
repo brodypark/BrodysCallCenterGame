@@ -111,6 +111,16 @@ export interface ShiftResult {
   successfulCalls: number;
   // Kept even when the shift is failed.
   xpEarned: number;
+  // The player's new level, if this shift's XP took them up (one or more). null if not.
+  newLevel: number | null;
+  // Names of the callers that going up unlocked. Empty if none did.
+  unlockedCallers: string[];
+}
+
+/** The server's answer to buying or equipping something in the Shop. */
+export interface ShopResult {
+  success: boolean;
+  message: string;
 }
 
 export type { PlayerStats } from "@shared/stats";

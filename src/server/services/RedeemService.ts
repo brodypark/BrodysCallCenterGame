@@ -36,6 +36,8 @@ export interface RedeemServiceOptions {
   onRedeemed: (playerId: string, card: { value: number; difficulty: Difficulty }) => void;
   // A card ran out of tries and can't be cashed in any more.
   onLocked?: (playerId: string) => void;
+  // Extra wrong tries per card for this player (the Sticky Notes perk).
+  extraTries?: (playerId: string) => number;
 }
 
 const NotACode = "That doesn't look like a card code.";
@@ -86,10 +88,12 @@ export class RedeemService {
   private readonly players = new Map<string, PlayerCards>();
   private readonly onRedeemed: RedeemServiceOptions["onRedeemed"];
   private readonly onLocked: NonNullable<RedeemServiceOptions["onLocked"]>;
+  private readonly extraTries: NonNullable<RedeemServiceOptions["extraTries"]>;
 
   constructor(options: RedeemServiceOptions) {
     this.onRedeemed = options.onRedeemed;
     this.onLocked = options.onLocked ?? (() => undefined);
+    this.extraTries = options.extraTries ?? (() => 0);
   }
 
   /** A new code with `prefix` that's different from every card the player has. Not
@@ -115,7 +119,7 @@ export class RedeemService {
     player.cards.set(key, {
       value: card.value,
       difficulty: card.difficulty,
-      triesLeft: Config.Redeem.TriesPerCode,
+      triesLeft: Config.Redeem.TriesPerCode + this.extraTries(playerId),
       redeemed: false,
       order: player.issued,
     });

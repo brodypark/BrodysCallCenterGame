@@ -22,11 +22,14 @@ import { isAllowedOrigin } from "@server/net/origin";
 import type { ScenarioRegistry } from "@server/scenarios/ScenarioRegistry";
 import { CallService } from "@server/services/CallService";
 import { PlayerService } from "@server/services/PlayerService";
+import { extraRedeemTries } from "@shared/Upgrades";
 import type { DataService } from "@server/services/DataService";
 import { RedeemService } from "@server/services/RedeemService";
+import { matchDevCommand } from "@server/prompts/DevCommands";
 import { endPlayerSession } from "@server/services/playerExit";
 import { SaveService } from "@server/services/SaveService";
 import { ShiftService } from "@server/services/ShiftService";
+import { ShopService } from "@server/services/ShopService";
 import { StatsService } from "@server/services/StatsService";
 
 interface SocketData {
@@ -156,11 +159,22 @@ export function startGameServer(httpServer: HttpServer, options: GameServerOptio
   const redeem = new RedeemService({
     onRedeemed: (playerId, card) => shifts.cardRedeemed(playerId, card),
     onLocked: (playerId) => shifts.cardLocked(playerId),
+    extraTries: (playerId) => extraRedeemTries(stats.get(playerId)),
   });
   const calls = new CallService({
     scenarios: options.scenarios,
     codes: redeem,
     allowTestWords: options.allowTestWords,
+    statsOf: (playerId) => stats.get(playerId),
+    devCommand: !options.allowTestWords
+      ? undefined
+      : (playerId, text) => {
+          const change = matchDevCommand(text);
+          if (change) {
+            stats.update(playerId, change);
+          }
+          return change !== null;
+        },
     send: (playerId, snapshot) => toPlayer(playerId)?.emit("call:snapshot", snapshot),
   });
   const shifts: ShiftService = new ShiftService({
@@ -169,6 +183,8 @@ export function startGameServer(httpServer: HttpServer, options: GameServerOptio
     stats,
     lengthSeconds: options.shiftSecondsOverride,
     canClockIn: (playerId) => saves.activeSlot(playerId) !== null,
+    unlockedBetween: (fromLevel, toLevel) =>
+      options.scenarios.unlockedBetween(fromLevel, toLevel).map((scenario) => scenario.displayName),
     send: (playerId, snapshot) => toPlayer(playerId)?.emit("shift:snapshot", snapshot),
     sendResult: (playerId, result) => toPlayer(playerId)?.emit("shift:ended", result),
   });
@@ -178,6 +194,15 @@ export function startGameServer(httpServer: HttpServer, options: GameServerOptio
     isBusy: (playerId) => shifts.isOnShift(playerId),
     onLeave: (playerId) => shifts.resultSeen(playerId),
     send: (playerId, snapshot) => toPlayer(playerId)?.emit("saves:snapshot", snapshot),
+  });
+  const shop = new ShopService({
+    stats,
+    closedReason: (playerId) => {
+      if (saves.activeSlot(playerId) === null) {
+        return "noSave";
+      }
+      return shifts.isOnShift(playerId) ? "onShift" : null;
+    },
   });
   const exitServices = { shifts, calls, cards: redeem, stats, saves };
   calls.setListener({
@@ -220,8 +245,19 @@ export function startGameServer(httpServer: HttpServer, options: GameServerOptio
       socket.emit("shift:ended", report);
     }
 
-    listen(socket, "saves:continue", log, ({ slot }) => saves.continueSlot(playerId, slot));
-    listen(socket, "saves:new", log, ({ slot }) => saves.newGame(playerId, slot));
+    // Perks change the shift length the shift snapshot shows, so it's sent again whenever
+    // they can change: picking a save, and buying.
+    const sendShift = (): void => {
+      socket.emit("shift:snapshot", shifts.snapshot(playerId));
+    };
+    listen(socket, "saves:continue", log, ({ slot }) => {
+      saves.continueSlot(playerId, slot);
+      sendShift();
+    });
+    listen(socket, "saves:new", log, ({ slot }) => {
+      saves.newGame(playerId, slot);
+      sendShift();
+    });
     listen(socket, "saves:delete", log, ({ slot }) => saves.deleteSlot(playerId, slot));
     listen(socket, "saves:leave", log, () => saves.leave(playerId));
     // Nothing starts until a save is picked (ShiftService checks).
@@ -235,6 +271,19 @@ export function startGameServer(httpServer: HttpServer, options: GameServerOptio
       calls.finishedSpeaking(playerId, lineId),
     );
     answer(socket, "redeem:code", log, ({ code }) => redeem.redeem(playerId, code));
+    answer(socket, "shop:buy", log, ({ id }) => {
+      const result = shop.buy(playerId, id);
+      sendShift();
+      return result;
+    });
+    answer(socket, "shop:equip", log, ({ id }) => shop.equip(playerId, id));
+    listen(socket, "tutorial:seen", log, () => {
+      if (saves.activeSlot(playerId) !== null && !stats.get(playerId).tutorialSeen) {
+        stats.update(playerId, (current) => {
+          current.tutorialSeen = true;
+        });
+      }
+    });
 
     socket.on("disconnect", (reason) => {
       log.info({ playerId, socketId: socket.id, reason }, "Player disconnected");

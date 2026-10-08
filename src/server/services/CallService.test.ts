@@ -9,6 +9,8 @@ import { createScenarioRegistry, type ScenarioRegistry } from "@server/scenarios
 import type { AIReply, ScenarioInput } from "@server/scenarios/scenarioSchema";
 import { CallService } from "@server/services/CallService";
 import { RedeemService } from "@server/services/RedeemService";
+import { defaultStats } from "@server/services/StatsService";
+import type { PlayerStats } from "@shared/stats";
 
 const scenarios = createScenarioRegistry([grandma]);
 const { fallbackReplies, greetings } = grandma.lines;
@@ -27,6 +29,9 @@ function grandmaAlwaysSaying(reply: AIReply): ScenarioRegistry {
 interface SetupOptions {
   registry?: ScenarioRegistry;
   allowTestWords?: boolean;
+  stats?: PlayerStats;
+  // Dice rolls; 0 (the default) always picks the first greeting and caller.
+  random?: () => number;
 }
 
 interface TestCall {
@@ -57,9 +62,10 @@ function setup(options: SetupOptions = {}): TestCall {
     scenarios: options.registry ?? scenarios,
     codes: redeem,
     allowTestWords: options.allowTestWords ?? true,
+    statsOf: () => options.stats ?? defaultStats(),
+    devCommand: (_playerId, text) => text === "!dev",
     send: (_playerId, snapshot) => sent.push(snapshot),
-    // Always the first greeting.
-    random: () => 0,
+    random: options.random ?? (() => 0),
   });
   const latest = (): CallSnapshot => {
     const snapshot = service.snapshot(PlayerId);
@@ -546,6 +552,49 @@ describe("CallService: messages", () => {
       fallbackReplies[0]?.reply,
     ]);
     expect(latest().playerTurns).toBe(1);
+  });
+});
+
+describe("CallService: levels and perks", () => {
+  it("only rings callers unlocked at the player's level", () => {
+    const zorp: ScenarioInput = {
+      ...grandma,
+      id: "zorp",
+      codePrefix: "ZRP",
+      unlockLevel: 3,
+      persona: { ...grandma.persona, name: "Zorp" },
+    };
+    const registry = createScenarioRegistry([grandma, zorp]);
+    // Level 1: always Grandma, even when the dice would pick the last caller.
+    const highRoll = (): number => 0.99;
+    const low = setup({ registry, stats: defaultStats(), random: highRoll });
+    low.service.addPlayer(PlayerId);
+    low.service.startCalls(PlayerId);
+    advanceSeconds(Config.Call.FirstCallDelaySeconds);
+    expect(low.latest().caller).toBe(grandma.persona.name);
+
+    // Level 3 (175 XP): Zorp can call too; the random pick lands on the second one.
+    const high = setup({ registry, stats: { ...defaultStats(), xp: 175 }, random: highRoll });
+    high.service.addPlayer("p2");
+    high.service.startCalls("p2");
+    advanceSeconds(Config.Call.FirstCallDelaySeconds);
+    expect(high.service.snapshot("p2")).toMatchObject({ status: "ringing", caller: "Zorp" });
+  });
+
+  it("lowers starting suspicion with Smooth Talker, never below the trust level", () => {
+    const tier1 = playerTurn({ stats: { ...defaultStats(), upgrades: { smoothTalker: 1 } } });
+    // 40 - 3 = 37 suspicion: 63% trust.
+    expect(tier1.latest().trust?.percent).toBe(63);
+
+    const lots = playerTurn({ stats: { ...defaultStats(), upgrades: { smoothTalker: 50 } } });
+    // Floored at the trust level of 30: 70% trust, still not trusting.
+    expect(lots.latest().trust).toMatchObject({ percent: 70, word: "unsure" });
+  });
+
+  it("swallows dev commands instead of sending them to the victim", () => {
+    const { service, latest } = playerTurn();
+    service.sendMessage(PlayerId, "!dev");
+    expect(latest()).toMatchObject({ turn: "playerTurn", playerTurns: 0 });
   });
 });
 

@@ -79,9 +79,11 @@ export class SaveService {
       return;
     }
     this.active.delete(playerId);
-    this.options.stats.removePlayer(playerId);
-    this.options.onLeave(playerId);
+    // Saves first, so the client knows no save is picked before the blank stats arrive.
     this.publish(playerId);
+    // Back to a blank slate (not saved anywhere), so the picker shows the default look.
+    this.options.stats.load(playerId, defaultStats());
+    this.options.onLeave(playerId);
   }
 
   /** Writes the player's stats to the slot they're playing. */

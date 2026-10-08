@@ -15,6 +15,8 @@ export interface ScenarioRegistry {
   get: (id: string) => Scenario | undefined;
   /** Every scenario unlocked at `level`, in a fixed order. Never empty for level 1 or more. */
   unlockedFor: (level: number) => Scenario[];
+  /** The scenarios that unlock when a player goes from `fromLevel` up to `toLevel`. */
+  unlockedBetween: (fromLevel: number, toLevel: number) => Scenario[];
   /**
    * A random scenario unlocked at `level`. When more than one is unlocked, never `lastId`
    * again, so the same victim doesn't call twice in a row.
@@ -62,6 +64,8 @@ export function createScenarioRegistry(inputs: readonly ScenarioInput[]): Scenar
     all,
     get: (id) => all.find((scenario) => scenario.id === id),
     unlockedFor,
+    unlockedBetween: (fromLevel, toLevel) =>
+      all.filter((scenario) => scenario.unlockLevel > fromLevel && scenario.unlockLevel <= toLevel),
     pick: (level, lastId, random) => {
       const unlocked = unlockedFor(Math.max(level, 1));
       const others = unlocked.filter((scenario) => scenario.id !== lastId);

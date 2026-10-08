@@ -40,6 +40,14 @@ export function ShiftResults(): ReactElement | null {
             </div>
           ))}
         </dl>
+        {result.newLevel !== null && (
+          <div className={styles.levelUp}>
+            <p className={styles.levelUpTitle}>LEVEL UP! Level {result.newLevel}</p>
+            {result.unlockedCallers.map((name) => (
+              <p key={name}>New caller: {name}</p>
+            ))}
+          </div>
+        )}
         <p className={cx(styles.stamp, result.passed ? styles.promoted : styles.fired)}>
           {result.passed ? "PROMOTED" : "FIRED"}
         </p>

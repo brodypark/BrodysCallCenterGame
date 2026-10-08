@@ -33,3 +33,21 @@
 .name {
   font-weight: bold;
 }
+
+.tier {
+  font-weight: normal;
+  color: var(--text-muted);
+}
+
+.owned {
+  flex: none;
+  color: var(--text-muted);
+}
+
+.success {
+  color: var(--success-text);
+}
+
+.error {
+  color: var(--error-text);
+}

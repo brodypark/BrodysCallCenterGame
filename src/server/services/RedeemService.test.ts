@@ -94,4 +94,12 @@ describe("RedeemService", () => {
       redeem.registerGiftCard(PlayerId, code, Grandma);
     }
   });
+
+  it("gives extra tries with Sticky Notes", () => {
+    const redeem = new RedeemService({ onRedeemed: () => undefined, extraTries: () => 2 });
+    redeem.registerGiftCard(PlayerId, "GMA-7QZ", Grandma);
+    expect(redeem.redeem(PlayerId, "GMA-7QX").triesRemaining).toBe(
+      Config.Redeem.TriesPerCode + 2 - 1,
+    );
+  });
 });

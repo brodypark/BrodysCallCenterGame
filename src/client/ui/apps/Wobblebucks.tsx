@@ -1,5 +1,6 @@
 // Wobblebucks Machine app: charge the Wobblebucks Card a caller read out after agreeing to
-// pay a fee for their side problem. Placeholder until side problems arrive (step 12).
+// pay a fee for their side problem. Placeholder until side problems arrive (step 12); the
+// card box should then use upperCaseInput like Redeem's.
 
 import type { ReactElement } from "react";
 import { cx } from "@client/ui/classNames";

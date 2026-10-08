@@ -18,6 +18,8 @@ import type {
   ShiftSnapshot,
   ShiftStatus,
 } from "@shared/types";
+import { levelOf } from "@shared/Levels";
+import { extraShiftSeconds } from "@shared/Upgrades";
 import type { StatsService } from "@server/services/StatsService";
 
 // Calls that were answered, so they count as calls taken.
@@ -54,6 +56,8 @@ export interface ShiftServiceOptions {
   lengthSeconds?: number;
   // Whether the player may start a shift at all (they've picked a save).
   canClockIn: (playerId: string) => boolean;
+  // Names of the callers that unlock between two levels, for the report.
+  unlockedBetween: (fromLevel: number, toLevel: number) => string[];
 }
 
 interface PlayerShift {
@@ -97,7 +101,7 @@ export class ShiftService {
   }
 
   snapshot(playerId: string): ShiftSnapshot {
-    return this.makeSnapshot(this.shifts.get(playerId) ?? newShift());
+    return this.makeSnapshot(playerId, this.shifts.get(playerId) ?? newShift());
   }
 
   /** The last shift's report if the player hasn't closed it yet, e.g. to send again after a
@@ -126,7 +130,7 @@ export class ShiftService {
     }
     const shift = newShift();
     this.shifts.set(playerId, shift);
-    const lengthSeconds = this.lengthSeconds();
+    const lengthSeconds = this.lengthSeconds(playerId);
     shift.status = "onShift";
     shift.endsAt = Date.now() + secondsToMs(lengthSeconds);
     this.startTimer(shift, lengthSeconds, () => this.timeUp(playerId, shift));
@@ -278,13 +282,19 @@ export class ShiftService {
 
     const quota = Config.Shift.Quota;
     const passed = shift.earnings >= quota;
+    const xpEarned = shift.xpEarned + (passed ? Config.XP.ShiftPassBonus : 0);
+    const before = this.options.stats.get(playerId);
+    const levelBefore = levelOf(before.xp);
+    const levelAfter = levelOf(before.xp + xpEarned);
     const result: ShiftResult = {
       passed,
       earnings: shift.earnings,
       quota,
       callsTaken: shift.callsTaken,
       successfulCalls: shift.successfulCalls,
-      xpEarned: shift.xpEarned + (passed ? Config.XP.ShiftPassBonus : 0),
+      xpEarned,
+      newLevel: levelAfter > levelBefore ? levelAfter : null,
+      unlockedCallers: this.options.unlockedBetween(levelBefore, levelAfter),
     };
     // Passing banks the earnings; failing loses them. XP is kept either way.
     this.options.stats.update(playerId, (stats) => {
@@ -307,8 +317,12 @@ export class ShiftService {
     this.publish(playerId, shift);
   }
 
-  private lengthSeconds(): number {
-    return this.options.lengthSeconds ?? Config.Shift.LengthSeconds;
+  /** How long the player's shifts last: the dev override, or Config plus Extra Coffee. */
+  private lengthSeconds(playerId: string): number {
+    return (
+      this.options.lengthSeconds ??
+      Config.Shift.LengthSeconds + extraShiftSeconds(this.options.stats.get(playerId))
+    );
   }
 
   private startTimer(shift: PlayerShift, seconds: number, callback: () => void): void {
@@ -326,12 +340,12 @@ export class ShiftService {
     }
   }
 
-  private makeSnapshot(shift: PlayerShift): ShiftSnapshot {
+  private makeSnapshot(playerId: string, shift: PlayerShift): ShiftSnapshot {
     return {
       status: shift.status,
       earnings: shift.earnings,
       quota: Config.Shift.Quota,
-      lengthSeconds: this.lengthSeconds(),
+      lengthSeconds: this.lengthSeconds(playerId),
       endsAt: shift.endsAt,
       overtimeEndsAt: shift.overtimeEndsAt,
       serverNow: Date.now(),
@@ -339,6 +353,6 @@ export class ShiftService {
   }
 
   private publish(playerId: string, shift: PlayerShift): void {
-    this.options.send(playerId, this.makeSnapshot(shift));
+    this.options.send(playerId, this.makeSnapshot(playerId, shift));
   }
 }

@@ -16,8 +16,9 @@ import { SessionOverlay } from "@client/ui/SessionOverlay";
 import { ShiftResults } from "@client/ui/ShiftResults";
 import { StartMenu } from "@client/ui/StartMenu";
 import { Taskbar } from "@client/ui/Taskbar";
-import { DefaultTheme, DefaultWallpaper } from "@client/ui/themes/themeIds";
+import { useStats } from "@client/state/statsStore";
 import { useCallPopups } from "@client/ui/useCallPopups";
+import { useTutorialPopup } from "@client/ui/useTutorialPopup";
 import { unlockAudioOnFirstInput } from "@client/voice/audioUnlock";
 import { Windows } from "@client/ui/Windows";
 import styles from "@client/ui/Desktop.module.css";
@@ -30,10 +31,13 @@ export function Desktop(): ReactElement {
   const screenRef = useRef<HTMLDivElement>(null);
   const desktop = useMemo<DesktopContextValue>(() => ({ store, screenRef }), [store]);
   useCallPopups(store);
+  useTutorialPopup(store);
   // Also after a refresh mid-shift, when there's no Clock In click to do it.
   useEffect(() => unlockAudioOnFirstInput(), []);
   // While another tab has the game, nothing here can be clicked, typed in or focused.
   const replaced = useConnection().status === "replaced";
+  // The save's equipped cosmetics (the defaults until a save is picked).
+  const { theme, wallpaper } = useStats();
 
   return (
     <DesktopContext value={desktop}>
@@ -43,8 +47,8 @@ export function Desktop(): ReactElement {
           className={styles.screen}
           style={layoutVars}
           data-desktop-screen=""
-          data-theme={DefaultTheme}
-          data-wallpaper={DefaultWallpaper}
+          data-theme={theme}
+          data-wallpaper={wallpaper}
         >
           <div className={styles.layers} inert={replaced}>
             {/* Clicking the bare wallpaper closes the start menu. */}

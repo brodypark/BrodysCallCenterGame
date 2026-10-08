@@ -4,6 +4,8 @@
 // value, suspicion start/threshold/trust level, unlock level) live in each scenario module.
 // Sections are added as the build steps need them.
 
+import type { BuyableCosmeticId } from "@shared/cosmetics";
+
 export const Config = {
   Saves: {
     // Save slots each player can keep.
@@ -11,7 +13,8 @@ export const Config = {
   },
 
   Shift: {
-    LengthSeconds: 480,
+    // 60 while testing; the design is 480 (8 minutes, docs/design.md).
+    LengthSeconds: 60,
     // Money a shift must earn to pass. The same every shift.
     Quota: 150,
     // In overtime, once the last call is over, seconds left to redeem any code still open
@@ -26,6 +29,34 @@ export const Config = {
     // For each gift card cashed in, by the scenario's difficulty.
     PerSuccess: { Easy: 10, Medium: 20, Hard: 30 },
     ShiftPassBonus: 25,
+    // Level curve: going from level 1 to 2 costs FirstLevelCost XP, and each level after
+    // that costs CostIncreasePerLevel more than the one before (75, 100, 125, ...).
+    FirstLevelCost: 75,
+    CostIncreasePerLevel: 25,
+  },
+
+  // The upgrades shop. Only open between shifts; everything is paid from banked money and
+  // kept forever.
+  Shop: {
+    // Each shift perk is bought in tiers, which cost these amounts in order. The number of
+    // prices is the highest tier.
+    PerkTierPrices: [200, 500, 1000],
+    // Longest upgrade id the client may send.
+    MaxUpgradeIdLength: 40,
+    // What each tier of each perk adds.
+    ExtraShiftSecondsPerTier: 30,
+    LowerStartingSuspicionPerTier: 3,
+    ExtraRedeemTriesPerTier: 1,
+    // Cosmetics, by id. The default wallpaper (teal) and theme (classic) are free.
+    CosmeticPrices: {
+      midnightBlue: 100,
+      sunsetGradient: 200,
+      hackerGrid: 300,
+      puddingPink: 400,
+      darkMode: 200,
+      bubblegum: 300,
+      terminalGreen: 400,
+    } satisfies Record<BuyableCosmeticId, number>,
   },
 
   Call: {
@@ -120,6 +151,8 @@ export const Config = {
     // Every Wobblebucks Card starts with this (e.g. WBK-7QZ), so it can't be mistaken for a
     // gift card. No scenario may use it as its code prefix.
     Prefix: "WBK",
+    // Charges over a card's spending limit are declined; this many and the card freezes.
+    TriesPerCard: 2,
     // The smallest and biggest amounts the Wobblebucks Machine will charge, in dollars.
     MinChargeAmount: 1,
     MaxChargeAmount: 999,

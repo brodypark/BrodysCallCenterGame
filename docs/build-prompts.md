@@ -455,6 +455,7 @@ Requirements:
   limits stay on the server.
 - Wobblebucks Machine app: card and amount, tries left, approved / declined / frozen. Each
   app turns away the other's cards without costing a try.
+- The card box uppercases as you type (client/ui/upperCaseInput, like Redeem's).
 - The !card test word (development only).
 - A unit test plays each scenario's 12 fallback replies through and checks they reveal
   around turn 9-10 without reaching the threshold.

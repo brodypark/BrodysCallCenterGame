@@ -11,6 +11,7 @@ import type {
   SavesSnapshot,
   RedeemResult,
   ShiftResult,
+  ShopResult,
   ShiftSnapshot,
 } from "@shared/types";
 
@@ -27,6 +28,8 @@ const clientEventSchemas = {
   // Stop playing the current save and go back to the slot picker (off shift only).
   "saves:leave": z.undefined(),
   "shift:clockIn": z.undefined(),
+  // The player closed How to Play.
+  "tutorial:seen": z.undefined(),
   // The player closed the shift report.
   "shift:resultSeen": z.undefined(),
   "call:answer": z.undefined(),
@@ -54,8 +57,13 @@ export const ClientEventSchemas: {
 } = clientEventSchemas;
 
 // Requests: client events the server answers (a Socket.IO acknowledgement).
+// Shop item ids are short; the server checks they exist.
+const upgradeIdSchema = z.strictObject({ id: z.string().max(Config.Shop.MaxUpgradeIdLength) });
+
 const clientRequestSchemas = {
   "redeem:code": z.strictObject({ code: z.string().max(Config.Redeem.MaxCodeInputLength) }),
+  "shop:buy": upgradeIdSchema,
+  "shop:equip": upgradeIdSchema,
 } satisfies Record<string, z.ZodType>;
 
 export type ClientRequestName = keyof typeof clientRequestSchemas;
@@ -67,7 +75,11 @@ export type ClientRequestPayload<R extends ClientRequestName> = z.output<
 /** What the server answers each request with. */
 export interface ClientRequestResponses {
   "redeem:code": RedeemResult;
+  "shop:buy": ShopResult;
+  "shop:equip": ShopResult;
 }
+
+const shopResultSchema = z.strictObject({ success: z.boolean(), message: z.string() });
 
 /** The shape of each answer, so the client can check what it got back. */
 export const ClientRequestResponseSchemas: {
@@ -79,6 +91,8 @@ export const ClientRequestResponseSchemas: {
     triesRemaining: z.number().nullable(),
     message: z.string(),
   }),
+  "shop:buy": shopResultSchema,
+  "shop:equip": shopResultSchema,
 };
 
 /** The schema for each client request's payload. */

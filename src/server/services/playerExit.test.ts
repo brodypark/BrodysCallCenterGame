@@ -42,6 +42,7 @@ function createGame(): {
     scenarios: createScenarioRegistry([grandma]),
     codes: redeem,
     allowTestWords: true,
+    statsOf: (playerId) => stats.get(playerId),
     send: () => undefined,
   });
   const shifts: ShiftService = new ShiftService({
@@ -49,6 +50,7 @@ function createGame(): {
     cards: redeem,
     stats,
     canClockIn: (playerId) => saves.activeSlot(playerId) !== null,
+    unlockedBetween: () => [],
     send: () => undefined,
     sendResult: () => undefined,
   });

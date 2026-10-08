@@ -1,8 +1,8 @@
 /* Desktop themes: sets of CSS variables picked with data attributes on a desktop's screen,
-   so each desktop can have its own. The Shop's window themes and wallpapers (step 7) add
-   more sets here. Sizes live in ui/layout.ts instead. */
+   so each desktop can have its own. The Classic Grey colors are the base; each window theme
+   only overrides what it changes, and each wallpaper sets --wallpaper (any CSS background).
+   Ids match shared/cosmetics.ts. Sizes live in ui/layout.ts instead. */
 
-/* Shared by every theme. */
 [data-desktop-screen] {
   /* The only pixel-sized parts of the UI; everything else scales with the desktop. */
   --bevel-width: 2px;
@@ -22,12 +22,8 @@
   --layer-taskbar: 4;
   --layer-start-menu: 5;
   --layer-overlay: 6;
-}
 
-/* Window themes. */
-
-[data-theme="classic"] {
-  /* Grey faces, and the 3D bevels on windows, buttons and the taskbar. */
+  /* Classic Grey: grey faces, and the 3D bevels on windows, buttons and the taskbar. */
   --face: #c0c0c0;
   --bevel-light: #ffffff;
   --bevel-shadow: #808080;
@@ -48,17 +44,95 @@
   --selection: #000080;
   --selection-text: #ffffff;
 
-  /* The Phone app's LCD screen. */
+  /* The Phone app's LCD screen (the same in every theme, like a real gadget). */
   --lcd: #aac878;
   --lcd-text: #1e3214;
 
   --success-text: #008000;
   --error-text: #b00000;
   --xp-fill: #000080;
+  /* The level up banner on the shift report (the same in every theme). */
+  --level-up-banner: #ffec8c;
+  --level-up-text: #964600;
+
+  /* Teal, until a wallpaper rule below says otherwise. */
+  --wallpaper: #008080;
 }
 
-/* Wallpapers. */
+/* Window themes. */
 
-[data-wallpaper="teal"] {
-  --wallpaper: #008080;
+[data-theme="darkMode"] {
+  --face: #323236;
+  --bevel-light: #5f5f66;
+  --bevel-shadow: #141416;
+  --title-active: #28285a;
+  --title-active-fade: #505aaa;
+  --title-inactive: #3c3c40;
+  --title-inactive-fade: #5a5a60;
+  --title-text: #f0f0f0;
+  --text: #e1e1e6;
+  --text-muted: #a5a5af;
+  --text-disabled: #696970;
+  --field: #1e1e21;
+  --selection: #505aaa;
+  --selection-text: #ffffff;
+  --success-text: #6edc78;
+  --error-text: #ff7373;
+  --xp-fill: #5a78e6;
+}
+
+[data-theme="bubblegum"] {
+  --face: #ffcde4;
+  --bevel-light: #fff0f8;
+  --bevel-shadow: #cd78a5;
+  --title-active: #d73287;
+  --title-active-fade: #ff8cc8;
+  --title-inactive: #a06987;
+  --title-inactive-fade: #cda0b9;
+  --text-muted: #7d4664;
+  --text-disabled: #af7d96;
+  --field: #fff6fb;
+  --selection: #d73287;
+  --xp-fill: #d73287;
+}
+
+[data-theme="terminalGreen"] {
+  --face: #101c10;
+  --bevel-light: #326e32;
+  --bevel-shadow: #000800;
+  --title-active: #005000;
+  --title-active-fade: #009628;
+  --title-inactive: #193719;
+  --title-inactive-fade: #2d552d;
+  --title-text: #beffbe;
+  --text: #3cff6e;
+  --text-muted: #28b450;
+  --text-disabled: #1e642d;
+  --field: #000000;
+  --selection: #006e1e;
+  --selection-text: #d2ffd2;
+  --success-text: #aaffaa;
+  --error-text: #ff6464;
+  --xp-fill: #28c850;
+}
+
+/* Wallpapers. Gradients run top to bottom. */
+
+[data-wallpaper="midnightBlue"] {
+  --wallpaper: linear-gradient(#060a24, #1e2d6e);
+}
+
+[data-wallpaper="sunsetGradient"] {
+  --wallpaper: linear-gradient(#502882, #e65a6e, #ffaf5f);
+}
+
+/* Green lines on black, 16 across and 9 down. */
+[data-wallpaper="hackerGrid"] {
+  --wallpaper:
+    linear-gradient(#006e28 1px, transparent 1px) 0 0 / 6.25% 11.111%,
+    linear-gradient(90deg, #006e28 1px, transparent 1px) 0 0 / 6.25% 11.111%, #000e00;
+}
+
+[data-wallpaper="puddingPink"] {
+  --wallpaper: linear-gradient(#ffcde1, #ff96be);
 }

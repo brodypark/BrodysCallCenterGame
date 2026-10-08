@@ -7,8 +7,6 @@
 import { type CSSProperties, type ReactElement, useEffect, useState } from "react";
 import { GameInfo } from "@shared/gameInfo";
 import { useConnection } from "@client/state/connectionStore";
-import { useSaves } from "@client/state/savesStore";
-import type { AppId } from "@client/ui/appList";
 import { cx } from "@client/ui/classNames";
 import { useDesktop } from "@client/ui/DesktopContext";
 import { TitleBackground } from "@client/ui/TitleBackground";
@@ -69,7 +67,6 @@ export function TitleMenu(): ReactElement | null {
   const { store } = useDesktop();
   const shown = useTitleMenuShown(store);
   const online = useConnection().status === "connected";
-  const activeSlot = useSaves()?.activeSlot ?? null;
   // Counts "Coming soon!" clicks; a new value restarts the toast. Null when it's hidden.
   const [toastKey, setToastKey] = useState<number | null>(null);
 
@@ -87,13 +84,6 @@ export function TitleMenu(): ReactElement | null {
 
   function comingSoon(): void {
     setToastKey((count) => (count ?? 0) + 1);
-  }
-
-  function goTo(app?: AppId): void {
-    store.setTitleMenuOpen(false);
-    if (app) {
-      store.openApp(app);
-    }
   }
 
   const menu: readonly { label: string; onClick: () => void; needsServer?: boolean }[] = [

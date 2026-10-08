@@ -55,9 +55,11 @@ export const grandma: ScenarioInput = {
   startingSuspicion: 40,
   suspicionThreshold: 100,
   trustLevel: 30,
-  // TODO(step 9): pick an ElevenLabs voice: an older woman, a little slower than normal.
   voice: {
-    voiceId: "TODO",
+    voiceId: "0rEo3eAjssGDUCXHYENf", // Grandma Rachel - Wise Southern - ElevenLabs pre-made female voice
+    stability: 0.6,
+    similarityBoost: 0.8,
+    style: 0.0,
   },
   // Grey hair in a bun, round glasses, earrings and rosy cheeks.
   face: {

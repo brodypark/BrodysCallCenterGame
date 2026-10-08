@@ -60,11 +60,14 @@ function statusText(call: CallSnapshot, shift: ShiftStatus): string {
   return call.lastOutcome ? OutcomeText[call.lastOutcome].toUpperCase() : "WAITING FOR A CALL...";
 }
 
+import { VictimVoice } from "@client/ui/VictimVoice";
+
 export function Call(): ReactElement {
   const call = useCall();
   const shift = useShift().snapshot.status;
   const online = useConnection().status === "connected";
   const [draft, setDraft] = useState("");
+  const [muted, setMuted] = useState(false);
   const logRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -89,6 +92,12 @@ export function Call(): ReactElement {
   const messages = transcript?.messages ?? [];
   const callerName = call.caller ?? transcript?.callerName ?? "No caller";
   const canSend = canType && cleanMessage(draft) !== null;
+
+  const currentVictimLine = 
+    call.turn === "victimTurn" 
+      ? [...messages].reverse().find(m => m.speaker === "victim")
+      : null;
+  const lineId = (currentVictimLine && "lineId" in currentVictimLine) ? currentVictimLine.lineId : null;
 
   // Keep the newest message (or the line saying how the call ended) in view.
   const endReason = transcript?.endReason ?? null;
@@ -184,11 +193,12 @@ export function Call(): ReactElement {
         <button
           type="button"
           className={cx(styles.button, styles.round)}
-          aria-label="Mute the caller"
-          disabled
+          aria-label={muted ? "Unmute the caller" : "Mute the caller"}
+          onClick={() => setMuted(!muted)}
         >
-          🔊
+          {muted ? "🔇" : "🔊"}
         </button>
+        <VictimVoice lineId={lineId} muted={muted} />
         <button
           type="button"
           className={cx(styles.button, styles.round)}

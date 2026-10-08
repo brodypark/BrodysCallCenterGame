@@ -29,9 +29,12 @@ const PersonaSchema = z.strictObject({
   dislikes: textList,
 });
 
-// TODO(step 9): the ElevenLabs voice settings, once the voice docs have been read.
+// ElevenLabs voice settings for the streaming text-to-speech endpoint.
 const VoiceSchema = z.strictObject({
   voiceId: text,
+  stability: z.number().min(0).max(1),
+  similarityBoost: z.number().min(0).max(1),
+  style: z.number().min(0).max(1),
 });
 
 // How the cartoon face is drawn (step 11). Extras can be left out.

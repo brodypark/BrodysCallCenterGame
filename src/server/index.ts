@@ -69,6 +69,23 @@ const game = startGameServer(app.server, {
   log: app.log,
 });
 
+import { VoiceService } from "@server/services/VoiceService";
+const voiceService = new VoiceService();
+
+app.get<{ Params: { lineId: string } }>("/api/voice/victim/:lineId", async (request, reply) => {
+  const playerId = playerIdFromCookieHeader(app, request.headers.cookie);
+  if (!playerId) {
+    return reply.status(401).send({ error: "Unauthorized" });
+  }
+  
+  const currentLine = game.calls.getCurrentVictimLine(playerId);
+  if (!currentLine || currentLine.lineId.toString() !== request.params.lineId) {
+    return reply.status(403).send({ error: "Invalid or expired line" });
+  }
+
+  return voiceService.streamVictimLine(playerId, currentLine.text, currentLine.scenario, reply);
+});
+
 // Close the game (timers and open connections) before Fastify closes the HTTP server, or it
 // would wait on the connections forever. Clients reconnect when the server is back.
 app.addHook("preClose", (done) => {

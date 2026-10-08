@@ -235,6 +235,22 @@ export class CallService {
     return call?.status === "inCall" && call.turn === "playerTurn";
   }
 
+  getCurrentVictimLine(playerId: string): { lineId: number; text: string; scenario: Scenario } | null {
+    const call = this.calls.get(playerId);
+    if (!call || call.status !== "inCall" || call.turn !== "victimTurn" || !call.scenario) {
+      return null;
+    }
+    const lastMessage = call.transcript?.messages.at(-1);
+    if (!lastMessage || lastMessage.speaker !== "victim" || lastMessage.lineId !== call.lineId) {
+      return null;
+    }
+    return {
+      lineId: call.lineId,
+      text: lastMessage.text,
+      scenario: call.scenario,
+    };
+  }
+
   /** Forgets a player completely, cancelling anything pending. */
   removePlayer(playerId: string): void {
     const call = this.calls.get(playerId);

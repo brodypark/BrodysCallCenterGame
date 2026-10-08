@@ -11,13 +11,14 @@ interface AppErrorBoundaryProps {
 
 interface AppErrorBoundaryState {
   crashed: boolean;
+  error?: Error;
 }
 
 export class AppErrorBoundary extends Component<AppErrorBoundaryProps, AppErrorBoundaryState> {
   override state: AppErrorBoundaryState = { crashed: false };
 
-  static getDerivedStateFromError(): AppErrorBoundaryState {
-    return { crashed: true };
+  static getDerivedStateFromError(error: Error): AppErrorBoundaryState {
+    return { crashed: true, error };
   }
 
   override componentDidCatch(error: unknown): void {
@@ -26,7 +27,14 @@ export class AppErrorBoundary extends Component<AppErrorBoundaryProps, AppErrorB
 
   override render(): ReactNode {
     if (this.state.crashed) {
-      return <p className={styles.message}>This app crashed. Close it and open it again.</p>;
+      return (
+        <div className={styles.message}>
+          <p>This app crashed. Close it and open it again.</p>
+          <pre style={{ fontSize: '10px', color: 'red', marginTop: '10px', whiteSpace: 'pre-wrap' }}>
+            {this.state.error?.message || String(this.state.error)}
+          </pre>
+        </div>
+      );
     }
     return this.props.children;
   }

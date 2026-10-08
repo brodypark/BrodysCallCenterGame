@@ -12,5 +12,11 @@ export interface TitleMenuInputs {
 }
 
 export function isTitleMenuShown(inputs: TitleMenuInputs): boolean {
-  return inputs.activeSlot === null;
+  if (inputs.activeSlot === null) {
+    return true;
+  }
+  if (inputs.shiftStatus !== "offShift" || inputs.showingResult) {
+    return false;
+  }
+  return inputs.titleMenuOpen;
 }

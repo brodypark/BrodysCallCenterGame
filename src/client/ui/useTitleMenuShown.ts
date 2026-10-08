@@ -31,6 +31,9 @@ export function useTitleMenuReset(store: DesktopStore): void {
       }
       store.setTitleMenuOpen(true);
       store.setSavePickerOpen(false);
+    } else {
+      store.setTitleMenuOpen(false);
+      store.setSavePickerOpen(false);
     }
   }, [activeSlot, store]);
 }

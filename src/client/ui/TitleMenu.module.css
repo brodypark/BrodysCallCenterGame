@@ -233,23 +233,7 @@
     0 1.4cqh 2.4cqh rgb(0 0 0 / 40%);
 }
 
-/* A soft green pulse around Clock In. */
-.clockIn:not(:disabled)::after {
-  content: "";
-  position: absolute;
-  inset: -0.45cqh;
-  border-radius: inherit;
-  box-shadow: 0 0 3.5cqh rgb(160 255 110 / 80%);
-  opacity: 0;
-  pointer-events: none;
-  animation: glow 2.4s ease-in-out 1.2s infinite;
-}
 
-@keyframes glow {
-  50% {
-    opacity: 1;
-  }
-}
 
 .clockIn:active:not(:disabled) {
   box-shadow:
@@ -378,7 +362,6 @@
   .signWrap,
   .bulb,
   .button,
-  .clockIn:not(:disabled)::after,
   .terms,
   .badge,
   .toast {

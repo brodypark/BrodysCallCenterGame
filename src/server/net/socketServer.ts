@@ -61,6 +61,8 @@ export interface GameServerOptions {
 export interface GameServer {
   /** Clears every player's timers and closes all connections, e.g. on shutdown. */
   close: () => void;
+  /** The CallService, exposed for HTTP routes (e.g. voice streaming). */
+  calls: CallService;
 }
 
 /** Parses one client event's payload and hands it to `handle` if it's valid. */
@@ -299,6 +301,7 @@ export function startGameServer(httpServer: HttpServer, options: GameServerOptio
   });
 
   return {
+    calls,
     close: () => {
       // Shifts still going are cut short and saved, like a player leaving.
       for (const playerId of saves.activePlayers()) {

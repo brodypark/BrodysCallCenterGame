@@ -190,4 +190,14 @@ export const Config = {
     // victim says a scripted line anyway. Only a bug would ever need it.
     ReplyGuardSeconds: 15,
   },
+  Voice: {
+    // The switch: true falls back to subtitle-only timed turns for every victim.
+    // Also true if ELEVENLABS_API_KEY is not set.
+    TypedOnly: false,
+    // Daily character limit for all players (total). 0 means no limit (or disabled).
+    // The API is relatively cheap, but this prevents unexpected bills.
+    DailyCharacterCap: 100000,
+    // Max characters per player per day to prevent abuse from one IP/player.
+    PerPlayerDailyCharacterCap: 15000,
+  },
 } as const;

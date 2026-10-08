@@ -49,6 +49,19 @@ ringing counts as missed.
 - The shift ends once the call is over and every revealed code is redeemed or locked, or when
   either countdown runs out.
 
+## Save slots
+
+Each player has **3 save slots** (tied to their browser's player cookie until accounts exist).
+
+- Every new visit opens the **Save Slots** screen: **Continue** a save, start a **New Game** in
+  an empty slot, or **Delete** a slot (after "Are you sure?").
+- Refreshing or dropping out and coming back within **30 s** skips the screen: same slot, same
+  shift, same call.
+- Away longer, an unfinished shift ends as a **failed shift** (earnings lost, XP kept) and is
+  saved, so leaving can't dodge a FIRED. Next visit, continue the slot from the picker.
+- **Switch save** in the Start menu goes back to the screen, only between shifts.
+- A save that can't be read shows as damaged: it can be deleted but is never overwritten.
+
 ## Call flow
 
 1. **Idle:** the player is on the desktop.
@@ -401,7 +414,7 @@ decides every reveal and makes every code.
 - **No platform text filter:** the AI is told the content rules, and player text is only shown
   back to that player.
 - **Identity and saving:** an anonymous player id in a signed cookie (accounts later), one active
-  tab per player, and stats saved in SQLite.
+  tab per player, and three save slots per player in SQLite (see "Save slots").
 - **Cost guards:** per-player rate limits and daily caps on AI and voice, plus a Config switch to
   scripted replies and typed-only voice.
 

@@ -15,6 +15,20 @@ export const ServerConfig = {
   // over HTTP instead (step 10).
   MaxSocketMessageBytes: 16 * 1024,
 
+  Database: {
+    // The SQLite file with everyone's saves, relative to the server's own folder (src/server
+    // in development, dist/server when built), so both use the project's gitignored data/
+    // folder wherever the server is started from.
+    Path: "../../data/scamgpt.sqlite",
+    // Database calls block the whole server while they wait, so the waits are kept short.
+    // SQLite waits up to BusyTimeoutMs for a lock; a call still busy after that is tried
+    // again up to MaxRetries times, pausing RetryBaseMs, then twice that. Worst case:
+    // 3 x 250 + 50 + 100 = 900 ms.
+    BusyTimeoutMs: 250,
+    MaxRetries: 2,
+    RetryBaseMs: 50,
+  },
+
   PlayerCookie: {
     Name: "scamgpt_player",
     // A year. Every visit starts it again.

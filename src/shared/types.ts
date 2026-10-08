@@ -1,3 +1,5 @@
+import type { PlayerStats } from "@shared/stats";
+
 // Types the server sends to the client. Anything the player shouldn't see (prompts, codes
 // before they're read out, scenario internals) is never part of these.
 
@@ -111,13 +113,24 @@ export interface ShiftResult {
   xpEarned: number;
 }
 
-/** The player's stats. Kept in memory for now; saved from step 6. */
-export interface PlayerStats {
-  // Banked money. Doesn't include the current shift's earnings.
-  money: number;
-  xp: number;
-  callsCompleted: number;
-  successfulCalls: number;
-  shiftsPassed: number;
-  shiftsFailed: number;
+export type { PlayerStats } from "@shared/stats";
+
+// empty: nothing saved. ready: can be continued. damaged: the save couldn't be read, so it
+// can only be deleted (it's never overwritten).
+export type SaveSlotState = "empty" | "ready" | "damaged";
+
+export interface SaveSlotSummary {
+  // 1 to Config.Saves.SlotCount.
+  slot: number;
+  state: SaveSlotState;
+  // What the slot's save holds, for the picker. null unless it's ready.
+  stats: PlayerStats | null;
+  // When it was last saved (milliseconds since 1970). null when empty.
+  updatedAt: number | null;
+}
+
+/** The player's save slots, and the one this session is playing (null: pick one). */
+export interface SavesSnapshot {
+  slots: SaveSlotSummary[];
+  activeSlot: number | null;
 }

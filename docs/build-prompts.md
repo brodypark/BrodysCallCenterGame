@@ -255,29 +255,33 @@ Propose a short plan first and wait for my OK. Then tell me exactly how to test 
 including how to shorten the shift for testing.
 ```
 
-## Step 6 — Saving stats (SQLite)
+## Step 6 — Saving with save slots (SQLite)
 
 ```text
-Build step 6: DataService saves player stats in SQLite with better-sqlite3. Ask before
-adding it, and port the stats shape from the Roblox Types and DataService.
+Build step 6: save slots. Read docs/design.md ("Save slots") and port the stats shape from
+the Roblox Types and DataService. Ask before adding better-sqlite3.
 
 Requirements:
-- The database file lives in data/ (gitignored), with its path in src/server/config.ts.
-- A schema version and a simple migration step, so later fields (XP, owned upgrades,
-  tutorialSeen) never wipe saves.
-- Stats are keyed by the player id from the cookie. Load on connect with defaults for new
-  players; validate saved stats with Zod on load.
-- Save after anything that changes stats (banking, calls, shift results). Wrap database
-  calls in try/catch with a busy timeout and retries, and never let a failed load lead to
-  defaults overwriting real data. Tell me how you handle that.
-- Close the database cleanly on shutdown.
+- Each player (cookie id) has Config.Saves.SlotCount save slots in SQLite (data/, gitignored),
+  with a schema version and migrations, so new fields never wipe saves. Saved stats are
+  validated with Zod on load, with defaults for fields older saves don't have.
+- Every new visit shows a Save Slots screen: Continue a save, New Game in an empty slot, or
+  Delete a slot (with a confirmation). Nothing starts until a save is picked.
+- Refreshing within the reconnect grace period skips the screen and resumes the session.
+  After the grace period, an unfinished shift ends as failed (earnings lost, XP kept) and is
+  saved; the same happens on server shutdown.
+- "Switch save" in the Start menu returns to the screen, off shift only.
+- Every stats change is written to the active slot. Database calls are wrapped in try/catch
+  with a short busy timeout and retries, and a save that can't be read is never overwritten
+  (it shows as damaged and can only be deleted). Close the database cleanly on shutdown.
 - Tests use an in-memory database.
 
-Done when: my bank and stats survive a server restart and a page refresh, and a private
-window gets its own fresh stats.
+Done when: I can make, continue, switch and delete saves, my progress survives a server
+restart, refreshing mid-shift picks up where I left off, and leaving mid-shift for longer
+records a failed shift.
 
 Propose a short plan first and wait for my OK. Then tell me exactly how to test it,
-including how to reset my stats.
+including how to reset my saves.
 ```
 
 ## Step 7 — XP, levels, shop, tutorial

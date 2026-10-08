@@ -22,7 +22,10 @@ import { isAllowedOrigin } from "@server/net/origin";
 import type { ScenarioRegistry } from "@server/scenarios/ScenarioRegistry";
 import { CallService } from "@server/services/CallService";
 import { PlayerService } from "@server/services/PlayerService";
+import type { DataService } from "@server/services/DataService";
 import { RedeemService } from "@server/services/RedeemService";
+import { endPlayerSession } from "@server/services/playerExit";
+import { SaveService } from "@server/services/SaveService";
 import { ShiftService } from "@server/services/ShiftService";
 import { StatsService } from "@server/services/StatsService";
 
@@ -39,6 +42,7 @@ type GameSocket = Socket<
 
 export interface GameServerOptions {
   scenarios: ScenarioRegistry;
+  data: DataService;
   // The player id in a request's Cookie header, if it's there and correctly signed.
   readPlayerId: (cookieHeader: string | undefined) => string | undefined;
   // Whether the test words (!reveal, !sus, !calm) work. Never in production.
@@ -129,17 +133,25 @@ export function startGameServer(httpServer: HttpServer, options: GameServerOptio
       socket.disconnect(true);
     },
     onPlayerGone: (playerId) => {
-      shifts.removePlayer(playerId);
-      calls.removePlayer(playerId);
-      redeem.clearCards(playerId);
-      stats.removePlayer(playerId);
-      log.info({ playerId }, "Player didn't come back; cleared their game");
+      try {
+        endPlayerSession(exitServices, playerId);
+        log.info({ playerId }, "Player didn't come back; saved and cleared their session");
+      } catch (error) {
+        log.error({ err: error, playerId }, "Couldn't end the player's session cleanly");
+      }
     },
   });
   const toPlayer = (playerId: string): GameSocket | undefined => players.activeSocket(playerId);
 
   const stats = new StatsService({
     send: (playerId, snapshot) => toPlayer(playerId)?.emit("stats:snapshot", snapshot),
+    save: (playerId, snapshot) => {
+      try {
+        saves.save(playerId, snapshot);
+      } catch (error) {
+        log.error({ err: error, playerId }, "Couldn't save the player's stats");
+      }
+    },
   });
   const redeem = new RedeemService({
     onRedeemed: (playerId, card) => shifts.cardRedeemed(playerId, card),
@@ -151,14 +163,23 @@ export function startGameServer(httpServer: HttpServer, options: GameServerOptio
     allowTestWords: options.allowTestWords,
     send: (playerId, snapshot) => toPlayer(playerId)?.emit("call:snapshot", snapshot),
   });
-  const shifts = new ShiftService({
+  const shifts: ShiftService = new ShiftService({
     calls,
     cards: redeem,
     stats,
     lengthSeconds: options.shiftSecondsOverride,
+    canClockIn: (playerId) => saves.activeSlot(playerId) !== null,
     send: (playerId, snapshot) => toPlayer(playerId)?.emit("shift:snapshot", snapshot),
     sendResult: (playerId, result) => toPlayer(playerId)?.emit("shift:ended", result),
   });
+  const saves: SaveService = new SaveService({
+    data: options.data,
+    stats,
+    isBusy: (playerId) => shifts.isOnShift(playerId),
+    onLeave: (playerId) => shifts.resultSeen(playerId),
+    send: (playerId, snapshot) => toPlayer(playerId)?.emit("saves:snapshot", snapshot),
+  });
+  const exitServices = { shifts, calls, cards: redeem, stats, saves };
   calls.setListener({
     callEnded: (playerId, reason) => shifts.callEnded(playerId, reason),
     turnChanged: (playerId) => shifts.turnChanged(playerId),
@@ -187,11 +208,23 @@ export function startGameServer(httpServer: HttpServer, options: GameServerOptio
     }
     socket.emit("shift:snapshot", shifts.snapshot(playerId));
     socket.emit("stats:snapshot", stats.get(playerId));
+    // With no save picked (a new visit), the client shows the slot picker. Reading the
+    // slots touches the database, so a failure is logged rather than crashing the server.
+    try {
+      socket.emit("saves:snapshot", saves.snapshot(playerId));
+    } catch (error) {
+      log.error({ err: error, playerId }, "Couldn't read the player's save slots");
+    }
     const report = shifts.unseenResult(playerId);
     if (report) {
       socket.emit("shift:ended", report);
     }
 
+    listen(socket, "saves:continue", log, ({ slot }) => saves.continueSlot(playerId, slot));
+    listen(socket, "saves:new", log, ({ slot }) => saves.newGame(playerId, slot));
+    listen(socket, "saves:delete", log, ({ slot }) => saves.deleteSlot(playerId, slot));
+    listen(socket, "saves:leave", log, () => saves.leave(playerId));
+    // Nothing starts until a save is picked (ShiftService checks).
     listen(socket, "shift:clockIn", log, () => shifts.clockIn(playerId));
     listen(socket, "shift:resultSeen", log, () => shifts.resultSeen(playerId));
     listen(socket, "call:answer", log, () => calls.answer(playerId));
@@ -211,7 +244,16 @@ export function startGameServer(httpServer: HttpServer, options: GameServerOptio
 
   return {
     close: () => {
+      // Shifts still going are cut short and saved, like a player leaving.
+      for (const playerId of saves.activePlayers()) {
+        try {
+          shifts.abandon(playerId);
+        } catch (error) {
+          log.error({ err: error, playerId }, "Couldn't save a shift on shutdown");
+        }
+      }
       shifts.removeAll();
+      saves.removeAll();
       calls.removeAll();
       redeem.removeAll();
       stats.removeAll();

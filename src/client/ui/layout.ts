@@ -14,7 +14,8 @@ export const DesktopLayout = {
   // Gap around a window's content, as a fraction of the desktop's width.
   ContentPadding: 0.006,
   StartMenuWidth: 0.18,
-  StartMenuHeight: 0.3,
+  // Tall enough for every app plus Switch save.
+  StartMenuHeight: 0.34,
   Icon: {
     Width: 0.065,
     Height: 0.13,

@@ -11,6 +11,7 @@ import { DesktopContext, type DesktopContextValue } from "@client/ui/DesktopCont
 import { DesktopIcons } from "@client/ui/DesktopIcons";
 import { createDesktopStore } from "@client/ui/desktopStore";
 import { DesktopIconGrid, DesktopLayout, layoutVars } from "@client/ui/layout";
+import { SavePicker } from "@client/ui/SavePicker";
 import { SessionOverlay } from "@client/ui/SessionOverlay";
 import { ShiftResults } from "@client/ui/ShiftResults";
 import { StartMenu } from "@client/ui/StartMenu";
@@ -54,6 +55,7 @@ export function Desktop(): ReactElement {
             <Taskbar />
             <StartMenu />
             <ShiftResults />
+            <SavePicker />
           </div>
           <SessionOverlay />
         </div>

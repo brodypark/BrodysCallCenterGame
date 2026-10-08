@@ -52,6 +52,8 @@ export interface ShiftServiceOptions {
   sendResult: (playerId: string, result: ShiftResult) => void;
   // Overrides Config.Shift.LengthSeconds (development only, for testing).
   lengthSeconds?: number;
+  // Whether the player may start a shift at all (they've picked a save).
+  canClockIn: (playerId: string) => boolean;
 }
 
 interface PlayerShift {
@@ -116,10 +118,10 @@ export class ShiftService {
     return (this.shifts.get(playerId)?.status ?? "offShift") !== "offShift";
   }
 
-  /** Starts a shift. Only while off shift. */
+  /** Starts a shift. Only while off shift, and once a save is picked. */
   clockIn(playerId: string): void {
     const existing = this.shifts.get(playerId);
-    if (existing && existing.status !== "offShift") {
+    if ((existing && existing.status !== "offShift") || !this.options.canClockIn(playerId)) {
       return;
     }
     const shift = newShift();
@@ -173,6 +175,15 @@ export class ShiftService {
     const shift = this.shifts.get(playerId);
     if (shift) {
       this.checkOvertime(playerId, shift);
+    }
+  }
+
+  /** The player left for good mid-shift: the shift ends as if time ran out, so its results
+   * (a fail if under quota, XP kept) are saved. Leaving can't dodge a FIRED. */
+  abandon(playerId: string): void {
+    const shift = this.shifts.get(playerId);
+    if (shift && shift.status !== "offShift") {
+      this.endShift(playerId, shift);
     }
   }
 

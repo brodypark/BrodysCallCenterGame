@@ -21,6 +21,7 @@
   "dependencies": {
     "@fastify/cookie": "^11.1.2",
     "@fastify/static": "^10.1.5",
+    "better-sqlite3": "^13.0.3",
     "fastify": "^5.12.5",
     "react": "^19.3.0",
     "react-dom": "^19.3.0",
@@ -30,6 +31,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
+    "@types/better-sqlite3": "^9.6.0",
     "@types/node": "^24.19.1",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",

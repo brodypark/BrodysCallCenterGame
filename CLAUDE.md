@@ -30,7 +30,7 @@ Phone (incoming call), Call (subtitles, push-to-talk, typed box, turn indicator,
 ## Structure
 - src/server → Node server, all game logic
   - index.ts: Fastify + Socket.IO; serves the built client in production
-  - services/: CallService, AIService, VoiceService, RedeemService, ShiftService, ShopService, TutorialService, DataService, PlayerService (identity, one connection per player), RateLimiter
+  - services/: CallService, AIService, VoiceService, RedeemService, ShiftService, ShopService, TutorialService, DataService, SaveService (3 save slots per player), PlayerService (identity, one connection per player), RateLimiter
   - prompts/: VictimPrompt, DebugReplies
   - scenarios/: one module per scam, plus ScenarioRegistry
 - src/client → React app
@@ -113,4 +113,4 @@ Prompts are in docs/build-prompts.md.
 0 Tooling and scaffold · 1 Desktop shell · 2 Connection, player id, fake call flow · 3 Turn state machine · 4 Suspicion, redeem, payout · 5 Shifts · 6 Saving (SQLite) · 7 XP, levels, shop, tutorial · 8 AIService with Gemini (Grandma) · 9 Victim voice (ElevenLabs) · 10 Player voice · 11 Faces, sounds and effects · 12 All 6 scenarios and side problems · 13 Game modes (Career and Sandbox) · 14 Custom callers · 15 Facecam · 16 Player voice changer · 17 Deploy with cost guards
 
 ## Status
-Done through Step 4: scaffold, desktop shell, player id and connection, fake call flow, turn state machine, suspicion, code reveal, Redeem app and payout. Next: Step 5.
+Done through Step 6: scaffold, desktop shell, player id and connection, fake call flow, turn state machine, suspicion, code reveal, Redeem app, payout, shifts (overtime, report), and saving with 3 save slots in SQLite (picker on every new visit; refresh within 30 s resumes; leaving mid-shift for longer counts as a failed shift). Next: Step 7.

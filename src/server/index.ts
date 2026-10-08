@@ -12,6 +12,7 @@ import { playerIdFromCookieHeader, registerSessionRoute } from "@server/net/play
 import { startGameServer } from "@server/net/socketServer";
 import { AllScenarios } from "@server/scenarios/all";
 import { createScenarioRegistry } from "@server/scenarios/ScenarioRegistry";
+import { DataService } from "@server/services/DataService";
 
 const env = loadServerEnv();
 const app = Fastify({ logger: true });
@@ -30,8 +31,11 @@ if (env.isProduction) {
 
 // Checks every scenario now, so a broken one stops the server with a clear message.
 const scenarios = createScenarioRegistry(AllScenarios);
+// Opens (or creates) the saves database now, so a problem stops the server at startup.
+const data = new DataService(path.resolve(import.meta.dirname, ServerConfig.Database.Path));
 const game = startGameServer(app.server, {
   scenarios,
+  data,
   readPlayerId: (cookieHeader) => playerIdFromCookieHeader(app, cookieHeader),
   allowTestWords: !env.isProduction,
   shiftSecondsOverride: env.shiftSecondsOverride,
@@ -42,6 +46,7 @@ const game = startGameServer(app.server, {
 // would wait on the connections forever. Clients reconnect when the server is back.
 app.addHook("preClose", (done) => {
   game.close();
+  data.close();
   done();
 });
 

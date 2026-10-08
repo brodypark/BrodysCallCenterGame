@@ -5,6 +5,7 @@ import type { ReactElement } from "react";
 import { formatClock } from "@shared/time";
 import { clockIn } from "@client/net/shiftActions";
 import { useConnection } from "@client/state/connectionStore";
+import { useSaves } from "@client/state/savesStore";
 import { useShift } from "@client/state/shiftStore";
 import { cx } from "@client/ui/classNames";
 import controls from "@client/ui/controls.module.css";
@@ -17,8 +18,9 @@ const Area = DesktopLayout.ClockInArea;
 export function ClockIn(): ReactElement | null {
   const { snapshot, result } = useShift();
   const online = useConnection().status === "connected";
-  // Hidden on shift, and while the last shift's results are up.
-  if (snapshot.status !== "offShift" || result) {
+  const saves = useSaves();
+  // Hidden on shift, while the last shift's results are up, and until a save is picked.
+  if (snapshot.status !== "offShift" || result || saves?.activeSlot == null) {
     return null;
   }
 

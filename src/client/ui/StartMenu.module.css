@@ -60,3 +60,17 @@
   background: var(--selection);
   color: var(--selection-text);
 }
+
+.separated {
+  border-top: var(--bevel-width) groove var(--bevel-light);
+}
+
+.item:disabled {
+  color: var(--text-disabled);
+  cursor: default;
+}
+
+.item:disabled:hover {
+  background: transparent;
+  color: var(--text-disabled);
+}

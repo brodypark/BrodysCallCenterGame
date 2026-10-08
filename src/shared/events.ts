@@ -8,12 +8,24 @@ import { MaxUnitsPerCharacter } from "@shared/messageText";
 import type {
   CallSnapshot,
   PlayerStats,
+  SavesSnapshot,
   RedeemResult,
   ShiftResult,
   ShiftSnapshot,
 } from "@shared/types";
 
+const slotSchema = z.strictObject({
+  slot: z.number().int().min(1).max(Config.Saves.SlotCount),
+});
+
 const clientEventSchemas = {
+  // Play the save in a slot.
+  "saves:continue": slotSchema,
+  // Start a fresh save in an empty slot and play it.
+  "saves:new": slotSchema,
+  "saves:delete": slotSchema,
+  // Stop playing the current save and go back to the slot picker (off shift only).
+  "saves:leave": z.undefined(),
   "shift:clockIn": z.undefined(),
   // The player closed the shift report.
   "shift:resultSeen": z.undefined(),
@@ -98,6 +110,7 @@ export interface ServerToClientEvents {
   "shift:snapshot": (snapshot: ShiftSnapshot) => void;
   "shift:ended": (result: ShiftResult) => void;
   "stats:snapshot": (stats: PlayerStats) => void;
+  "saves:snapshot": (saves: SavesSnapshot) => void;
   // The player opened the game in another tab, which took over. This tab is disconnected
   // and doesn't reconnect by itself.
   "session:replaced": () => void;

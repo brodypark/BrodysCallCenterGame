@@ -5,6 +5,11 @@
 // Sections are added as the build steps need them.
 
 export const Config = {
+  Saves: {
+    // Save slots each player can keep.
+    SlotCount: 3,
+  },
+
   Shift: {
     LengthSeconds: 480,
     // Money a shift must earn to pass. The same every shift.

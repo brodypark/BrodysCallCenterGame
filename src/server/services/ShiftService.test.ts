@@ -18,6 +18,9 @@ function advanceSeconds(seconds: number): void {
 }
 
 /** The services wired together the way the socket server does it. */
+// Whether the test player has picked a save, so they may clock in.
+let canPlay = true;
+
 function createGame(): {
   shifts: ShiftService;
   calls: CallService;
@@ -29,7 +32,7 @@ function createGame(): {
 } {
   const results: ShiftResult[] = [];
   let lastShift: ShiftSnapshot | null = null;
-  const stats = new StatsService({ send: () => undefined });
+  const stats = new StatsService({ send: () => undefined, save: () => undefined });
   const redeem = new RedeemService({
     onRedeemed: (playerId, card) => shifts.cardRedeemed(playerId, card),
     onLocked: (playerId) => shifts.cardLocked(playerId),
@@ -46,6 +49,7 @@ function createGame(): {
     cards: redeem,
     stats,
     lengthSeconds: ShiftSeconds,
+    canClockIn: () => canPlay,
     send: (_playerId, snapshot) => {
       lastShift = snapshot;
     },
@@ -107,6 +111,7 @@ function clockInAndRing(game: Game): void {
 
 beforeEach(() => {
   vi.useFakeTimers();
+  canPlay = true;
 });
 
 afterEach(() => {
@@ -130,6 +135,17 @@ describe("ShiftService: clocking in", () => {
     const endsAt = game.shift().endsAt;
     game.shifts.clockIn(PlayerId);
     expect(game.shift().endsAt).toBe(endsAt);
+  });
+});
+
+describe("ShiftService: needing a save", () => {
+  it("won't start a shift until a save is picked", () => {
+    const game = createGame();
+    canPlay = false;
+    game.shifts.clockIn(PlayerId);
+    expect(game.shift().status).toBe("offShift");
+    advanceSeconds(Config.Call.FirstCallDelaySeconds * 4);
+    expect(game.call().status).toBe("idle");
   });
 });
 
@@ -327,6 +343,26 @@ describe("ShiftService: overtime", () => {
     game.calls.hangUp(PlayerId);
     expect(game.results).toHaveLength(1);
     expect(game.shift().status).toBe("offShift");
+  });
+});
+
+describe("ShiftService: leaving mid-shift", () => {
+  it("ends an abandoned shift as if time ran out, keeping the XP", () => {
+    const game = createGame();
+    clockInAndRing(game);
+    answer(game);
+    const code = getCode(game);
+    game.redeem.redeem(PlayerId, code);
+    game.shifts.abandon(PlayerId);
+    expect(game.results[0]).toMatchObject({ passed: false, earnings: 50, xpEarned: 10 });
+    expect(game.stats.get(PlayerId)).toMatchObject({ money: 0, xp: 10, shiftsFailed: 1 });
+    expect(game.shift().status).toBe("offShift");
+  });
+
+  it("does nothing for a player who isn't on shift", () => {
+    const game = createGame();
+    game.shifts.abandon(PlayerId);
+    expect(game.results).toHaveLength(0);
   });
 });
 

@@ -1,5 +1,5 @@
 // The report card when a shift ends: calls taken, earnings against the quota, XP, and a
-// PROMOTED or FIRED stamp. Closing it goes back to the time card. (Step 11 adds the stamp
+// PROMOTED or FIRED stamp. Closing it goes back to the title menu. (Step 11 adds the stamp
 // slam and sounds.)
 
 import type { ReactElement } from "react";
@@ -52,7 +52,7 @@ export function ShiftResults(): ReactElement | null {
           {result.passed ? "PROMOTED" : "FIRED"}
         </p>
         <button type="button" className={controls.button} onClick={dismissShiftResult} autoFocus>
-          Back to the desk
+          Continue
         </button>
       </section>
     </div>

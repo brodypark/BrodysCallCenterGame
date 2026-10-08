@@ -25,6 +25,10 @@ const grid = createIconGrid(spec);
 const none = new Set<number>();
 
 describe("createIconGrid", () => {
+  it("reserves no cells when there's no reserved area", () => {
+    expect(createIconGrid({ ...spec, reservedArea: undefined }).reservedCells.size).toBe(0);
+  });
+
   it("fits as many cells as there's room for", () => {
     expect(grid.columns).toBe(6);
     expect(grid.rows).toBe(3);

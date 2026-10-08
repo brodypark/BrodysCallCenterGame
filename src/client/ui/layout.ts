@@ -3,7 +3,7 @@
 // each number lives only here. Colors and fonts are in themes/themes.css.
 
 import type { CSSProperties } from "react";
-import { createIconGrid, type IconGrid, type Rect } from "@client/ui/desktopGrid";
+import { createIconGrid, type IconGrid } from "@client/ui/desktopGrid";
 
 export const DesktopLayout = {
   // Width / height. The desktop keeps this shape and letterboxes inside its container.
@@ -28,8 +28,6 @@ export const DesktopLayout = {
     // How long a dropped icon takes to slide into its grid cell.
     SnapSeconds: 0.12,
   },
-  // Where the Clock In panel goes between shifts (step 5). Icons never sit under it.
-  ClockInArea: { x: 0.39, y: 0.32, width: 0.22, height: 0.26 } satisfies Rect,
 } as const;
 
 /** The grid every desktop icon snaps to. */
@@ -38,7 +36,6 @@ export const DesktopIconGrid: IconGrid = createIconGrid({
   gap: DesktopLayout.Icon.Gap,
   taskbarHeight: DesktopLayout.TaskbarHeight,
   aspectRatio: DesktopLayout.AspectRatio,
-  reservedArea: DesktopLayout.ClockInArea,
 });
 
 /** The sizes above as CSS variables, set on the desktop's screen element. */

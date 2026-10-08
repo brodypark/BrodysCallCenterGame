@@ -1,0 +1,379 @@
+/* The title menu's own colors, the same in every desktop theme. */
+.menu {
+  --sign: #2a2f9e;
+  --sign-deep: #161a63;
+  --sign-trim: #ffe7a3;
+  --outline: #2a1206;
+  --title-top: #fff27a;
+  --title-bottom: #ff9d2e;
+  --ribbon: #e8434f;
+  --ribbon-deep: #a3202d;
+  --bulb: #fff6c8;
+  --bulb-glow: #ffd45e;
+  --cream: #fff3d6;
+  --cream-deep: #f0d39a;
+  --wood-text: #4a2a10;
+  --go: #7fe35b;
+  --go-deep: #3aa52c;
+  --go-edge: #1d4a12;
+  --text-shadow: rgb(20 8 40 / 70%);
+
+  position: absolute;
+  inset: 0;
+  z-index: var(--layer-title-menu);
+  overflow: hidden;
+  font-family: var(--font-title);
+  color: var(--cream);
+}
+
+/* Darker edges, to pull the eye to the middle. */
+.vignette {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at 50% 45%, transparent 45%, rgb(5 2 20 / 55%) 100%);
+  pointer-events: none;
+}
+
+.content {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding-top: 7cqh;
+}
+
+/* The title sign and its ribbon. */
+
+.signWrap {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 4.5cqh;
+  animation:
+    drop 0.9s cubic-bezier(0.34, 1.56, 0.64, 1) both,
+    bob 5s ease-in-out 0.9s infinite;
+}
+
+@keyframes drop {
+  from {
+    opacity: 0;
+    transform: translateY(-30cqh);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes bob {
+  50% {
+    transform: translateY(-0.7cqh);
+  }
+}
+
+.sign {
+  position: relative;
+  padding: 3.2cqh 5cqh 4.6cqh;
+  border: 0.55cqh solid var(--outline);
+  border-radius: 2.4cqh;
+  background: linear-gradient(var(--sign), var(--sign-deep));
+  box-shadow:
+    inset 0 0 0 0.6cqh var(--sign-trim),
+    inset 0 0 0 1cqh var(--outline),
+    0 1.2cqh 0 var(--outline),
+    0 2.4cqh 4cqh rgb(0 0 0 / 45%);
+}
+
+.bulb {
+  position: absolute;
+  width: 1.3cqh;
+  height: 1.3cqh;
+  border: 0.2cqh solid var(--outline);
+  border-radius: 50%;
+  background: var(--bulb);
+  box-shadow: 0 0 1.2cqh var(--bulb-glow);
+  transform: translate(-50%, -50%);
+  animation: chase 1.2s steps(1) infinite;
+}
+
+.bulbAlt {
+  animation-delay: -0.6s;
+}
+
+@keyframes chase {
+  50% {
+    background: #8a6a2a;
+    box-shadow: none;
+  }
+}
+
+.title {
+  margin: 0;
+  font-size: 9.5cqh;
+  font-weight: normal;
+  line-height: 1;
+  letter-spacing: 0.04em;
+}
+
+/* Outlined text: the outline copy sits under the fill (both positioned, painted in order). */
+.outlined {
+  position: relative;
+  display: inline-block;
+}
+
+.outline {
+  position: absolute;
+  inset: 0;
+  color: var(--outline);
+  -webkit-text-stroke: 0.4em var(--outline);
+}
+
+.fill {
+  position: relative;
+}
+
+/* The title's fill fades yellow to orange, over a dropped 3D edge. */
+.titleFill {
+  background: linear-gradient(var(--title-top) 35%, var(--title-bottom));
+  background-clip: text;
+  color: transparent;
+}
+
+.title .outline {
+  -webkit-text-stroke-width: 0.15em;
+  text-shadow: 0 0.09em 0 var(--outline);
+}
+
+.ribbon {
+  position: relative;
+  z-index: 1;
+  margin: -2.6cqh 0 0;
+  padding: 0.9cqh 6cqh 1.1cqh;
+  background: linear-gradient(var(--ribbon), var(--ribbon-deep));
+  clip-path: polygon(0 0, 100% 0, 96% 50%, 100% 100%, 0 100%, 4% 50%);
+  filter: drop-shadow(0 0.5cqh 0 var(--outline));
+  font-size: 3.6cqh;
+  letter-spacing: 0.2em;
+  line-height: 1;
+}
+
+.ribbonFill {
+  color: #ffffff;
+}
+
+.ribbon .outline {
+  -webkit-text-stroke-width: 0.22em;
+}
+
+/* Buttons: chunky, outlined, with a solid edge underneath that they press into. */
+
+.button {
+  position: relative;
+  border: 0.45cqh solid var(--outline);
+  border-radius: 1.6cqh;
+  font-family: inherit;
+  line-height: 1;
+  cursor: pointer;
+  transition:
+    transform 0.12s ease-out,
+    box-shadow 0.12s ease-out,
+    filter 0.12s ease-out;
+  /* Backwards only, so hover and press can move it once it's in. */
+  animation: rise 0.5s ease-out backwards;
+  animation-delay: calc(0.6s + var(--i, 0) * 0.06s);
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(3cqh);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.button:hover:not(:disabled),
+.button:focus-visible {
+  filter: brightness(1.08);
+  transform: translateY(-0.4cqh);
+}
+
+.button:focus-visible {
+  outline: 0.45cqh solid var(--title-top);
+  outline-offset: 0.45cqh;
+}
+
+.secondary:disabled {
+  filter: grayscale(1) brightness(0.8);
+  cursor: default;
+}
+
+.button:active:not(:disabled) {
+  transform: translateY(0.6cqh);
+}
+
+.clockIn {
+  padding: 1.6cqh 7cqh 1.8cqh;
+  background: linear-gradient(var(--go), var(--go-deep));
+  color: #ffffff;
+  font-size: 5cqh;
+  letter-spacing: 0.06em;
+  text-shadow:
+    0 0.35cqh 0 var(--go-edge),
+    0 0 0.2cqh var(--go-edge);
+  box-shadow:
+    inset 0 0.5cqh 0 rgb(255 255 255 / 45%),
+    0 0.9cqh 0 var(--go-edge),
+    0 1.4cqh 2.4cqh rgb(0 0 0 / 40%);
+}
+
+/* A soft green pulse around Clock In. */
+.clockIn:not(:disabled)::after {
+  content: "";
+  position: absolute;
+  inset: -0.45cqh;
+  border-radius: inherit;
+  box-shadow: 0 0 3.5cqh rgb(160 255 110 / 80%);
+  opacity: 0;
+  pointer-events: none;
+  animation: glow 2.4s ease-in-out 1.2s infinite;
+}
+
+@keyframes glow {
+  50% {
+    opacity: 1;
+  }
+}
+
+.clockIn:active:not(:disabled) {
+  box-shadow:
+    inset 0 0.5cqh 0 rgb(255 255 255 / 45%),
+    0 0.3cqh 0 var(--go-edge);
+}
+
+.clockIn:disabled {
+  filter: grayscale(1) brightness(0.8);
+  cursor: default;
+}
+
+.terms {
+  margin: 1.8cqh 0 3cqh;
+  font-size: 2.2cqh;
+  text-shadow: 0 0.3cqh 0 var(--text-shadow);
+  animation: rise 0.5s ease-out backwards;
+  animation-delay: calc(0.6s + var(--i, 0) * 0.06s);
+}
+
+.terms b {
+  font-weight: normal;
+  color: var(--title-top);
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(4, 18cqw);
+  gap: 1.4cqh 1.2cqw;
+}
+
+.secondary {
+  padding: 1.3cqh 1cqh 1.5cqh;
+  background: linear-gradient(var(--cream), var(--cream-deep));
+  color: var(--wood-text);
+  font-size: 2.4cqh;
+  box-shadow:
+    inset 0 0.4cqh 0 rgb(255 255 255 / 70%),
+    0 0.6cqh 0 var(--outline),
+    0 1cqh 1.8cqh rgb(0 0 0 / 35%);
+}
+
+.secondary:active {
+  box-shadow:
+    inset 0 0.4cqh 0 rgb(255 255 255 / 70%),
+    0 0.2cqh 0 var(--outline);
+}
+
+/* Corners. */
+
+.badge {
+  position: absolute;
+  top: 2cqh;
+  left: 2cqh;
+  margin: 0;
+  padding: 0.8cqh 1.6cqh;
+  border: 0.3cqh solid rgb(255 255 255 / 25%);
+  border-radius: 99cqh;
+  background: rgb(10 6 35 / 60%);
+  font-size: 2cqh;
+  animation: rise 0.5s ease-out 0.9s backwards;
+}
+
+.dot {
+  margin: 0 0.4em;
+  color: var(--title-top);
+}
+
+.corner {
+  position: absolute;
+  bottom: 1.6cqh;
+  margin: 0;
+  font-size: 1.9cqh;
+  opacity: 0.85;
+  text-shadow: 0 0.3cqh 0 var(--text-shadow);
+}
+
+.left {
+  left: 2cqh;
+}
+
+.right {
+  right: 2cqh;
+}
+
+.toastArea {
+  position: absolute;
+  bottom: 7cqh;
+  left: 50%;
+}
+
+.toast {
+  margin: 0;
+  white-space: nowrap;
+  padding: 1cqh 2.4cqh;
+  border: 0.35cqh solid var(--outline);
+  border-radius: 99cqh;
+  background: var(--cream);
+  color: var(--wood-text);
+  font-size: 2.2cqh;
+  transform: translateX(-50%);
+  animation: pop 0.25s ease-out both;
+}
+
+@keyframes pop {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 1.5cqh) scale(0.9);
+  }
+
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0) scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .signWrap,
+  .bulb,
+  .button,
+  .clockIn:not(:disabled)::after,
+  .terms,
+  .badge,
+  .toast {
+    animation: none;
+  }
+}

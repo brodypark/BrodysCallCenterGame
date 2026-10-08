@@ -65,7 +65,7 @@ describe("desktop store: windows", () => {
 });
 
 describe("desktop store: icons", () => {
-  it("puts every icon in its own cell, never under the Clock In panel", () => {
+  it("puts every icon in its own cell", () => {
     const cells = Object.values(newStore().getState().iconCells);
     expect(cells).toHaveLength(AppList.length);
     expect(new Set(cells).size).toBe(AppList.length);
@@ -126,5 +126,17 @@ describe("desktop store: start menu and listeners", () => {
     unsubscribe();
     store.openApp("Call");
     expect(listener).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("desktop store: title menu", () => {
+  it("starts open, and closing it also closes the start menu", () => {
+    const store = newStore();
+    expect(store.getState().titleMenuOpen).toBe(true);
+    store.toggleStartMenu();
+    store.setTitleMenuOpen(false);
+    expect(store.getState()).toMatchObject({ titleMenuOpen: false, startMenuOpen: false });
+    store.setTitleMenuOpen(true);
+    expect(store.getState().titleMenuOpen).toBe(true);
   });
 });

@@ -2,7 +2,7 @@
   "name": "scamgpt-browser",
   "version": "0.1.0",
   "private": true,
-  "description": "ScamGPT: a comedic scam call game in the browser.",
+  "description": "Trust Me Bro Tech Support (ScamGPT): a comedic scam call game in the browser.",
   "type": "module",
   "engines": {
     "node": ">=24"

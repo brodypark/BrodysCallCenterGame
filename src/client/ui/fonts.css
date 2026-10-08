@@ -1,0 +1,9 @@
+/* Fonts that ship with the game (public/fonts, credited in docs/credits.md). */
+
+@font-face {
+  font-family: "Lilita One";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("/fonts/LilitaOne-Latin.woff2") format("woff2");
+}

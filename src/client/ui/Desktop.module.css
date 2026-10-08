@@ -39,3 +39,9 @@
   position: absolute;
   inset: 0;
 }
+
+/* Groups the desk's layers (for inert) without adding a box, so they still stack with the
+   title menu and overlays. */
+.desk {
+  display: contents;
+}

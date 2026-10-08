@@ -1,0 +1,227 @@
+/* Colors for the title art, the same in every desktop theme. */
+.art {
+  --cloud: #8a78d0;
+  --far-building: #3a2b6f;
+  --near-building: #1b1238;
+  --tower: #241a4d;
+  --lit-window: #ffd27a;
+  --dark-window: #3c2f72;
+  --neon: #ff5fa2;
+  --beacon: #ff4b4b;
+  --bubble: #fff8e6;
+  --bubble-text: #3b2370;
+
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.star {
+  fill: #ffffff;
+  animation: twinkle ease-in-out infinite alternate;
+}
+
+@keyframes twinkle {
+  from {
+    opacity: 0.25;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+.shootingStar {
+  opacity: 0;
+  animation: shoot 11s linear 3s infinite;
+}
+
+/* Crosses the upper sky in under a second, then waits. */
+@keyframes shoot {
+  0% {
+    opacity: 0;
+    transform: translate(420px, 40px);
+  }
+
+  2% {
+    opacity: 1;
+  }
+
+  8% {
+    opacity: 0;
+    transform: translate(900px, 200px);
+  }
+
+  100% {
+    opacity: 0;
+    transform: translate(900px, 200px);
+  }
+}
+
+.cloud {
+  fill: var(--cloud);
+  opacity: 0.45;
+  animation: drift linear infinite;
+}
+
+@keyframes drift {
+  from {
+    transform: translateX(-300px);
+  }
+
+  to {
+    transform: translateX(1900px);
+  }
+}
+
+.far {
+  fill: var(--far-building);
+}
+
+.near {
+  fill: var(--near-building);
+}
+
+.window {
+  fill: var(--lit-window);
+  opacity: 0.85;
+}
+
+.flicker {
+  fill: var(--lit-window);
+  animation: flicker 4s steps(1) infinite;
+}
+
+@keyframes flicker {
+  0%,
+  70% {
+    opacity: 0.85;
+  }
+
+  72%,
+  76% {
+    opacity: 0.1;
+  }
+
+  74%,
+  100% {
+    opacity: 0.85;
+  }
+}
+
+.lampPost {
+  fill: #0d0820;
+}
+
+.lampBulb {
+  fill: #fff1b8;
+}
+
+.towerBody {
+  fill: var(--tower);
+}
+
+.towerWindow {
+  fill: var(--lit-window);
+}
+
+.towerWindowDark {
+  fill: var(--dark-window);
+}
+
+.beacon {
+  fill: var(--beacon);
+  animation: blink 1.6s steps(1) infinite;
+}
+
+@keyframes blink {
+  50% {
+    opacity: 0.15;
+  }
+}
+
+.neon {
+  filter: drop-shadow(0 0 6px var(--neon));
+  animation: neon 6s steps(1) infinite;
+}
+
+.neonBox {
+  fill: #1a0f33;
+  stroke: var(--neon);
+  stroke-width: 4;
+}
+
+.neonText {
+  fill: var(--neon);
+  font-family: var(--font-title);
+  font-size: 34px;
+  letter-spacing: 3px;
+}
+
+/* Mostly on, with a quick stutter now and then. */
+@keyframes neon {
+  0%,
+  88% {
+    opacity: 1;
+  }
+
+  90%,
+  94% {
+    opacity: 0.35;
+  }
+
+  92%,
+  96% {
+    opacity: 1;
+  }
+}
+
+.bubble {
+  fill: var(--bubble);
+  opacity: 0;
+  animation: rise 9s ease-out infinite;
+}
+
+.bubble text {
+  fill: var(--bubble-text);
+  font-family: var(--font-title);
+  font-size: 22px;
+}
+
+@keyframes rise {
+  0% {
+    opacity: 0;
+    transform: translateY(0);
+  }
+
+  15% {
+    opacity: 0.9;
+  }
+
+  60% {
+    opacity: 0;
+    transform: translateY(-150px);
+  }
+
+  100% {
+    opacity: 0;
+    transform: translateY(-150px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .star,
+  .shootingStar,
+  .cloud,
+  .flicker,
+  .beacon,
+  .neon,
+  .bubble {
+    animation: none;
+  }
+
+  .cloud {
+    transform: translateX(var(--rest-x));
+  }
+}

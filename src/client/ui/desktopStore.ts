@@ -1,5 +1,5 @@
 // The state of one desktop: which windows are open, their order front to back, where
-// windows and icons have been moved, and whether the start menu is open. Plain TypeScript,
+// windows and icons have been moved, and whether the start menu and title menu are open. Plain TypeScript,
 // so it's unit tested without React; components read it with useDesktopState().
 // One store per desktop, so a future office can show several. Positions last until the
 // page reloads.
@@ -23,6 +23,9 @@ export interface DesktopState {
   // The grid cell each app's icon is in.
   readonly iconCells: Readonly<Partial<Record<AppId, number>>>;
   readonly startMenuOpen: boolean;
+  // Whether the title menu covers the desktop between shifts (the player can go to the desk
+  // to use the Shop and Stats, and come back from the taskbar).
+  readonly titleMenuOpen: boolean;
 }
 
 export interface DesktopStore {
@@ -39,6 +42,7 @@ export interface DesktopStore {
   moveIcon: (id: AppId, position: Point) => void;
   setStartMenuOpen: (open: boolean) => void;
   toggleStartMenu: () => void;
+  setTitleMenuOpen: (open: boolean) => void;
 }
 
 function without(list: readonly AppId[], id: AppId): AppId[] {
@@ -64,6 +68,7 @@ export function createDesktopStore(
       ),
     ),
     startMenuOpen: false,
+    titleMenuOpen: true,
   };
 
   function update(changes: Partial<DesktopState>): void {
@@ -156,6 +161,12 @@ export function createDesktopStore(
 
     toggleStartMenu: () => {
       update({ startMenuOpen: !state.startMenuOpen });
+    },
+
+    setTitleMenuOpen: (open) => {
+      if (state.titleMenuOpen !== open) {
+        update({ titleMenuOpen: open, startMenuOpen: false });
+      }
     },
   };
 }

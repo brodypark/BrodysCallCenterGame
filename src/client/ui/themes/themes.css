@@ -10,6 +10,8 @@
   --font-ui: Tahoma, Verdana, "Segoe UI", sans-serif;
   --font-mono: "Courier New", ui-monospace, monospace;
   --font-display: ui-rounded, "Arial Rounded MT Bold", "Trebuchet MS", sans-serif;
+  /* The title menu's chunky display font (ui/fonts.css). */
+  --font-title: "Lilita One", var(--font-display);
 
   /* Labels under desktop icons, with a shadow so they show on any wallpaper. */
   --icon-text: #ffffff;
@@ -18,9 +20,9 @@
   /* Desktop layers, back to front. */
   --layer-icons: 1;
   --layer-windows: 2;
-  --layer-clock-in: 3;
-  --layer-taskbar: 4;
-  --layer-start-menu: 5;
+  --layer-taskbar: 3;
+  --layer-start-menu: 4;
+  --layer-title-menu: 5;
   --layer-overlay: 6;
 
   /* Classic Grey: grey faces, and the 3D bevels on windows, buttons and the taskbar. */

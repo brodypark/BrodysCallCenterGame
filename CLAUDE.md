@@ -1,4 +1,4 @@
-# ScamGPT (Browser) — Scam Call Comedy Game
+# Trust Me Bro Tech Support (ScamGPT, browser) — Scam Call Comedy Game
 
 ## Concept
 Single-player browser game. The player sits at a fake retro desktop, takes calls from AI-driven victims (e.g. a grandma with gift card trouble), talks them (voice or typing) into revealing a fake card code, then redeems it in an app for money. Each scam type is a scenario. Full design: docs/design.md
@@ -37,10 +37,10 @@ Phone (incoming call), Call (subtitles, push-to-talk, typed box, turn indicator,
   - net/: the socket connection and typed event helpers
   - state/: client stores holding what the server last said
   - voice/: VictimVoice (plays lines, measures loudness), PlayerVoice (push-to-talk recording)
-  - ui/: Desktop, Window, DesktopIcons, Taskbar, StartMenu, ClockIn, ShiftResults, Face, Effects, Sounds, themes
+  - ui/: Desktop, Window, DesktopIcons, Taskbar, StartMenu, TitleMenu (home screen with Clock In, between shifts), ShiftResults, Face, Effects, Sounds, themes
   - ui/apps/: Phone, Call, Redeem, Wobblebucks, Stats, Shop, Tutorial
 - src/shared → used by both: Config, events (Socket.IO event types + Zod schemas), types, Levels, Upgrades
-- public/sounds → sound files we have the rights to (credited in docs/credits.md)
+- public/sounds, public/fonts → files we have the rights to (credited in docs/credits.md)
 - docs/ → design notes. data/ → SQLite file (gitignored)
 
 ## Architecture Rules

@@ -1,6 +1,7 @@
 // Covers the desktop when the game has been opened in another tab, which took over. The
 // player can take it back here.
 
+import { GameInfo } from "@shared/gameInfo";
 import type { ReactElement } from "react";
 import { playHere } from "@client/net/session";
 import { useConnection } from "@client/state/connectionStore";
@@ -24,7 +25,9 @@ export function SessionOverlay(): ReactElement | null {
         <p id="session-overlay-title" className={styles.title}>
           Opened in another tab
         </p>
-        <p className={styles.text}>ScamGPT is running in another tab, so this one paused.</p>
+        <p className={styles.text}>
+          {GameInfo.Name} is running in another tab, so this one paused.
+        </p>
         {/* The rest of the desktop is inert, so focus goes here. */}
         <button type="button" className={controls.button} onClick={playHere} autoFocus>
           Play here

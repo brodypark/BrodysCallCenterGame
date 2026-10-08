@@ -23,8 +23,8 @@ export interface IconGridSpec {
   taskbarHeight: number;
   // Desktop width / height, so a step across counts the same as a step down.
   aspectRatio: number;
-  // Cells that overlap this area are never used (the Clock In panel sits there).
-  reservedArea: Rect;
+  // Cells that overlap this area are never used. None when left out.
+  reservedArea?: Rect;
 }
 
 export interface IconGrid {
@@ -71,7 +71,7 @@ export function createIconGrid(spec: IconGridSpec): IconGrid {
   const reservedCells = new Set<number>();
   for (let cell = 0; cell < cellCount; cell++) {
     const corner = positionOfCell(spec, rows, cell);
-    if (overlaps({ ...corner, ...spec.icon }, spec.reservedArea)) {
+    if (spec.reservedArea && overlaps({ ...corner, ...spec.icon }, spec.reservedArea)) {
       reservedCells.add(cell);
     }
   }

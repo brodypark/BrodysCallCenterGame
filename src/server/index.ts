@@ -22,7 +22,7 @@ import { ApiRoutes } from "@shared/api";
 import { Config } from "@shared/Config";
 
 const env = loadServerEnv();
-const app = Fastify({ logger: true });
+const app = Fastify({ logger: true, trustProxy: env.isProduction });
 
 if (env.usingDevCookieSecret) {
   app.log.warn("COOKIE_SECRET isn't set, so the development fallback is signing cookies.");
@@ -63,7 +63,13 @@ if (Config.AI.UseScriptedReplies) {
   );
   replies = new AIService({
     models: keys.map((key) => createGeminiModel(key)),
-    allowRequest: (playerId) => limiter.tryTake(playerId),
+    allowRequest: (playerId) => {
+      const allowed = limiter.tryTake(playerId);
+      if (allowed) {
+        app.log.info({ type: "usage", service: "gemini", playerId, amount: 1 }, "Gemini requested");
+      }
+      return allowed;
+    },
     log: app.log,
   });
   app.log.info(
@@ -98,13 +104,42 @@ if (Config.Voice.TypedOnly) {
   });
   voice = new VoiceService({
     apiKey: env.elevenLabsApiKey,
-    allowLine: (playerId, characters) => limiter.tryTake(playerId, characters),
+    allowLine: (playerId, characters) => {
+      const allowed = limiter.tryTake(playerId, characters);
+      if (allowed) {
+        app.log.info({ type: "usage", service: "elevenlabs", playerId, amount: characters }, "Voice generated");
+      }
+      return allowed;
+    },
     log: app.log,
   });
   app.log.info({ model: ServerConfig.ElevenLabs.Model }, "Victims speak with ElevenLabs.");
 }
 
 const voiceParamsSchema = z.strictObject({ lineId: z.coerce.number().int().positive() });
+
+// Lightweight health check for hosting providers (Render, Fly.io).
+app.get("/health", async (request, reply) => {
+  return reply.status(200).send({ status: "ok" });
+});
+
+import { createReadStream } from "node:fs";
+
+// Admin-only backup route to download the SQLite database.
+app.get("/backup", async (request, reply) => {
+  if (!env.adminSecret) {
+    return reply.status(404).send({ error: "Backups not configured." });
+  }
+  const auth = request.headers.authorization;
+  if (auth !== `Bearer ${env.adminSecret}`) {
+    return reply.status(401).send({ error: "Unauthorized" });
+  }
+  const dbPath = path.resolve(import.meta.dirname, ServerConfig.Database.Path);
+  return reply
+    .header("Content-Type", "application/vnd.sqlite3")
+    .header("Content-Disposition", 'attachment; filename="scamgpt.sqlite"')
+    .send(createReadStream(dbPath));
+});
 
 // The audio for the victim line the player's call is on right now, streamed as it's made
 // (the client waits for all of it before playing; the fast model makes it in well under the

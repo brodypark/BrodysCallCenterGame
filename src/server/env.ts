@@ -20,6 +20,8 @@ export interface ServerEnv {
   // it only helps with limits if it's from a different project.
   geminiBackupApiKey: string | undefined;
   elevenLabsApiKey: string | undefined;
+  // Optional: Used to authorize downloading the database backup.
+  adminSecret: string | undefined;
 }
 
 const MaxPort = 65535;
@@ -74,6 +76,7 @@ export function readServerEnv(env: NodeJS.ProcessEnv): ServerEnv {
     geminiApiKey: optionalString(env.GEMINI_API_KEY),
     geminiBackupApiKey: optionalString(env.GEMINI_API_KEY_BACKUP),
     elevenLabsApiKey: optionalString(env.ELEVENLABS_API_KEY),
+    adminSecret: optionalString(env.ADMIN_SECRET),
   };
 }
 

@@ -245,9 +245,21 @@ export function startGameServer(httpServer: HttpServer, options: GameServerOptio
     next();
   });
 
+  const connectionsPerIp = new Map<string, number>();
+  const MAX_CONNECTIONS_PER_IP = 10;
+
   io.on("connection", (socket) => {
+    const ip = socket.handshake.address;
+    const currentConnections = connectionsPerIp.get(ip) ?? 0;
+    if (currentConnections >= MAX_CONNECTIONS_PER_IP) {
+      log.warn({ ip }, "Too many connections from IP, disconnecting");
+      socket.disconnect(true);
+      return;
+    }
+    connectionsPerIp.set(ip, currentConnections + 1);
+
     const { playerId } = socket.data;
-    log.info({ playerId, socketId: socket.id }, "Player connected");
+    log.info({ playerId, socketId: socket.id, ip }, "Player connected");
     players.connect(playerId, socket);
     // Does nothing if they're coming back within the grace period: their call carries on.
     calls.addPlayer(playerId);
@@ -330,8 +342,17 @@ export function startGameServer(httpServer: HttpServer, options: GameServerOptio
     });
 
     socket.on("disconnect", (reason) => {
-      log.info({ playerId, socketId: socket.id, reason }, "Player disconnected");
+      log.info({ playerId, socketId: socket.id, reason, ip }, "Player disconnected");
       players.disconnect(playerId, socket);
+      
+      const count = connectionsPerIp.get(ip);
+      if (count !== undefined) {
+        if (count <= 1) {
+          connectionsPerIp.delete(ip);
+        } else {
+          connectionsPerIp.set(ip, count - 1);
+        }
+      }
     });
   });
 

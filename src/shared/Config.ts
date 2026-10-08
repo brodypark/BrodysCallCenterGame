@@ -27,8 +27,8 @@ export const Config = {
   },
 
   Shift: {
-    // 60 while testing; the design is 480 (8 minutes, docs/design.md).
-    LengthSeconds: 60,
+    // The design is 360 (6 minutes).
+    LengthSeconds: 360,
     // Money a shift must earn to pass. The same every shift.
     Quota: 150,
     // In overtime, once the last call is over, seconds left to redeem any code still open

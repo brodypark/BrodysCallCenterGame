@@ -82,7 +82,7 @@ const game = startGameServer(app.server, {
   scenarios,
   data,
   readPlayerId: (cookieHeader) => playerIdFromCookieHeader(app, cookieHeader),
-  allowTestWords: !env.isProduction,
+  allowTestWords: false,
   shiftSecondsOverride: env.shiftSecondsOverride,
   replies,
   log: app.log,

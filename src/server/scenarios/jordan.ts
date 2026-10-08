@@ -59,7 +59,7 @@ export const jordan: ScenarioInput = {
   suspicionThreshold: 90,
   trustLevel: 20,
   voice: {
-    voiceId: "IKne3meq5aSn9XLyUdCD", // Charlie: young, energetic Australian male (ElevenLabs default)
+    voiceId: "mo6YkGEkwidQ1iOHbncG", // Jordan custom ElevenLabs voice
     stability: 0.35,
     similarityBoost: 0.75,
     style: 0.45,

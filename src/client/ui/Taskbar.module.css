@@ -79,3 +79,8 @@
 .disconnected {
   background: var(--error-text);
 }
+
+.overtime {
+  font-weight: bold;
+  color: var(--error-text);
+}

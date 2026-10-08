@@ -50,7 +50,9 @@ function advanceSeconds(seconds: number): void {
 function setup(options: SetupOptions = {}): TestCall {
   const sent: CallSnapshot[] = [];
   const earnings: number[] = [];
-  const redeem = new RedeemService({ onRedeemed: (_playerId, value) => earnings.push(value) });
+  const redeem = new RedeemService({
+    onRedeemed: (_playerId, card) => earnings.push(card.value),
+  });
   const service = new CallService({
     scenarios: options.registry ?? scenarios,
     codes: redeem,
@@ -87,6 +89,7 @@ function setup(options: SetupOptions = {}): TestCall {
 function ringing(options: SetupOptions = {}): TestCall {
   const test = setup(options);
   test.service.addPlayer(PlayerId);
+  test.service.startCalls(PlayerId);
   advanceSeconds(Config.Call.FirstCallDelaySeconds);
   return test;
 }
@@ -111,7 +114,10 @@ describe("CallService: ringing", () => {
   it("rings a call a short while after the player arrives", () => {
     const { service, latest } = setup();
     service.addPlayer(PlayerId);
+    advanceSeconds(Config.Call.FirstCallDelaySeconds * 10);
+    // Nothing rings until the shift turns calls on.
     expect(latest().status).toBe("idle");
+    service.startCalls(PlayerId);
 
     vi.advanceTimersByTime(secondsToMs(Config.Call.FirstCallDelaySeconds) - 1);
     expect(latest().status).toBe("idle");
@@ -140,6 +146,7 @@ describe("CallService: answering, declining and hanging up", () => {
   it("answers only while ringing, opening with the victim saying a greeting", () => {
     const { service, latest } = setup();
     service.addPlayer(PlayerId);
+    service.startCalls(PlayerId);
     service.answer(PlayerId);
     expect(latest().status).toBe("idle");
 
@@ -542,6 +549,46 @@ describe("CallService: messages", () => {
   });
 });
 
+describe("CallService: starting and stopping calls", () => {
+  it("counts a ringing call as missed and rings no more once calls stop", () => {
+    const { service, latest } = ringing();
+    service.stopCalls(PlayerId);
+    expect(latest()).toMatchObject({ status: "idle", lastOutcome: "missed" });
+    advanceSeconds(Config.Call.SecondsBetweenCalls * 10);
+    expect(latest().status).toBe("idle");
+  });
+
+  it("lets a call in progress finish after calls stop, then rings no more", () => {
+    const { service, latest } = playerTurn();
+    service.stopCalls(PlayerId);
+    expect(latest().status).toBe("inCall");
+    service.hangUp(PlayerId);
+    advanceSeconds(Config.Call.SecondsBetweenCalls * 10);
+    expect(latest().status).toBe("idle");
+  });
+
+  it("cuts a call off with forceHangUp, and only a call in progress", () => {
+    const { service, latest } = ringing();
+    expect(service.forceHangUp(PlayerId, "shiftEnded")).toBe(false);
+    service.answer(PlayerId);
+    expect(service.forceHangUp(PlayerId, "shiftEnded")).toBe(true);
+    expect(latest()).toMatchObject({ status: "idle", lastOutcome: "shiftEnded" });
+  });
+
+  it("tells the listener about calls ending and turns changing", () => {
+    const { service, finishLine } = ringing();
+    const events: string[] = [];
+    service.setListener({
+      callEnded: (_playerId, reason) => events.push(`ended:${reason}`),
+      turnChanged: () => events.push("turn"),
+    });
+    service.answer(PlayerId);
+    finishLine();
+    service.hangUp(PlayerId);
+    expect(events).toEqual(["turn", "turn", "ended:playerHungUp"]);
+  });
+});
+
 describe("CallService: cleanup", () => {
   it("cancels every timer when a player is removed, even mid-reply", () => {
     const { service } = playerTurn();
@@ -554,8 +601,10 @@ describe("CallService: cleanup", () => {
 
   it("cancels everyone's timers on removeAll", () => {
     const { service } = setup();
-    service.addPlayer("a");
-    service.addPlayer("b");
+    for (const playerId of ["a", "b"]) {
+      service.addPlayer(playerId);
+      service.startCalls(playerId);
+    }
     expect(vi.getTimerCount()).toBe(2);
     service.removeAll();
     expect(vi.getTimerCount()).toBe(0);

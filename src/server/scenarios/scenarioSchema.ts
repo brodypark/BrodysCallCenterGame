@@ -4,6 +4,7 @@
 
 import { z } from "zod";
 import { Config } from "@shared/Config";
+import type { Difficulty } from "@shared/types";
 
 const text = z.string().trim().min(1);
 const textList = z.array(text).min(1);
@@ -12,7 +13,7 @@ const line = text.max(Config.AI.MaxReplyLength);
 const suspicion = z.number().int().min(Config.Suspicion.Min).max(Config.Suspicion.Max);
 const hexColor = z.string().regex(/^#[0-9a-f]{6}$/i, "must be a color like #ffdcbe");
 
-export const DifficultySchema = z.enum(["Easy", "Medium", "Hard"]);
+export const DifficultySchema = z.enum(["Easy", "Medium", "Hard"]) satisfies z.ZodType<Difficulty>;
 
 const PersonaSchema = z.strictObject({
   name: text,
@@ -140,4 +141,3 @@ export const ScenarioSchema = z
 export type Scenario = z.output<typeof ScenarioSchema>;
 export type ScenarioInput = z.input<typeof ScenarioSchema>;
 export type AIReply = z.output<typeof AIReplySchema>;
-export type Difficulty = z.output<typeof DifficultySchema>;

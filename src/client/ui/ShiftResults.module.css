@@ -1,0 +1,69 @@
+.shade {
+  position: absolute;
+  inset: 0;
+  z-index: var(--layer-overlay);
+  display: grid;
+  place-items: center;
+  background: rgb(0 0 0 / 50%);
+}
+
+.card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.4cqh;
+  width: 36cqw;
+  padding: 2cqh;
+}
+
+.title {
+  margin: 0;
+  font-size: 2.8cqh;
+  font-weight: bold;
+  letter-spacing: 0.1em;
+}
+
+.rows {
+  display: flex;
+  flex-direction: column;
+  gap: 0.8cqh;
+  align-self: stretch;
+  margin: 0;
+  padding: 1.2cqh 1.6cqh;
+  background: var(--field);
+}
+
+.row {
+  display: flex;
+  justify-content: space-between;
+}
+
+.row dt {
+  color: var(--text-muted);
+}
+
+.row dd {
+  margin: 0;
+  font-weight: bold;
+}
+
+/* A rubber stamp across the card. */
+.stamp {
+  margin: 0;
+  padding: 0.4cqh 2cqh;
+  border: 0.6cqh solid currentcolor;
+  border-radius: 1cqh;
+  font-size: 5cqh;
+  font-weight: bold;
+  letter-spacing: 0.1em;
+  transform: rotate(-8deg);
+}
+
+.promoted {
+  color: var(--success-text);
+}
+
+.fired {
+  color: var(--error-text);
+}

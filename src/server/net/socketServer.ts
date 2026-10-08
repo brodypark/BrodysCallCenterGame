@@ -24,6 +24,7 @@ import { CallService } from "@server/services/CallService";
 import { PlayerService } from "@server/services/PlayerService";
 import { RedeemService } from "@server/services/RedeemService";
 import { ShiftService } from "@server/services/ShiftService";
+import { StatsService } from "@server/services/StatsService";
 
 interface SocketData {
   playerId: string;
@@ -42,6 +43,8 @@ export interface GameServerOptions {
   readPlayerId: (cookieHeader: string | undefined) => string | undefined;
   // Whether the test words (!reveal, !sus, !calm) work. Never in production.
   allowTestWords: boolean;
+  // A shorter shift for testing (development only).
+  shiftSecondsOverride: number | undefined;
   log: FastifyBaseLogger;
 }
 
@@ -126,27 +129,39 @@ export function startGameServer(httpServer: HttpServer, options: GameServerOptio
       socket.disconnect(true);
     },
     onPlayerGone: (playerId) => {
-      calls.removePlayer(playerId);
-      redeem.removePlayer(playerId);
       shifts.removePlayer(playerId);
+      calls.removePlayer(playerId);
+      redeem.clearCards(playerId);
+      stats.removePlayer(playerId);
       log.info({ playerId }, "Player didn't come back; cleared their game");
     },
   });
-  const shifts = new ShiftService({
-    send: (playerId, snapshot) => {
-      players.activeSocket(playerId)?.emit("shift:snapshot", snapshot);
-    },
+  const toPlayer = (playerId: string): GameSocket | undefined => players.activeSocket(playerId);
+
+  const stats = new StatsService({
+    send: (playerId, snapshot) => toPlayer(playerId)?.emit("stats:snapshot", snapshot),
   });
   const redeem = new RedeemService({
-    onRedeemed: (playerId, value) => shifts.addEarnings(playerId, value),
+    onRedeemed: (playerId, card) => shifts.cardRedeemed(playerId, card),
+    onLocked: (playerId) => shifts.cardLocked(playerId),
   });
   const calls = new CallService({
     scenarios: options.scenarios,
     codes: redeem,
     allowTestWords: options.allowTestWords,
-    send: (playerId, snapshot) => {
-      players.activeSocket(playerId)?.emit("call:snapshot", snapshot);
-    },
+    send: (playerId, snapshot) => toPlayer(playerId)?.emit("call:snapshot", snapshot),
+  });
+  const shifts = new ShiftService({
+    calls,
+    cards: redeem,
+    stats,
+    lengthSeconds: options.shiftSecondsOverride,
+    send: (playerId, snapshot) => toPlayer(playerId)?.emit("shift:snapshot", snapshot),
+    sendResult: (playerId, result) => toPlayer(playerId)?.emit("shift:ended", result),
+  });
+  calls.setListener({
+    callEnded: (playerId, reason) => shifts.callEnded(playerId, reason),
+    turnChanged: (playerId) => shifts.turnChanged(playerId),
   });
 
   // No valid player cookie, no connection. The client gets a new cookie and tries again.
@@ -171,7 +186,14 @@ export function startGameServer(httpServer: HttpServer, options: GameServerOptio
       socket.emit("call:snapshot", snapshot);
     }
     socket.emit("shift:snapshot", shifts.snapshot(playerId));
+    socket.emit("stats:snapshot", stats.get(playerId));
+    const report = shifts.unseenResult(playerId);
+    if (report) {
+      socket.emit("shift:ended", report);
+    }
 
+    listen(socket, "shift:clockIn", log, () => shifts.clockIn(playerId));
+    listen(socket, "shift:resultSeen", log, () => shifts.resultSeen(playerId));
     listen(socket, "call:answer", log, () => calls.answer(playerId));
     listen(socket, "call:decline", log, () => calls.decline(playerId));
     listen(socket, "call:hangUp", log, () => calls.hangUp(playerId));
@@ -189,9 +211,10 @@ export function startGameServer(httpServer: HttpServer, options: GameServerOptio
 
   return {
     close: () => {
+      shifts.removeAll();
       calls.removeAll();
       redeem.removeAll();
-      shifts.removeAll();
+      stats.removeAll();
       players.shutdown();
       // Drops every connection; clients reconnect when the server is back.
       io.engine.close();

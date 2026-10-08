@@ -23,8 +23,11 @@ export interface VictimMessage {
 
 export type ChatMessage = PlayerMessage | VictimMessage;
 
-// victimHungUp: suspicion reached the scenario's threshold.
-export type CallEndReason = "playerHungUp" | "victimHungUp" | "declined" | "missed";
+// victimHungUp: suspicion reached the scenario's threshold. shiftEnded: cut off in
+// overtime for staying quiet too long.
+export type CallEndReason = "playerHungUp" | "victimHungUp" | "shiftEnded" | "declined" | "missed";
+
+export type Difficulty = "Easy" | "Medium" | "Hard";
 
 // How the victim feels about the player, shown over the trust bar.
 export type TrustWord = "trusting" | "unsure" | "wary" | "angry";
@@ -76,8 +79,45 @@ export interface RedeemResult {
   message: string;
 }
 
-/** What the client is told about the current shift. Step 5 adds the timer and quota. */
+// offShift: waiting to clock in. onShift: the timer is running and calls ring. overtime:
+// the timer ran out, but the last call (and any code to redeem) is being finished.
+export type ShiftStatus = "offShift" | "onShift" | "overtime";
+
+/** What the client is told about the current shift. Times are on the server's clock
+ * (milliseconds since 1970), with serverNow so the client can allow for its own clock. */
 export interface ShiftSnapshot {
-  // Money earned this session.
+  status: ShiftStatus;
+  // Money earned this shift. Only banked if the shift is passed.
   earnings: number;
+  quota: number;
+  // How long a shift lasts, in seconds.
+  lengthSeconds: number;
+  // When the shift timer runs out. null off shift.
+  endsAt: number | null;
+  // In overtime: when the shift (or the call) is cut off if nothing happens first. null
+  // while waiting on the victim, and outside overtime.
+  overtimeEndsAt: number | null;
+  serverNow: number;
+}
+
+/** The report card when a shift ends. */
+export interface ShiftResult {
+  passed: boolean;
+  earnings: number;
+  quota: number;
+  callsTaken: number;
+  successfulCalls: number;
+  // Kept even when the shift is failed.
+  xpEarned: number;
+}
+
+/** The player's stats. Kept in memory for now; saved from step 6. */
+export interface PlayerStats {
+  // Banked money. Doesn't include the current shift's earnings.
+  money: number;
+  xp: number;
+  callsCompleted: number;
+  successfulCalls: number;
+  shiftsPassed: number;
+  shiftsFailed: number;
 }

@@ -2,10 +2,11 @@
 // ended. It opens by itself when the phone rings.
 
 import type { ReactElement } from "react";
-import type { CallEndReason, CallSnapshot } from "@shared/types";
+import type { CallEndReason, CallSnapshot, ShiftStatus } from "@shared/types";
 import { answerCall, declineCall } from "@client/net/callActions";
 import { useCall } from "@client/state/callStore";
 import { useConnection } from "@client/state/connectionStore";
+import { useShift } from "@client/state/shiftStore";
 import { cx } from "@client/ui/classNames";
 import controls from "@client/ui/controls.module.css";
 import styles from "@client/ui/apps/Phone.module.css";
@@ -14,6 +15,7 @@ import styles from "@client/ui/apps/Phone.module.css";
 const OutcomeText: Record<CallEndReason, string> = {
   playerHungUp: "CALL ENDED",
   victimHungUp: "THEY HUNG UP",
+  shiftEnded: "SHIFT OVER",
   declined: "CALL DECLINED",
   missed: "MISSED CALL",
 };
@@ -24,8 +26,18 @@ interface ScreenText {
   hint: string;
 }
 
-function screenText(call: CallSnapshot): ScreenText {
+function screenText(call: CallSnapshot, shift: ShiftStatus): ScreenText {
   const caller = `CALLER: ${call.caller ?? "---"}`;
+  if (call.status === "idle" && shift === "offShift") {
+    return { status: "OFF DUTY", caller, hint: "Clock in to start taking calls." };
+  }
+  if (call.status === "idle" && shift === "overtime") {
+    return {
+      status: "OVERTIME",
+      caller: "NO MORE CALLS",
+      hint: "Cash in any codes you still have!",
+    };
+  }
   switch (call.status) {
     case "ringing":
       return { status: "INCOMING CALL", caller, hint: "Answer before it stops ringing!" };
@@ -42,7 +54,8 @@ export function Phone(): ReactElement {
   const call = useCall();
   const online = useConnection().status === "connected";
   const ringing = call.status === "ringing";
-  const text = screenText(call);
+  const shift = useShift().snapshot.status;
+  const text = screenText(call, shift);
 
   return (
     <div className={styles.phone}>

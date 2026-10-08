@@ -1,17 +1,18 @@
 // The bar along the bottom of the desktop: the start button, a button for each open window,
 // and a tray with the shift timer, earnings vs. quota, the server connection and a clock.
-// The shift timer and quota are placeholders until shifts arrive (step 5).
 
-import { type ReactElement, useEffect, useState } from "react";
+import type { ReactElement } from "react";
+import { formatClock } from "@shared/time";
 import { Apps } from "@client/ui/appList";
 import { cx } from "@client/ui/classNames";
 import controls from "@client/ui/controls.module.css";
 import { useDesktop, useDesktopState } from "@client/ui/DesktopContext";
+import { useNow } from "@client/ui/useNow";
 import { type ConnectionStatus, useConnection } from "@client/state/connectionStore";
-import { useShift } from "@client/state/shiftStore";
+import { secondsUntil, type ShiftState, useShift } from "@client/state/shiftStore";
 import styles from "@client/ui/Taskbar.module.css";
 
-// How often the clock is redrawn.
+// How often the clock and the shift countdown are redrawn.
 const ClockRefreshMs = 1000;
 // e.g. "9:05 PM", in the player's own language and time zone.
 const clockFormat = new Intl.DateTimeFormat(undefined, { hour: "numeric", minute: "2-digit" });
@@ -19,7 +20,7 @@ const clockFormat = new Intl.DateTimeFormat(undefined, { hour: "numeric", minute
 export function Taskbar(): ReactElement {
   const { store } = useDesktop();
   const { openOrder, stackOrder, startMenuOpen } = useDesktopState();
-  const { earnings } = useShift();
+  const shift = useShift();
   const focused = stackOrder.at(-1);
 
   return (
@@ -63,8 +64,10 @@ export function Taskbar(): ReactElement {
       </div>
 
       <div className={cx(controls.sunken, styles.tray)}>
-        <span>Off duty</span>
-        <span>${earnings} / $—</span>
+        <ShiftTimer shift={shift} />
+        <span>
+          ${shift.snapshot.earnings} / ${shift.snapshot.quota}
+        </span>
         <ConnectionDot />
         <TrayClock />
       </div>
@@ -88,12 +91,24 @@ function ConnectionDot(): ReactElement {
 }
 
 function TrayClock(): ReactElement {
-  const [now, setNow] = useState(() => new Date());
-
-  useEffect(() => {
-    const timer = setInterval(() => setNow(new Date()), ClockRefreshMs);
-    return () => clearInterval(timer);
-  }, []);
-
+  const now = useNow(ClockRefreshMs);
   return <span>{clockFormat.format(now)}</span>;
+}
+
+/** Time left on the shift, OVERTIME (in red) once it runs out, or Off duty. */
+function ShiftTimer({ shift }: { shift: ShiftState }): ReactElement {
+  // Re-renders every second so the countdown moves.
+  useNow(ClockRefreshMs);
+  const { status, endsAt, overtimeEndsAt } = shift.snapshot;
+  if (status === "overtime") {
+    const left =
+      overtimeEndsAt === null
+        ? ""
+        : ` ${formatClock(secondsUntil(overtimeEndsAt, shift.clockOffsetMs))}`;
+    return <span className={styles.overtime}>OVERTIME{left}</span>;
+  }
+  if (status === "onShift" && endsAt !== null) {
+    return <span>Shift {formatClock(secondsUntil(endsAt, shift.clockOffsetMs))}</span>;
+  }
+  return <span>Off duty</span>;
 }

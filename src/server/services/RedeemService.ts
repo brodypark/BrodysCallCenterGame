@@ -9,12 +9,14 @@
 
 import { normalizeCode } from "@shared/cardCode";
 import { Config } from "@shared/Config";
-import type { RedeemResult } from "@shared/types";
+import type { Difficulty, RedeemResult } from "@shared/types";
 import { generateCode } from "@server/services/codes";
 
 interface IssuedCard {
   // Paid out when it's redeemed.
   value: number;
+  // The scenario's difficulty, which sets the XP for cashing it in.
+  difficulty: Difficulty;
   // Wrong tries left before the card locks. 0 means locked.
   triesLeft: number;
   // Cashed in. Each card pays out once.
@@ -30,8 +32,10 @@ interface PlayerCards {
 }
 
 export interface RedeemServiceOptions {
-  // A card was cashed in for `value`.
-  onRedeemed: (playerId: string, value: number) => void;
+  // A card was cashed in.
+  onRedeemed: (playerId: string, card: { value: number; difficulty: Difficulty }) => void;
+  // A card ran out of tries and can't be cashed in any more.
+  onLocked?: (playerId: string) => void;
 }
 
 const NotACode = "That doesn't look like a card code.";
@@ -81,9 +85,11 @@ function isBetterTie(candidate: IssuedCard, current: IssuedCard): boolean {
 export class RedeemService {
   private readonly players = new Map<string, PlayerCards>();
   private readonly onRedeemed: RedeemServiceOptions["onRedeemed"];
+  private readonly onLocked: NonNullable<RedeemServiceOptions["onLocked"]>;
 
   constructor(options: RedeemServiceOptions) {
     this.onRedeemed = options.onRedeemed;
+    this.onLocked = options.onLocked ?? (() => undefined);
   }
 
   /** A new code with `prefix` that's different from every card the player has. Not
@@ -95,7 +101,11 @@ export class RedeemService {
 
   /** Makes `code` redeemable by the player for `value`. Call it when the victim reads it
    * out. Registering the same code again does nothing. */
-  registerGiftCard(playerId: string, code: string, value: number): void {
+  registerGiftCard(
+    playerId: string,
+    code: string,
+    card: { value: number; difficulty: Difficulty },
+  ): void {
     const player = this.getOrCreate(playerId);
     const key = normalizeCode(code);
     if (player.cards.has(key)) {
@@ -103,7 +113,8 @@ export class RedeemService {
     }
     player.issued += 1;
     player.cards.set(key, {
-      value,
+      value: card.value,
+      difficulty: card.difficulty,
       triesLeft: Config.Redeem.TriesPerCode,
       redeemed: false,
       order: player.issued,
@@ -139,13 +150,14 @@ export class RedeemService {
     if (!exact) {
       card.triesLeft -= 1;
       if (card.triesLeft === 0) {
+        this.onLocked(playerId);
         return result(false, 0, 0, "Wrong code. That card is now locked!");
       }
       const tries = card.triesLeft === 1 ? "try" : "tries";
       return result(false, 0, card.triesLeft, `Wrong code. ${card.triesLeft} ${tries} left.`);
     }
     card.redeemed = true;
-    this.onRedeemed(playerId, card.value);
+    this.onRedeemed(playerId, { value: card.value, difficulty: card.difficulty });
     return result(true, card.value, card.triesLeft, `Ka-ching! +$${card.value}`);
   }
 
@@ -156,7 +168,7 @@ export class RedeemService {
   }
 
   /** Forgets a player's cards, e.g. when their shift ends or they leave. */
-  removePlayer(playerId: string): void {
+  clearCards(playerId: string): void {
     this.players.delete(playerId);
   }
 

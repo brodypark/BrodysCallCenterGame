@@ -7,10 +7,17 @@
 import { type FormEvent, type ReactElement, useEffect, useRef, useState } from "react";
 import { Config } from "@shared/Config";
 import { cleanMessage } from "@shared/messageText";
-import type { CallEndReason, CallSnapshot, ChatMessage, TrustMeter } from "@shared/types";
+import type {
+  CallEndReason,
+  CallSnapshot,
+  ChatMessage,
+  ShiftStatus,
+  TrustMeter,
+} from "@shared/types";
 import { hangUp, sendMessage } from "@client/net/callActions";
 import { useCall } from "@client/state/callStore";
 import { useConnection } from "@client/state/connectionStore";
+import { useShift } from "@client/state/shiftStore";
 import { cx } from "@client/ui/classNames";
 import styles from "@client/ui/apps/Call.module.css";
 
@@ -18,17 +25,21 @@ import styles from "@client/ui/apps/Call.module.css";
 const OutcomeText: Record<CallEndReason, string> = {
   playerHungUp: "You hung up",
   victimHungUp: "They hung up on you",
+  shiftEnded: "Cut off: the shift is over",
   declined: "Call declined",
   missed: "Missed call",
 };
 
 // The yellow line under the face: what's happening on the call right now.
-function statusText(call: CallSnapshot): string {
+function statusText(call: CallSnapshot, shift: ShiftStatus): string {
   const name = (call.caller ?? "The caller").toUpperCase();
   switch (call.turn) {
     case "playerTurn":
-      return call.codeRevealed
-        ? "GOT THE CODE! HANG UP AND REDEEM IT"
+      if (call.codeRevealed) {
+        return "GOT THE CODE! HANG UP AND REDEEM IT";
+      }
+      return shift === "overtime"
+        ? "OVERTIME! REPLY SOON OR GET CUT OFF"
         : `YOUR TURN · TURN ${call.playerTurns + 1}`;
     case "processing":
       return `${name} IS THINKING...`;
@@ -40,11 +51,18 @@ function statusText(call: CallSnapshot): string {
   if (call.status === "ringing") {
     return "INCOMING CALL - ANSWER IN THE PHONE";
   }
+  if (shift === "offShift") {
+    return "OFF DUTY - CLOCK IN FIRST";
+  }
+  if (shift === "overtime") {
+    return "OVERTIME - NO MORE CALLS";
+  }
   return call.lastOutcome ? OutcomeText[call.lastOutcome].toUpperCase() : "WAITING FOR A CALL...";
 }
 
 export function Call(): ReactElement {
   const call = useCall();
+  const shift = useShift().snapshot.status;
   const online = useConnection().status === "connected";
   const [draft, setDraft] = useState("");
   const logRef = useRef<HTMLDivElement>(null);
@@ -120,7 +138,7 @@ export function Call(): ReactElement {
           <span className={styles.noFace}>?</span>
         </div>
         <div className={styles.statusBand} aria-live="polite">
-          {statusText(call)}
+          {statusText(call, shift)}
         </div>
       </section>
 

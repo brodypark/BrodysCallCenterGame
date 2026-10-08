@@ -5,8 +5,26 @@
 // Sections are added as the build steps need them.
 
 export const Config = {
+  Shift: {
+    LengthSeconds: 480,
+    // Money a shift must earn to pass. The same every shift.
+    Quota: 150,
+    // In overtime, once the last call is over, seconds left to redeem any code still open
+    // before the shift ends anyway.
+    OvertimeRedeemSeconds: 30,
+    // In overtime, how long the player can sit on their turn without saying anything before
+    // the call is cut off. Paused while the victim thinks and talks.
+    OvertimeIdleSeconds: 60,
+  },
+
+  XP: {
+    // For each gift card cashed in, by the scenario's difficulty.
+    PerSuccess: { Easy: 10, Medium: 20, Hard: 30 },
+    ShiftPassBonus: 25,
+  },
+
   Call: {
-    // Seconds after a player arrives before the first call rings.
+    // Seconds after clocking in before the first call rings.
     FirstCallDelaySeconds: 5,
     // Seconds an incoming call rings before it's missed.
     RingSeconds: 15,

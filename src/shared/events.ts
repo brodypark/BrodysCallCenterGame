@@ -5,9 +5,18 @@
 import { z } from "zod";
 import { Config } from "@shared/Config";
 import { MaxUnitsPerCharacter } from "@shared/messageText";
-import type { CallSnapshot, RedeemResult, ShiftSnapshot } from "@shared/types";
+import type {
+  CallSnapshot,
+  PlayerStats,
+  RedeemResult,
+  ShiftResult,
+  ShiftSnapshot,
+} from "@shared/types";
 
 const clientEventSchemas = {
+  "shift:clockIn": z.undefined(),
+  // The player closed the shift report.
+  "shift:resultSeen": z.undefined(),
   "call:answer": z.undefined(),
   "call:decline": z.undefined(),
   "call:hangUp": z.undefined(),
@@ -87,6 +96,8 @@ export type IncomingClientEvents = Record<
 export interface ServerToClientEvents {
   "call:snapshot": (snapshot: CallSnapshot) => void;
   "shift:snapshot": (snapshot: ShiftSnapshot) => void;
+  "shift:ended": (result: ShiftResult) => void;
+  "stats:snapshot": (stats: PlayerStats) => void;
   // The player opened the game in another tab, which took over. This tab is disconnected
   // and doesn't reconnect by itself.
   "session:replaced": () => void;

@@ -11,6 +11,9 @@ export interface ServerEnv {
   cookieSecret: string;
   // True when COOKIE_SECRET wasn't set and the development fallback is in use.
   usingDevCookieSecret: boolean;
+  // Development only: a shorter shift for testing (SHIFT_SECONDS). Always undefined in
+  // production.
+  shiftSecondsOverride: number | undefined;
   // Not needed until the AI (step 8) and voice (steps 9-10) arrive, so they may be missing.
   geminiApiKey: string | undefined;
   elevenLabsApiKey: string | undefined;
@@ -28,6 +31,18 @@ export function parsePort(value: string | undefined, fallback: number): number {
     throw new Error(`PORT must be a whole number from 1 to ${MaxPort}, got "${value}".`);
   }
   return port;
+}
+
+/** A positive whole number of seconds, or undefined when unset. Throws on a bad value. */
+export function parseSeconds(name: string, value: string | undefined): number | undefined {
+  if (value === undefined || value.trim() === "") {
+    return undefined;
+  }
+  const seconds = Number(value);
+  if (!Number.isInteger(seconds) || seconds < 1) {
+    throw new Error(`${name} must be a whole number of seconds, 1 or more, got "${value}".`);
+  }
+  return seconds;
 }
 
 function optionalString(value: string | undefined): string | undefined {
@@ -50,6 +65,9 @@ export function readServerEnv(env: NodeJS.ProcessEnv): ServerEnv {
     isProduction,
     cookieSecret: cookieSecret ?? DevSecret,
     usingDevCookieSecret: cookieSecret === undefined,
+    shiftSecondsOverride: isProduction
+      ? undefined
+      : parseSeconds("SHIFT_SECONDS", env.SHIFT_SECONDS),
     geminiApiKey: optionalString(env.GEMINI_API_KEY),
     elevenLabsApiKey: optionalString(env.ELEVENLABS_API_KEY),
   };

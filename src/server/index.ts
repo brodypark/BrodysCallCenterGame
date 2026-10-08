@@ -34,6 +34,7 @@ const game = startGameServer(app.server, {
   scenarios,
   readPlayerId: (cookieHeader) => playerIdFromCookieHeader(app, cookieHeader),
   allowTestWords: !env.isProduction,
+  shiftSecondsOverride: env.shiftSecondsOverride,
   log: app.log,
 });
 

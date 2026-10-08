@@ -29,6 +29,7 @@ describe("readServerEnv", () => {
       isProduction: false,
       cookieSecret: ServerConfig.PlayerCookie.DevSecret,
       usingDevCookieSecret: true,
+      shiftSecondsOverride: undefined,
       geminiApiKey: undefined,
       elevenLabsApiKey: undefined,
     });
@@ -56,5 +57,17 @@ describe("readServerEnv", () => {
     expect(() => readServerEnv({ NODE_ENV: "production", COOKIE_SECRET: "short" })).toThrow(
       /COOKIE_SECRET/,
     );
+  });
+
+  it("takes a shorter shift for testing, but never in production", () => {
+    expect(readServerEnv({ SHIFT_SECONDS: "60" }).shiftSecondsOverride).toBe(60);
+    expect(() => readServerEnv({ SHIFT_SECONDS: "soon" })).toThrow(/SHIFT_SECONDS/);
+    const secret = "s".repeat(ServerConfig.PlayerCookie.MinSecretLength);
+    const production = readServerEnv({
+      NODE_ENV: "production",
+      COOKIE_SECRET: secret,
+      SHIFT_SECONDS: "60",
+    });
+    expect(production.shiftSecondsOverride).toBeUndefined();
   });
 });

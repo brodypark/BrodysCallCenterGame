@@ -12,6 +12,7 @@ export function useCallPopups(store: DesktopStore): void {
     if (status === "ringing") {
       store.openApp("Phone");
     } else if (status === "inCall") {
+      store.closeApp("Phone");
       store.openApp("Call");
     }
   }, [status, store]);

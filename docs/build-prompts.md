@@ -462,7 +462,136 @@ Propose a short plan first and wait for my OK. Then tell me exactly how to test 
 including how to jump to level 11.
 ```
 
-## Step 13 — Deploy with cost guards
+## Step 13 — Game modes: Career and Sandbox
+
+```text
+Build step 13: two ways to play, picked the first time the game opens. Read docs/design.md
+("Game modes").
+
+- Career: the game as it is now: shifts, the quota, XP, levels, scenario unlocks and the
+  shop.
+- Sandbox: pick which scenario calls you, with unlimited money.
+
+First, ask me the open questions one at a time (for example: does Sandbox still have shifts
+and a quota, does it earn XP, are all cosmetics and perks free in it), then update
+docs/design.md and Config with my answers. Then propose a plan and wait for my OK.
+
+Requirements:
+- A mode picker screen the first time the game opens, and a way to switch later (e.g. from
+  the start menu, between shifts). The choice is saved.
+- The server owns the mode, like everything else: the client asks to switch and the server
+  decides. A Career player can't claim Sandbox money or unlocks.
+- Sandbox progress never touches Career saves (keep them separate, e.g. a mode column or a
+  separate stats row).
+- Sandbox: a caller picker (choose who calls next, or random from all scenarios), money
+  shown as unlimited, and everything in the shop available.
+- Cost guards apply in both modes: Sandbox makes it easy to call a lot, so the per-player AI
+  and voice limits matter even more there.
+- Unit tests for the mode rules (what each mode allows, and that saves stay separate).
+
+Done when: a new player picks a mode, Career plays exactly as before, Sandbox lets me pick
+any caller with unlimited money, switching back keeps my Career progress untouched.
+
+Propose a short plan first and wait for my OK. Then tell me exactly how to test it.
+```
+
+## Step 14 — Custom callers
+
+```text
+Build step 14: custom callers. Players make their own victims (for example a character
+based on a friend or family member) and those call like any other scenario. Read
+docs/design.md ("Custom callers") and the Scenarios section of CLAUDE.md.
+
+Requirements:
+- A Caller Maker app: name, personality, a few quirks, an obsession, catchphrases, likes and
+  dislikes, their situation and what they're trying to redeem, a difficulty preset (sets
+  starting suspicion, threshold, trust level and card value from Config, so players can't
+  make a free-money caller), a face from the step 11 options and a voice from a short list.
+  Every field is length-capped.
+- Custom callers are fictional cartoon characters. The form asks for personality, not real
+  personal details: no addresses, phone numbers, workplaces, account or card details. The
+  AI prompt keeps the same content rules for them as for built-in scenarios.
+- Saved per player (SQLite), private to that player, validated with the same scenario schema
+  (Zod) and checks, with a cap on how many each player can have.
+- Their text goes into the AI prompt, so treat it as untrusted: the server still decides
+  every reveal and makes every code. Tell me whether you think the fields need moderation
+  before they're used, which option you'd use and what it would cost.
+- When the AI is off or fails, custom callers use a generic set of scripted replies (same
+  shape and tuning as the built-in fallback replies).
+- Career: they unlock at a level I'll pick and are mixed in with the other callers. Sandbox:
+  always available in the caller picker.
+- Never shown to other players. If sharing is ever added, moderation comes first.
+
+Done when: I can make, edit and delete a caller, they call me with their own name, face,
+voice and personality, the rules (suspicion, reveal, redeem) work the same, and bad input
+(too long, empty, junk) is turned away with a clear message.
+
+Propose a short plan first and wait for my OK. Then tell me exactly how to test it.
+```
+
+## Step 15 — Facecam
+
+```text
+Build step 15: a facecam window that shows the player through their webcam with a cartoon
+or AI-made face covering theirs, for streaming and recording. Read docs/design.md
+("Streamer extras").
+
+Before writing code, research the options and tell me what you found, then wait for my OK:
+- On-device face tracking in the browser (e.g. MediaPipe Face Landmarker): size, speed,
+  licence, and whether it needs a dependency (ask before adding one).
+- Where the cover face comes from: the SVG faces from step 11 driven by the player's
+  expressions (head turn, blinks, mouth), or an image made by an AI image model (which one,
+  what it costs, and whether it can run once per player rather than per frame).
+
+Requirements:
+- Off by default. Turning it on is the first time the camera is asked for. Nothing else in
+  the game ever needs the camera.
+- All video stays on the player's device: nothing is uploaded, saved or sent to an AI.
+- A Facecam app window on the desktop that shows the player with the cover face following
+  their head, blinks and mouth.
+- Fail safe: if the face is lost or tracking fails, cover the whole frame rather than ever
+  showing the uncovered face.
+- The camera stops when the window closes or the tab is hidden; streams and tracking are
+  cleaned up.
+- Sizes with the desktop box like every other window.
+
+Done when: I can turn the facecam on, my face is always covered as I move, talk and blink,
+the camera light goes off when I close it, and saying no to the camera leaves the rest of
+the game working.
+
+Propose a short plan first and wait for my OK. Then tell me exactly how to test it.
+```
+
+## Step 16 — Player voice changer
+
+```text
+Build step 16: a voice changer for the player, so their side of the call sounds like a
+character too (fun for streaming and recording). Read docs/design.md ("Streamer extras"),
+including the open question about which voices to offer.
+
+Before writing code, read the current ElevenLabs docs for speech-to-speech (voice changer)
+and text-to-speech: endpoints, latency, cost, limits and how to pick voices. Tell me what
+you found and wait for my OK.
+
+Requirements:
+- A setting with a few character voices to pick from: [the voices I choose]. Off by default.
+- With it on, after each push-to-talk clip the player's line is played back in the chosen
+  voice; typed messages can be spoken in it too. The victim still gets the transcript text,
+  exactly as before.
+- Runs on the server like all ElevenLabs calls; the API key never reaches the client.
+- Cost guards like steps 9-10: it adds voice cost on every player message, so it has its
+  own per-player limit and turns itself off (with a short notice) when the daily voice cap
+  is hit.
+- If it fails, the call carries on normally; typed and plain voice play never depend on it.
+- Tests mock ElevenLabs. Nothing in tests or scripts calls the real API.
+
+Done when: I can pick a voice, hear my lines played back in it, turn it off again, and the
+game works the same with it failing or switched off.
+
+Then tell me exactly how to test it, and roughly what a test session costs.
+```
+
+## Step 17 — Deploy with cost guards
 
 ```text
 Plan only, no code until I OK it: get the game ready to put online.
@@ -472,9 +601,11 @@ Cover:
   options with prices, and how secrets are set on each.
 - Production settings: the server serves the built client, HTTPS, secure cookies, trusted
   proxy settings, the Origin check and a health check route.
-- Cost guards: confirm every Gemini and ElevenLabs call goes through RateLimiter, set
-  per-player and global daily caps, a global switch that drops everyone to scripted replies
-  and typed-only voice when a cap is hit, and a daily usage log.
+- Cost guards: confirm every Gemini and ElevenLabs call goes through RateLimiter (including
+  custom callers and the voice changer), set per-player and global daily caps, a global
+  switch that drops everyone to scripted replies and typed-only voice when a cap is hit, and
+  a daily usage log.
+- Sandbox mode: anything that makes it cheaper to run up costs there, and how to limit it.
 - Abuse: connection limits per IP, request and upload size limits, and what happens when
   lots of players arrive at once.
 - Database backups.

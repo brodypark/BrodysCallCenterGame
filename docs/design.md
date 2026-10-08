@@ -365,6 +365,32 @@ moderation first.
 | Wobblebucks Card tries / XP per charge | 2 / 5 |
 | Grandma: card / start / threshold / trust | $50 / 40 / 100 / 30 |
 
+## Game modes (planned, step 13)
+
+Picked the first time the game opens, and switchable later between shifts.
+
+- **Career:** the game as described above: shifts, quota, XP, levels, unlocks and the shop.
+- **Sandbox:** pick which scenario calls you, with unlimited money and the whole shop
+  available. Kept separate from Career saves. Cost guards still apply.
+
+## Custom callers (planned, step 14)
+
+Players make their own victims in a Caller Maker app (e.g. a character based on a friend or
+family member): name, personality, quirks, obsession, catchphrases, likes, dislikes,
+situation, a difficulty preset (so nobody can build a free-money caller), a face and a voice.
+They're fictional cartoon characters: no real personal details (addresses, phone numbers,
+workplaces, account or card details). Private to the player who made them; the server still
+decides every reveal and makes every code.
+
+## Streamer extras (planned, steps 15-16)
+
+- **Facecam:** an optional webcam window with a cartoon or AI-made face covering the
+  player's face. Off by default; all video stays on the device; if tracking loses the face,
+  the whole frame is covered rather than showing it.
+- **Player voice changer:** an optional setting that plays the player's lines back in a
+  character voice (ElevenLabs), so both sides of the call sound like characters. Adds voice
+  cost per message, so it has its own limits.
+
 ## Changes from the Roblox version
 
 - **AI:** victims' replies come from Gemini, called by the server. The reply can be longer than
@@ -380,6 +406,13 @@ moderation first.
   scripted replies and typed-only voice.
 
 ## Open questions
+
+- **Voice changer voices:** an Indian-accent voice was requested. It plays straight into the
+  "Indian scam caller" stereotype, which clashes with the cartoonish tone and would likely
+  read as mocking a real group. Decide before step 16; silly character voices (robot,
+  chipmunk, posh butler, pirate) are the alternative.
+- **Sandbox details:** does Sandbox have shifts and a quota, and does it earn XP? (Asked at
+  the start of step 13.)
 
 - **Fixed quota vs. bigger cards:** later scenarios pay more, so the fixed quota gets easier.
   Is that okay (progression reward), or should the quota scale a little?

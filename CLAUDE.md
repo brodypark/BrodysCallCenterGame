@@ -110,7 +110,7 @@ npm run dev | npm run build | npm start | npm run lint | npm run format | npm ru
 
 ## Build Order
 Prompts are in docs/build-prompts.md.
-0 Tooling and scaffold · 1 Desktop shell · 2 Connection, player id, fake call flow · 3 Turn state machine · 4 Suspicion, redeem, payout · 5 Shifts · 6 Saving (SQLite) · 7 XP, levels, shop, tutorial · 8 AIService with Gemini (Grandma) · 9 Victim voice (ElevenLabs) · 10 Player voice · 11 Faces, sounds and effects · 12 All 6 scenarios and side problems · 13 Deploy with cost guards
+0 Tooling and scaffold · 1 Desktop shell · 2 Connection, player id, fake call flow · 3 Turn state machine · 4 Suspicion, redeem, payout · 5 Shifts · 6 Saving (SQLite) · 7 XP, levels, shop, tutorial · 8 AIService with Gemini (Grandma) · 9 Victim voice (ElevenLabs) · 10 Player voice · 11 Faces, sounds and effects · 12 All 6 scenarios and side problems · 13 Game modes (Career and Sandbox) · 14 Custom callers · 15 Facecam · 16 Player voice changer · 17 Deploy with cost guards
 
 ## Status
-Nothing built yet. Next: Step 0.
+Done through Step 4: scaffold, desktop shell, player id and connection, fake call flow, turn state machine, suspicion, code reveal, Redeem app and payout. Next: Step 5.

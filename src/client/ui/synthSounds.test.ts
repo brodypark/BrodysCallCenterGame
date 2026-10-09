@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { Sounds, type SoundName } from "@client/ui/soundList";
+import { RingtoneSounds, Sounds, type SoundName } from "@client/ui/soundList";
 import { synthesize } from "@client/ui/synthSounds";
 
 const Rate = 22_050;
@@ -32,6 +32,13 @@ describe("synthesize", () => {
   it("gives the ringtone a pause before it loops", () => {
     const ring = synthesize("ring", Rate);
     const tail = ring.subarray(Math.round(1.2 * Rate));
+    expect(tail.every((sample) => sample === 0)).toBe(true);
+  });
+
+  it.each(Object.values(RingtoneSounds))("loops %s with a pause at the end", (name) => {
+    expect(Sounds[name].loop).toBe(true);
+    const samples = synthesize(name, Rate);
+    const tail = samples.subarray(samples.length - Math.round(0.4 * Rate));
     expect(tail.every((sample) => sample === 0)).toBe(true);
   });
 });

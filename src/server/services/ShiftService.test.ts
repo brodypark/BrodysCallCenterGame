@@ -376,6 +376,23 @@ describe("ShiftService: overtime", () => {
     expect(game.results[0]).toMatchObject({ earnings: 50, successfulCalls: 1 });
   });
 
+  it("adds the Overclocked Router's seconds to both overtime countdowns", () => {
+    const game = createGame();
+    game.stats.load(PlayerId, { ...defaultStats(), upgrades: { overclockedRouter: 1 } });
+    clockInAndRing(game);
+    answer(game);
+    vi.advanceTimersByTime((game.shift().endsAt ?? 0) - Date.now());
+    const extra = Config.Shop.RouterOvertimeExtraSeconds;
+    expect(game.shift().overtimeEndsAt).toBe(
+      Date.now() + secondsToMs(Config.Shift.OvertimeIdleSeconds + extra),
+    );
+    getCode(game);
+    game.calls.hangUp(PlayerId);
+    expect(game.shift().overtimeEndsAt).toBe(
+      Date.now() + secondsToMs(Config.Shift.OvertimeRedeemSeconds + extra),
+    );
+  });
+
   it("ends when the redeem window runs out", () => {
     const game = inOvertimeCall();
     getCode(game);

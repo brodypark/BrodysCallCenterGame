@@ -3,7 +3,14 @@
 // default, so saves made before they existed still load.
 
 import { z } from "zod";
-import { DefaultTheme, DefaultWallpaper, ThemeIds, WallpaperIds } from "@shared/cosmetics";
+import {
+  DefaultRingtone,
+  DefaultTheme,
+  DefaultWallpaper,
+  RingtoneIds,
+  ThemeIds,
+  WallpaperIds,
+} from "@shared/cosmetics";
 import { SandboxSettingsSchema } from "@shared/sandbox";
 
 const count = z.number().int().min(0).default(0);
@@ -52,12 +59,13 @@ export const PlayerStatsSchema = z.object({
   shiftsPassed: count,
   shiftsFailed: count,
   // Upgrades bought, by id (Upgrades.ts): a perk's tier, or 1 for a cosmetic. Missing means
-  // not bought; the default wallpaper and theme are owned without being listed.
+  // not bought; the default wallpaper, theme and ringtone are owned without being listed.
   upgrades: z.record(z.string(), z.number().int().min(0)).default({}),
-  // The wallpaper and window theme in use. An unknown id (e.g. one that was removed) falls
-  // back to the default instead of breaking the save.
+  // The wallpaper, window theme and ringtone in use. An unknown id (e.g. one that was
+  // removed) falls back to the default instead of breaking the save.
   wallpaper: z.enum(WallpaperIds).catch(DefaultWallpaper).default(DefaultWallpaper),
   theme: z.enum(ThemeIds).catch(DefaultTheme).default(DefaultTheme),
+  ringtone: z.enum(RingtoneIds).catch(DefaultRingtone).default(DefaultRingtone),
   // Per caller, by scenario id. Missing means nothing done to them yet. If it can't be read,
   // it starts over rather than breaking the save.
   callers: z.record(z.string(), CallerRecordSchema).catch({}),

@@ -68,7 +68,24 @@ export const Config = {
     ExtraShiftSecondsPerTier: 30,
     LowerStartingSuspicionPerTier: 3,
     ExtraRedeemTriesPerTier: 1,
-    // Cosmetics, by id. The default wallpaper (teal) and theme (classic) are free.
+    LuckyCatGiftCardBonusPercentPerTier: 5,
+    HeadsetSuspicionRiseCutPercentPerTier: 10,
+    GoldTierChargeBonusPercentPerTier: 15,
+    // One-tier perks: each costs one price and has a single effect.
+    OneTierPerkPrices: {
+      autoDialer: 250,
+      overclockedRouter: 400,
+      vpnSubscription: 300,
+    },
+    // Auto-Dialer: seconds cut from the wait before each call rings. The wait between calls
+    // stays longer than the CALL ENDED stamp.
+    AutoDialerSecondsSaved: 2,
+    // Overclocked Router: seconds added to both overtime countdowns (talking and cashing in).
+    RouterOvertimeExtraSeconds: 15,
+    // VPN Subscription: how much of the bait caller's fine it saves.
+    VpnFineCutPercent: 50,
+    // Cosmetics, by id. The default wallpaper (teal), theme (classic) and ringtone (classic
+    // bell) are free.
     CosmeticPrices: {
       midnightBlue: 100,
       sunsetGradient: 200,
@@ -77,6 +94,10 @@ export const Config = {
       darkMode: 200,
       bubblegum: 300,
       terminalGreen: 400,
+      chiptune: 150,
+      airhorn: 250,
+      dialUp: 350,
+      yoPhone: 400,
     } satisfies Record<BuyableCosmeticId, number>,
   },
 

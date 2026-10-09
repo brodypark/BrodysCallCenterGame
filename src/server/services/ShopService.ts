@@ -1,9 +1,9 @@
 // The upgrades shop (docs/design.md "Upgrades"): buying perks and cosmetics with banked
-// money, and equipping owned wallpapers and themes. Only between shifts. The server checks
+// money, and equipping owned wallpapers, themes and ringtones. Only between shifts. The server checks
 // every purchase; the client only asks. In Sandbox, money is unlimited: everything is free.
 
 import type { ShopResult } from "@shared/types";
-import { getUpgrade, maxTier, nextPrice, tierOf } from "@shared/Upgrades";
+import { equipInto, getUpgrade, isEquipped, maxTier, nextPrice, tierOf } from "@shared/Upgrades";
 import type { StatsService } from "@server/services/StatsService";
 
 export interface ShopServiceOptions {
@@ -62,18 +62,17 @@ export class ShopService {
         current.money -= price;
       }
       current.upgrades = { ...current.upgrades, [upgrade.id]: tier };
-      if (upgrade.kind === "wallpaper") {
-        current.wallpaper = upgrade.id;
-      } else if (upgrade.kind === "theme") {
-        current.theme = upgrade.id;
-      }
+      equipInto(current, upgrade);
     });
-    return upgrade.kind === "perk"
+    if (upgrade.kind !== "perk") {
+      return result(true, `Bought and equipped ${upgrade.name}.`);
+    }
+    return maxTier(upgrade) > 1
       ? result(true, `Bought ${upgrade.name} tier ${tier} of ${maxTier(upgrade)}.`)
-      : result(true, `Bought and equipped ${upgrade.name}.`);
+      : result(true, `Bought ${upgrade.name}.`);
   }
 
-  /** Equips an owned wallpaper or theme. Free. */
+  /** Equips an owned wallpaper, theme or ringtone. Free. */
   equip(playerId: string, id: string): ShopResult {
     const upgrade = getUpgrade(id);
     if (!upgrade || upgrade.kind === "perk") {
@@ -87,16 +86,10 @@ export class ShopService {
     if (tierOf(stats, upgrade.id) === 0) {
       return result(false, `You don't own ${upgrade.name} yet.`);
     }
-    if (stats.wallpaper === upgrade.id || stats.theme === upgrade.id) {
+    if (isEquipped(stats, upgrade)) {
       return result(true, `${upgrade.name} is already equipped.`);
     }
-    this.options.stats.update(playerId, (current) => {
-      if (upgrade.kind === "wallpaper") {
-        current.wallpaper = upgrade.id;
-      } else {
-        current.theme = upgrade.id;
-      }
-    });
+    this.options.stats.update(playerId, (current) => equipInto(current, upgrade));
     return result(true, `Equipped ${upgrade.name}.`);
   }
 }

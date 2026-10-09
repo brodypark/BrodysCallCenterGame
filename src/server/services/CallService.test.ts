@@ -765,6 +765,38 @@ describe("CallService: levels and perks", () => {
     expect(lots.latest().trust).toMatchObject({ percent: 70, word: "unsure" });
   });
 
+  it("softens suspicion rises with the Noise-Cancelling Headset, after the clamp", () => {
+    const { latest, say } = playerTurn({
+      stats: { ...defaultStats(), upgrades: { noiseCancellingHeadset: 3 } },
+    });
+    say("hello");
+    expect(latest().trust?.percent).toBe(65);
+    // The biggest rise (15) cut by 30%, rounded: 11.
+    say("!sus");
+    expect(latest().trust?.percent).toBe(54);
+  });
+
+  it("makes gift cards pay more with Lucky Cat", () => {
+    const { latest, say, redeem, earnings } = playerTurn({
+      stats: { ...defaultStats(), upgrades: { luckyCat: 2 } },
+    });
+    say("!reveal");
+    const code = CodeShape.exec(latest().transcript?.messages.at(-1)?.text ?? "")?.[0] ?? "";
+    expect(redeem.redeem(PlayerId, code)).toMatchObject({ success: true, payout: 55 });
+    // Grandma's $50 card plus 10%.
+    expect(earnings).toEqual([55]);
+  });
+
+  it("rings sooner with the Auto-Dialer", () => {
+    const { service, latest } = setup({
+      stats: { ...defaultStats(), upgrades: { autoDialer: 1 } },
+    });
+    service.addPlayer(PlayerId);
+    service.startCalls(PlayerId);
+    advanceSeconds(Config.Call.FirstCallDelaySeconds - Config.Shop.AutoDialerSecondsSaved);
+    expect(latest().status).toBe("ringing");
+  });
+
   it("swallows dev commands instead of sending them to the victim", () => {
     const { service, latest } = playerTurn();
     service.sendMessage(PlayerId, "!dev");

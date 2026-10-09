@@ -3,8 +3,10 @@
 // instead (falling back to the made one if the file won't load). Sounds play through the
 // shared audio context, so nothing plays before the player's first click (browsers block
 // it) or while the browser has audio suspended. Playing a sound that's already playing
-// starts it again from the beginning. How loud they are (and whether they play at all)
-// follows the player's sound settings, even for a sound that's already playing.
+// starts it again from the beginning. The Shop can preview a sound once (even a looping
+// ringtone) without touching the copy that's playing. How loud they are (and whether they
+// play at all) follows the player's sound settings, even for a sound that's already
+// playing.
 
 import { effectsVolume } from "@client/ui/audioSettings";
 import { audioSettingsStore } from "@client/ui/audioSettingsStore";
@@ -14,7 +16,7 @@ import { getAudioContext, onAudioRunning } from "@client/voice/audioUnlock";
 
 // Sounds replaced by a recorded file in public/sounds/<name>.mp3 (credit each in
 // docs/credits.md). Everything else is made in code.
-const SoundFiles: ReadonlySet<SoundName> = new Set<SoundName>([]);
+const SoundFiles: ReadonlySet<SoundName> = new Set<SoundName>(["ring-yo-phone"]);
 
 /** Where a sound's file is served from. */
 export function soundUrl(name: SoundName): string {
@@ -78,6 +80,52 @@ function outputFor(context: AudioContext): GainNode {
   return output.volume;
 }
 
+/** Starts `buffer` through the shared output. `onEnded` is told when it stops. */
+function startSource(
+  context: AudioContext,
+  buffer: AudioBuffer,
+  name: SoundName,
+  loop: boolean,
+  onEnded: (source: AudioBufferSourceNode) => void,
+): AudioBufferSourceNode {
+  const info = Sounds[name];
+  const source = context.createBufferSource();
+  source.buffer = buffer;
+  source.loop = loop;
+  const gain = context.createGain();
+  gain.gain.value = info.volume;
+  source.connect(gain);
+  gain.connect(outputFor(context));
+  source.onended = () => {
+    onEnded(source);
+    source.disconnect();
+    gain.disconnect();
+  };
+  source.start();
+  if (info.maxSeconds !== undefined) {
+    source.stop(context.currentTime + info.maxSeconds);
+  }
+  return source;
+}
+
+// The Shop's preview, separate from the sounds the game plays.
+let preview: AudioBufferSourceNode | null = null;
+// Goes up with every preview asked for or stopped, so one still loading (a recorded file)
+// when it's stopped or replaced never starts.
+let previewRequest = 0;
+
+/** Stops the Shop's preview, if one is playing or loading. */
+export function stopPreview(): void {
+  previewRequest += 1;
+  const source = preview;
+  preview = null;
+  try {
+    source?.stop();
+  } catch {
+    // Already stopped.
+  }
+}
+
 function stopInstance(name: SoundName): void {
   const source = playing.get(name);
   if (source) {
@@ -111,25 +159,34 @@ export function playSound(name: SoundName): void {
       return;
     }
     stopInstance(name);
-    const source = context.createBufferSource();
-    source.buffer = buffer;
-    source.loop = info.loop === true;
-    const gain = context.createGain();
-    gain.gain.value = info.volume;
-    source.connect(gain);
-    gain.connect(outputFor(context));
-    source.onended = () => {
-      if (playing.get(name) === source) {
+    const source = startSource(context, buffer, name, info.loop === true, (ended) => {
+      if (playing.get(name) === ended) {
         playing.delete(name);
       }
-      source.disconnect();
-      gain.disconnect();
-    };
-    source.start();
-    if (info.maxSeconds !== undefined) {
-      source.stop(context.currentTime + info.maxSeconds);
-    }
+    });
     playing.set(name, source);
+  });
+}
+
+/** Plays a sound once for the Shop's preview button, even a looping one, replacing any
+ * preview still playing. Skipped while sound effects are off or audio isn't unlocked. */
+export function previewSound(name: SoundName): void {
+  const context = getAudioContext();
+  if (context?.state !== "running" || effectsVolume(audioSettingsStore.get()) === 0) {
+    return;
+  }
+  previewRequest += 1;
+  const request = previewRequest;
+  void load(context, name).then((buffer) => {
+    if (request !== previewRequest) {
+      return;
+    }
+    stopPreview();
+    preview = startSource(context, buffer, name, false, (ended) => {
+      if (preview === ended) {
+        preview = null;
+      }
+    });
   });
 }
 
@@ -167,4 +224,5 @@ import.meta.hot?.dispose(() => {
   for (const name of [...playing.keys()]) {
     stopSound(name);
   }
+  stopPreview();
 });

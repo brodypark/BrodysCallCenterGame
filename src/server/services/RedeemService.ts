@@ -70,6 +70,9 @@ export interface RedeemServiceOptions {
   onHacked?: (playerId: string, scenarioId: string) => void;
   // Extra wrong tries per card for this player (the Sticky Notes perk).
   extraTries?: (playerId: string) => number;
+  // What charging `amount` pays this player (the Wobblebucks Gold Tier perk). The amount
+  // itself if not given.
+  chargePayout?: (playerId: string, amount: number) => number;
 }
 
 const NotACode = "That doesn't look like a card code.";
@@ -127,6 +130,7 @@ export class RedeemService {
   private readonly onLocked: NonNullable<RedeemServiceOptions["onLocked"]>;
   private readonly onHacked: NonNullable<RedeemServiceOptions["onHacked"]>;
   private readonly extraTries: NonNullable<RedeemServiceOptions["extraTries"]>;
+  private readonly chargePayout: NonNullable<RedeemServiceOptions["chargePayout"]>;
 
   constructor(options: RedeemServiceOptions) {
     this.onRedeemed = options.onRedeemed;
@@ -134,6 +138,7 @@ export class RedeemService {
     this.onLocked = options.onLocked ?? (() => undefined);
     this.onHacked = options.onHacked ?? (() => undefined);
     this.extraTries = options.extraTries ?? (() => 0);
+    this.chargePayout = options.chargePayout ?? ((_playerId, amount) => amount);
   }
 
   /** A new code with `prefix` that's different from every card the player has. Not
@@ -215,8 +220,8 @@ export class RedeemService {
   }
 
   /** Tries to charge `amount` dollars to the Wobblebucks Card the player typed into the
-   * Wobblebucks Machine. Within the card's hidden spending limit it pays that amount; over
-   * it, the charge is declined and uses a try. */
+   * Wobblebucks Machine. Within the card's hidden spending limit it pays that amount (plus
+   * any perk bonus); over it, the charge is declined and uses a try. */
   charge(playerId: string, input: string, amount: number): RedeemResult {
     const typed = normalizeCode(input);
     if (input.length > Config.Redeem.MaxCodeInputLength || !OnlyLettersAndDigits.test(typed)) {
@@ -272,8 +277,10 @@ export class RedeemService {
       );
     }
     card.redeemed = true;
-    this.onCharged(playerId, amount, card.scenarioId);
-    return result(true, amount, card.triesLeft, `Approved! Wobble-ka-ching! +$${amount}`);
+    const paid = this.chargePayout(playerId, amount);
+    this.onCharged(playerId, paid, card.scenarioId);
+    const bonus = paid > amount ? ` ($${paid - amount} bonus)` : "";
+    return result(true, paid, card.triesLeft, `Approved! Wobble-ka-ching! +$${paid}${bonus}`);
   }
 
   /** True if the player has a card they can still cash in. */

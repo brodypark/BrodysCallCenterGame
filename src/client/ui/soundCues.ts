@@ -1,16 +1,19 @@
 // Sounds (and the shake) for call and shift moments that don't belong to one window: the
-// phone ringing, picking up, the dial tone and shake when the victim hangs up, sending a
-// message, clocking in, overtime starting, and new mail. It watches the stores, so they play
+// phone ringing (with the ringtone the player has on), picking up, the dial tone and shake
+// when the victim hangs up, sending a message, clocking in, overtime starting, and new mail. It watches the stores, so they play
 // whichever windows are open. Ported from the Roblox UI/SoundCues.
 
+import type { RingtoneId } from "@shared/cosmetics";
 import type { CallStatus, ShiftStatus } from "@shared/types";
 import { callStore } from "@client/state/callStore";
 import { connectionStore } from "@client/state/connectionStore";
 import { mailStore, newestId } from "@client/state/mailStore";
 import { savesStore } from "@client/state/savesStore";
 import { shiftStore } from "@client/state/shiftStore";
+import { statsStore } from "@client/state/statsStore";
 import { shakeDesktop } from "@client/ui/desktopShake";
-import { playSound, stopSound } from "@client/ui/sounds";
+import { RingtoneSounds } from "@client/ui/soundList";
+import { playSound, stopPreview, stopSound } from "@client/ui/sounds";
 
 // What the last update saw, to tell what changed.
 let lastStatus: CallStatus = callStore.get().status;
@@ -23,13 +26,36 @@ let lastNewest: number | null = null;
 // Mail that arrived with the shift report up chimes once the report is closed.
 let mailWaiting = false;
 
+// The ringtone ringing right now, or null.
+let ringingWith: RingtoneId | null = null;
+
+function stopRinging(): void {
+  for (const sound of Object.values(RingtoneSounds)) {
+    stopSound(sound);
+  }
+  ringingWith = null;
+}
+
+/** Rings with the player's ringtone, unless it's already the one ringing. */
+function ring(): void {
+  const ringtone = statsStore.get().ringtone;
+  if (ringtone === ringingWith) {
+    return;
+  }
+  stopRinging();
+  // A Shop preview shouldn't play over the real thing.
+  stopPreview();
+  ringingWith = ringtone;
+  playSound(RingtoneSounds[ringtone]);
+}
+
 function onCallChanged(): void {
   const call = callStore.get();
   if (call.status !== lastStatus) {
     if (call.status === "ringing") {
-      playSound("ring");
+      ring();
     } else {
-      stopSound("ring");
+      stopRinging();
     }
     if (call.status === "inCall" && lastStatus === "ringing") {
       playSound("pick-up");
@@ -45,6 +71,14 @@ function onCallChanged(): void {
     playSound("message-sent");
   }
   lastPlayerTurns = call.playerTurns;
+}
+
+// The stats can arrive after the call (on connect), or the ringtone can change mid-ring
+// (Sandbox's shop), so a ringing phone switches to the one now on.
+function onStatsChanged(): void {
+  if (callStore.get().status === "ringing" && connectionStore.get().status === "connected") {
+    ring();
+  }
 }
 
 function onShiftChanged(): void {
@@ -90,7 +124,7 @@ function onMailChanged(): void {
 // The next snapshot after reconnecting starts it again if it's still ringing.
 function onConnectionChanged(): void {
   if (connectionStore.get().status !== "connected") {
-    stopSound("ring");
+    stopRinging();
     lastStatus = "idle";
   }
 }
@@ -105,6 +139,7 @@ export function startSoundCues(): void {
   unsubscribers = [
     callStore.subscribe(onCallChanged),
     shiftStore.subscribe(onShiftChanged),
+    statsStore.subscribe(onStatsChanged),
     savesStore.subscribe(onSavesChanged),
     mailStore.subscribe(onMailChanged),
     connectionStore.subscribe(onConnectionChanged),
@@ -116,5 +151,5 @@ import.meta.hot?.dispose(() => {
   for (const unsubscribe of unsubscribers) {
     unsubscribe();
   }
-  stopSound("ring");
+  stopRinging();
 });

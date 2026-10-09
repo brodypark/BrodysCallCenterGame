@@ -253,16 +253,26 @@ Bought in the **Shop** app with banked money, **only between shifts**. Everythin
 forever. Prices are in `Config.Shop`.
 
 - **Shift perks:** permanent, each with **3 tiers** bought in order. Every perk's tiers cost
-  **$200, $500 and $1,000** ($1,700 per perk, $5,100 for all three). Maxing every perk takes
-  about 30 passed shifts (~4.5 hours), around when players reach level 10.
+  **$200, $500 and $1,000** ($1,700 per perk). Maxing all six tiered perks plus the one-tier ones costs $11,150,
+  roughly 60 passed shifts.
 
   | Perk | Per tier | At tier 3 |
   | --- | --- | --- |
   | Extra Coffee: longer shifts | +30 s | 9:30 shifts |
   | Smooth Talker: victims start less suspicious | -3 suspicion | -9 (Grandma starts at 31) |
   | Sticky Notes: more redeem tries per code | +1 try | 6 tries |
+  | Lucky Cat: gift cards pay more | +5% | +15% |
+  | Noise-Cancelling Headset: suspicion rises less (after the per-turn cap, rounded) | -10% | -30% |
+  | Wobblebucks Gold Tier: Wobblebucks charges pay more (the limit checks the amount charged) | +15% | +45% |
 
   Tiers are capped so the quota never becomes trivial. The server applies perks.
+- **One-tier perks:** bought once.
+
+  | Perk | Price | Effect |
+  | --- | --- | --- |
+  | Auto-Dialer | $250 | Calls ring 2 s sooner (first call and between calls) |
+  | Overclocked Router | $400 | +15 s on both overtime countdowns (talking and cashing in) |
+  | VPN Subscription | $300 | A bait caller's fine is halved ($300 → $150); the shift still fails |
 - **Cosmetics:** no gameplay effect; applied on the client by switching theme variables. The
   first set is built from colors and gradients in CSS (no image or sound assets). Buying one
   equips it; owned ones can be re-equipped for free.
@@ -275,8 +285,11 @@ forever. Prices are in `Config.Shop`.
   | Hacker Grid | $300 | Terminal Green | $400 |
   | Pudding Pink | $400 | | |
 
-  Later: ringtones (once the sounds from step 11 are in), cursor styles, and office cosmetics
-  (chair, desk items).
+  **Ringtones** replace the phone's ring (made in code like the other sounds) and can be
+  previewed in the Shop: Classic Bell (default, free), 8-Bit Chiptune $150, Airhorn $250,
+  Dial-Up Modem $350, Yo Phone Linging $400 (the one recorded clip, in `public/sounds`).
+
+  Later: desktop pets, cursor styles, and office cosmetics (chair, desk items).
 
 ## Scenarios
 

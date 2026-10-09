@@ -39,7 +39,12 @@ import type {
 } from "@shared/types";
 import { levelOf } from "@shared/Levels";
 import type { PlayerStats } from "@shared/stats";
-import { lowerStartingSuspicion } from "@shared/Upgrades";
+import {
+  giftCardPayout,
+  lowerStartingSuspicion,
+  secondsBeforeRing,
+  softenSuspicionRise,
+} from "@shared/Upgrades";
 import type { SandboxCheat } from "@shared/sandbox";
 import { ServerConfig } from "@server/config";
 import { toBaitScenario } from "@server/scenarios/bait";
@@ -51,7 +56,7 @@ import type { AIReply, Scenario } from "@server/scenarios/scenarioSchema";
 import type { VictimReplySource } from "@server/services/AIService";
 import { maskCodes } from "@server/services/aiReply";
 import type { GiftCardInfo, WobblebucksCardInfo } from "@server/services/RedeemService";
-import { applySuspicionChange, trustMeter } from "@server/services/suspicion";
+import { applySuspicionChange, clampSuspicionChange, trustMeter } from "@server/services/suspicion";
 
 interface PlayerCall {
   status: CallStatus;
@@ -253,7 +258,9 @@ export class CallService {
     }
     call.acceptingCalls = true;
     if (call.status === "idle" && this.ringsByItself(playerId)) {
-      this.startTimer(call, Config.Call.FirstCallDelaySeconds, () => this.ring(playerId, call));
+      // Sooner with the Auto-Dialer perk.
+      const seconds = secondsBeforeRing(this.statsOf(playerId), Config.Call.FirstCallDelaySeconds);
+      this.startTimer(call, seconds, () => this.ring(playerId, call));
     }
   }
 
@@ -686,7 +693,8 @@ export class CallService {
     this.replies?.callEnded(playerId);
     // Also cancels whatever the call was waiting on (a reply or a line being said).
     if (call.acceptingCalls && this.ringsByItself(playerId)) {
-      this.startTimer(call, Config.Call.SecondsBetweenCalls, () => this.ring(playerId, call));
+      const seconds = secondsBeforeRing(this.statsOf(playerId), Config.Call.SecondsBetweenCalls);
+      this.startTimer(call, seconds, () => this.ring(playerId, call));
     } else {
       this.cancelTimer(call);
     }
@@ -706,8 +714,13 @@ export class CallService {
     reply: AIReply,
     isTest: boolean,
   ): Line {
-    // Clamped to the per-turn limits and the range inside.
-    call.suspicion = applySuspicionChange(call.suspicion, reply.suspicionChange);
+    // Clamped to the per-turn limits and the range inside. The Noise-Cancelling Headset perk
+    // softens rises after the clamp, so it helps with the biggest ones too.
+    const change = softenSuspicionRise(
+      this.statsOf(playerId),
+      clampSuspicionChange(reply.suspicionChange),
+    );
+    call.suspicion = applySuspicionChange(call.suspicion, change);
     if (call.suspicion >= scenario.suspicionThreshold) {
       return { text: `${reply.reply} ${scenario.lines.hangUpLine}`, endAfter: "victimHungUp" };
     }
@@ -742,7 +755,9 @@ export class CallService {
       if (call.bait) {
         this.codes.registerBaitCard(playerId, call.code, card);
       } else {
-        this.codes.registerGiftCard(playerId, call.code, { ...card, value: scenario.cardValue });
+        // Worth more with the Lucky Cat perk.
+        const value = giftCardPayout(this.statsOf(playerId), scenario.cardValue);
+        this.codes.registerGiftCard(playerId, call.code, { ...card, value });
       }
     }
     if (offersCard && call.card === null && trusting) {

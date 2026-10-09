@@ -3,12 +3,17 @@
 // browser.
 
 import { Config } from "@shared/Config";
+import type { RingtoneId } from "@shared/cosmetics";
 
 export type SoundName =
   | "click"
   | "window-open"
   | "window-close"
   | "ring"
+  | "ring-chiptune"
+  | "ring-airhorn"
+  | "ring-dial-up"
+  | "ring-yo-phone"
   | "pick-up"
   | "dial-tone"
   | "message-sent"
@@ -41,6 +46,12 @@ export const Sounds: Record<SoundName, SoundInfo> = {
   "window-open": { volume: 0.3 },
   "window-close": { volume: 0.3 },
   ring: { volume: 0.6, loop: true },
+  // The Shop's other ringtones. Square waves and static sound louder, so they're kept lower.
+  "ring-chiptune": { volume: 0.35, loop: true },
+  "ring-airhorn": { volume: 0.35, loop: true },
+  "ring-dial-up": { volume: 0.3, loop: true },
+  // A recorded clip (public/sounds), already mixed loud.
+  "ring-yo-phone": { volume: 0.6, loop: true },
   "pick-up": { volume: 0.6 },
   "dial-tone": { volume: 0.4, maxSeconds: Config.Sounds.DialToneSeconds },
   "message-sent": { volume: 0.5 },
@@ -59,4 +70,13 @@ export const Sounds: Record<SoundName, SoundInfo> = {
   "new-mail": { volume: 0.5 },
   // Harsh square waves and static: kept low like the buzzer.
   hacked: { volume: 0.3 },
+};
+
+/** The sound each ringtone plays while a call rings. */
+export const RingtoneSounds: Record<RingtoneId, SoundName> = {
+  classicBell: "ring",
+  chiptune: "ring-chiptune",
+  airhorn: "ring-airhorn",
+  dialUp: "ring-dial-up",
+  yoPhone: "ring-yo-phone",
 };

@@ -149,6 +149,27 @@ describe("RedeemService: Wobblebucks Cards", () => {
     expect(from).toEqual(["cj"]);
   });
 
+  it("pays a perk bonus on top of an approved charge", () => {
+    const charged: number[] = [];
+    const redeem = new RedeemService({
+      onRedeemed: () => undefined,
+      onCharged: (_playerId, amount) => charged.push(amount),
+      chargePayout: (_playerId, amount) => amount + 6,
+    });
+    redeem.registerWobblebucksCard(PlayerId, Card, {
+      spendingLimit: Limit,
+      difficulty: "Easy",
+      scenarioId: "grandma",
+    });
+    // The limit is checked against the amount charged, not the payout.
+    expect(redeem.charge(PlayerId, Card, Limit)).toMatchObject({
+      success: true,
+      payout: Limit + 6,
+      message: `Approved! Wobble-ka-ching! +$${Limit + 6} ($6 bonus)`,
+    });
+    expect(charged).toEqual([Limit + 6]);
+  });
+
   it("approves a charge within the hidden limit, once", () => {
     const { redeem, charged } = withCard();
     expect(redeem.charge(PlayerId, " wbk 7qz ", Limit)).toMatchObject({

@@ -1,6 +1,7 @@
 // The game's sound effects, made from tones and noise in code rather than recorded files,
-// so there's nothing to license: a soft click, a classic double ring, a cash register, a
-// buzzer, a stamp thud, fanfares and a sad trombone. Cartoonish and retro, like the rest of
+// so there's nothing to license: a soft click, a classic double ring (plus the Shop's
+// chiptune, airhorn and dial-up modem ringtones), a cash register, a buzzer, a stamp thud,
+// fanfares and a sad trombone. Cartoonish and retro, like the rest of
 // the desktop, and a glitchy meltdown for getting hacked. Plain functions that return
 // samples (-1 to 1), so they're tested without a browser; ui/sounds turns them into audio.
 
@@ -109,6 +110,28 @@ const G5 = 783.99;
 const C6 = 1046.5;
 const E6 = 1318.5;
 const G4 = 392;
+const Bb4 = 466.16;
+const A5 = 880;
+const B5 = 987.77;
+const D5 = 587.33;
+const F5 = 698.46;
+const D6 = 1174.66;
+const C4 = 261.63;
+const F4 = 349.23;
+
+// The Shop's ringtones loop like the classic ring: each ends with silence until this long.
+const ChiptuneLoopSeconds = 2.4;
+const AirhornLoopSeconds = 2.6;
+const DialUpLoopSeconds = 3.2;
+// Telephone keypad tones: [low, high] Hz for the digits the modem dials.
+const DialDigits: readonly [number, number][] = [
+  [697, 1209],
+  [852, 1336],
+  [770, 1477],
+  [941, 1336],
+  [697, 1336],
+  [852, 1477],
+];
 
 /** Notes one after another, each `length` seconds. */
 function arpeggio(
@@ -123,6 +146,22 @@ function arpeggio(
   return track;
 }
 
+/** An old phone's bell: two trilling bursts, then a pause. Loops. */
+function classicRing(rate: number): Float32Array<ArrayBuffer> {
+  const track = new Track(rate);
+  const trill = 22;
+  for (const at of [0, 0.6]) {
+    track.add(at, 0.4, (t) => {
+      // The bell's hammer, smoothed so it warbles rather than rasps.
+      const flutter = 0.675 + 0.325 * Math.sin(2 * Math.PI * trill * t);
+      return (Math.sin(2 * Math.PI * 1150 * t) + 0.8 * Math.sin(2 * Math.PI * 1420 * t)) * flutter;
+    });
+  }
+  // Silence to the end of the loop.
+  track.add(0, 3, () => 0);
+  return track.done();
+}
+
 const Makers: Record<SoundName, (rate: number) => Float32Array<ArrayBuffer>> = {
   // A satisfying, crisp mechanical click.
   click: (rate) =>
@@ -134,22 +173,64 @@ const Makers: Record<SoundName, (rate: number) => Float32Array<ArrayBuffer>> = {
     arpeggio(new Track(rate), [660, 990], 0.05, { wave: "triangle", decay: 30 }).done(),
   "window-close": (rate) =>
     arpeggio(new Track(rate), [990, 660], 0.05, { wave: "triangle", decay: 30 }).done(),
-  // An old phone's bell: two trilling bursts, then a pause. Loops.
-  ring: (rate) => {
+  ring: classicRing,
+  // A recorded clip (public/sounds/ring-yo-phone.mp3); the classic bell if it won't load.
+  "ring-yo-phone": classicRing,
+  // A bouncy 8-bit tune: two climbing square-wave phrases over a triangle bass. Loops.
+  "ring-chiptune": (rate) => {
     const track = new Track(rate);
-    const trill = 22;
-    for (const at of [0, 0.6]) {
-      track.add(at, 0.4, (t) => {
-        // The bell's hammer, smoothed so it warbles rather than rasps.
-        const flutter = 0.675 + 0.325 * Math.sin(2 * Math.PI * trill * t);
-        return (
-          (Math.sin(2 * Math.PI * 1150 * t) + 0.8 * Math.sin(2 * Math.PI * 1420 * t)) * flutter
-        );
-      });
-    }
-    // Silence to the end of the loop.
-    track.add(0, 3, () => 0);
+    const step = 0.09;
+    const melody = [C5, G5, E5, G5, C6, G5, E6, C6, D5, A5, F5, A5, D6, B5, G5, B5];
+    melody.forEach((note, index) =>
+      track.tone(index * step, step * 0.9, { from: note, wave: "square", volume: 0.5 }),
+    );
+    [C4, C4, F4, G4 / 2].forEach((note, index) =>
+      track.tone(index * step * 4, step * 3.6, { from: note, wave: "triangle", volume: 0.7 }),
+    );
+    track.add(0, ChiptuneLoopSeconds, () => 0);
     return track.done();
+  },
+  // A stadium airhorn: BWAMP, BWAMP, BWAAAAAMP. Each blast scoops up into a sour chord.
+  "ring-airhorn": (rate) => {
+    const track = new Track(rate);
+    const blasts: [number, number][] = [
+      [0, 0.18],
+      [0.26, 0.18],
+      [0.52, 0.85],
+    ];
+    for (const [at, length] of blasts) {
+      for (const pitch of [Bb4, D5, F5]) {
+        track.tone(at, length, {
+          from: pitch * 0.9,
+          to: pitch,
+          wave: "square",
+          volume: 0.4,
+          vibrato: [30, 0.006],
+        });
+      }
+      track.noise(at, length, 2, 3000, 0.25);
+    }
+    track.add(0, AirhornLoopSeconds, () => 0);
+    return track.done();
+  },
+  // An old modem connecting: dialing, the answer tone, bongs, then screeching static. Loops.
+  "ring-dial-up": (rate) => {
+    const track = new Track(rate);
+    DialDigits.forEach(([low, high], index) => {
+      track.tone(index * 0.11, 0.08, { from: low, volume: 0.5 });
+      track.tone(index * 0.11, 0.08, { from: high, volume: 0.5 });
+    });
+    track.tone(0.8, 0.3, { from: 2100, volume: 0.6 });
+    [1200, 2400, 1200, 2400].forEach((pitch, index) =>
+      track.tone(1.15 + index * 0.08, 0.08, { from: pitch, decay: 6, volume: 0.6 }),
+    );
+    return track
+      .tone(1.5, 0.8, { from: 1800, to: 1650, wave: "square", volume: 0.35, vibrato: [45, 0.08] })
+      .tone(1.5, 0.8, { from: 980, wave: "triangle", volume: 0.3 })
+      .noise(1.5, 0.8, 0, 7000, 0.5)
+      .noise(2.3, 0.35, 4, 4000, 0.6)
+      .add(0, DialUpLoopSeconds, () => 0)
+      .done();
   },
   // The handset coming off the hook: a clunk (a knock small speakers can play, over a thump).
   "pick-up": (rate) =>

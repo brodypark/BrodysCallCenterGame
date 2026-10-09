@@ -1,9 +1,10 @@
 // Shop app: spend banked money on shift perks and cosmetics, with a tab each for Perks,
-// Wallpapers and Themes. Only open between shifts. The server checks and applies every
-// purchase; this only asks and shows the answer.
+// Wallpapers, Themes and Ringtones (which can be previewed). Only open between shifts. The
+// server checks and applies every purchase; this only asks and shows the answer.
 
-import { type ReactElement, useState } from "react";
+import { type ReactElement, useEffect, useState } from "react";
 import {
+  isEquipped,
   maxTier,
   nextPrice,
   tierOf,
@@ -19,6 +20,8 @@ import { useGameMode } from "@client/state/savesStore";
 import { useShift } from "@client/state/shiftStore";
 import { useStats } from "@client/state/statsStore";
 import { cx } from "@client/ui/classNames";
+import { RingtoneSounds } from "@client/ui/soundList";
+import { previewSound, stopPreview } from "@client/ui/sounds";
 import controls from "@client/ui/controls.module.css";
 import app from "@client/ui/apps/appStyles.module.css";
 import styles from "@client/ui/apps/Shop.module.css";
@@ -27,18 +30,12 @@ const Tabs: readonly { kind: UpgradeKind; title: string }[] = [
   { kind: "perk", title: "Perks" },
   { kind: "wallpaper", title: "Wallpapers" },
   { kind: "theme", title: "Themes" },
+  { kind: "ringtone", title: "Ringtones" },
 ];
 
 const OpenStatus = "Spend your banked money. Everything you buy is yours to keep.";
 const ClosedStatus = "The shop is closed during shifts.";
 const NoAnswer = "Couldn't reach the shop. Try again.";
-
-function isEquipped(stats: PlayerStats, upgrade: Upgrade): boolean {
-  return (
-    (upgrade.kind === "wallpaper" && stats.wallpaper === upgrade.id) ||
-    (upgrade.kind === "theme" && stats.theme === upgrade.id)
-  );
-}
 
 export function Shop(): ReactElement {
   const saved = useStats();
@@ -50,6 +47,8 @@ export function Shop(): ReactElement {
   const [tab, setTab] = useState<UpgradeKind>("perk");
   const [busy, setBusy] = useState(false);
   const [answer, setAnswer] = useState<ShopResult | null>(null);
+  // Closing the Shop cuts off a ringtone preview.
+  useEffect(() => stopPreview, []);
   const usable = online && open && !busy;
 
   async function run(ask: () => Promise<ShopResult | null>): Promise<void> {
@@ -117,12 +116,13 @@ function ShopItem({ upgrade, stats, usable, onBuy, onEquip }: ShopItemProps): Re
   const tier = tierOf(stats, upgrade.id);
   const price = nextPrice(stats, upgrade);
   const owned = tier > 0;
+  const tiered = maxTier(upgrade) > 1;
 
   let action: ReactElement;
   if (upgrade.kind === "perk") {
     action =
       price === null ? (
-        <span className={styles.owned}>Maxed out</span>
+        <span className={styles.owned}>{tiered ? "Maxed out" : "Owned"}</span>
       ) : (
         <button
           type="button"
@@ -159,7 +159,7 @@ function ShopItem({ upgrade, stats, usable, onBuy, onEquip }: ShopItemProps): Re
       <div>
         <div className={styles.name}>
           {upgrade.name}
-          {upgrade.kind === "perk" && (
+          {upgrade.kind === "perk" && tiered && (
             <span className={styles.tier}>
               {" "}
               (tier {tier} / {maxTier(upgrade)})
@@ -168,7 +168,19 @@ function ShopItem({ upgrade, stats, usable, onBuy, onEquip }: ShopItemProps): Re
         </div>
         <div className={app.muted}>{upgrade.description}</div>
       </div>
-      {action}
+      <div className={styles.actions}>
+        {upgrade.kind === "ringtone" && (
+          <button
+            type="button"
+            className={controls.button}
+            aria-label={`Preview ${upgrade.name}`}
+            onClick={() => previewSound(RingtoneSounds[upgrade.id])}
+          >
+            ▶
+          </button>
+        )}
+        {action}
+      </div>
     </li>
   );
 }

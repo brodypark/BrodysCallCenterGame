@@ -28,7 +28,7 @@ import { CallService } from "@server/services/CallService";
 import { CharacterService } from "@server/services/CharacterService";
 import { MailService } from "@server/services/MailService";
 import { PlayerService } from "@server/services/PlayerService";
-import { extraRedeemTries } from "@shared/Upgrades";
+import { baitFine, chargePayout, extraRedeemTries } from "@shared/Upgrades";
 import type { DataService } from "@server/services/DataService";
 import { RedeemService } from "@server/services/RedeemService";
 import { SandboxService } from "@server/services/SandboxService";
@@ -223,12 +223,15 @@ export function startGameServer(httpServer: HttpServer, options: GameServerOptio
           shiftFailed,
         });
       };
-      if (!shifts.hacked(playerId, ServerConfig.Bait.Fine, (fine) => announce(fine, true))) {
+      // Smaller with the VPN Subscription perk.
+      const fine = baitFine(stats.get(playerId), ServerConfig.Bait.Fine);
+      if (!shifts.hacked(playerId, fine, (taken) => announce(taken, true))) {
         announce(0, false);
         calls.endBaitCall(playerId);
       }
     },
     extraTries: (playerId) => extraRedeemTries(stats.get(playerId)),
+    chargePayout: (playerId, amount) => chargePayout(stats.get(playerId), amount),
   });
   const sandbox = new SandboxService({
     scenarios: options.scenarios,

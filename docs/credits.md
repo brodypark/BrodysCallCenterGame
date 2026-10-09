@@ -34,8 +34,12 @@ Looped background music, picked in the Settings app (`src/client/ui/songs.ts`).
 
 ## Sounds
 
-None: every sound effect (clicks, the ringtone, ka-ching, stamps, jingles...) is made in
-code from tones and noise (`src/client/ui/synthSounds.ts`), so there's nothing to license.
+Every sound effect (clicks, the ringtones, ka-ching, stamps, jingles...) is made in code from
+tones and noise (`src/client/ui/synthSounds.ts`), so there's nothing to license, except:
+
+- **Yo Phone Linging** ringtone: `public/sounds/ring-yo-phone.mp3`. A meme clip
+  ("Yo Phone Linging Meme sound") supplied by the game's author. **License unconfirmed**:
+  fine for local testing; confirm the rights (or replace it) before deploying.
 
 To replace one with a recorded file, add `public/sounds/<name>.mp3`, list the name in
 `SoundFiles` in `src/client/ui/sounds.ts`, and credit it here. The names are in

@@ -30,7 +30,7 @@ import type {
   ShiftStatus,
 } from "@shared/types";
 import { levelOf } from "@shared/Levels";
-import { extraShiftSeconds } from "@shared/Upgrades";
+import { extraOvertimeSeconds, extraShiftSeconds } from "@shared/Upgrades";
 import { ServerConfig } from "@server/config";
 import type { StatsService } from "@server/services/StatsService";
 
@@ -370,7 +370,7 @@ export class ShiftService {
     }
     if (!shift.redeemWindowOpen) {
       shift.redeemWindowOpen = true;
-      const seconds = Config.Shift.OvertimeRedeemSeconds;
+      const seconds = Config.Shift.OvertimeRedeemSeconds + this.extraOvertimeSeconds(playerId);
       shift.overtimeEndsAt = Date.now() + secondsToMs(seconds);
       // Replaces the idle timer: the call is over.
       this.startTimer(shift, seconds, () => this.endShift(playerId, shift));
@@ -386,7 +386,7 @@ export class ShiftService {
       return;
     }
     if (this.options.calls.isPlayerTurn(playerId)) {
-      const seconds = Config.Shift.OvertimeIdleSeconds;
+      const seconds = Config.Shift.OvertimeIdleSeconds + this.extraOvertimeSeconds(playerId);
       shift.overtimeEndsAt = Date.now() + secondsToMs(seconds);
       this.startTimer(shift, seconds, () => {
         if (shift.status === "overtime") {
@@ -475,6 +475,11 @@ export class ShiftService {
       this.options.lengthSeconds ??
       Config.Shift.LengthSeconds + extraShiftSeconds(this.options.stats.get(playerId))
     );
+  }
+
+  /** Seconds added to each overtime countdown (the Overclocked Router perk). */
+  private extraOvertimeSeconds(playerId: string): number {
+    return extraOvertimeSeconds(this.options.stats.get(playerId));
   }
 
   private startTimer(shift: PlayerShift, seconds: number, callback: () => void): void {

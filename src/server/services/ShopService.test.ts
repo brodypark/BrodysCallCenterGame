@@ -1,7 +1,17 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { Config } from "@shared/Config";
 import type { PlayerStats } from "@shared/stats";
-import { extraRedeemTries, extraShiftSeconds, lowerStartingSuspicion } from "@shared/Upgrades";
+import {
+  baitFine,
+  chargePayout,
+  extraOvertimeSeconds,
+  extraRedeemTries,
+  extraShiftSeconds,
+  giftCardPayout,
+  lowerStartingSuspicion,
+  secondsBeforeRing,
+  softenSuspicionRise,
+} from "@shared/Upgrades";
 import { type ShopClosedReason, ShopService } from "@server/services/ShopService";
 import { defaultStats, StatsService } from "@server/services/StatsService";
 
@@ -67,6 +77,56 @@ describe("ShopService: perks", () => {
   });
 });
 
+describe("ShopService: newer perks", () => {
+  const none = defaultStats();
+  const maxed: PlayerStats = {
+    ...defaultStats(),
+    upgrades: {
+      luckyCat: 3,
+      noiseCancellingHeadset: 3,
+      wobblebucksGold: 3,
+      autoDialer: 1,
+      overclockedRouter: 1,
+      vpnSubscription: 1,
+    },
+  };
+
+  it("sells one-tier perks once, at their own price", () => {
+    stats.load(PlayerId, { ...defaultStats(), money: 1000 });
+    expect(shop.buy(PlayerId, "vpnSubscription")).toMatchObject({
+      success: true,
+      message: "Bought VPN Subscription.",
+    });
+    expect(current().money).toBe(1000 - Config.Shop.OneTierPerkPrices.vpnSubscription);
+    expect(shop.buy(PlayerId, "vpnSubscription").message).toContain("maxed out");
+  });
+
+  it("raises payouts with Lucky Cat and Wobblebucks Gold Tier", () => {
+    expect(giftCardPayout(none, 50)).toBe(50);
+    // +15% and +45%, rounded to whole dollars.
+    expect(giftCardPayout(maxed, 50)).toBe(58);
+    expect(chargePayout(none, 40)).toBe(40);
+    expect(chargePayout(maxed, 40)).toBe(58);
+  });
+
+  it("softens only suspicion rises with the Noise-Cancelling Headset", () => {
+    expect(softenSuspicionRise(none, 15)).toBe(15);
+    expect(softenSuspicionRise(maxed, 15)).toBe(11);
+    expect(softenSuspicionRise(maxed, 10)).toBe(7);
+    expect(softenSuspicionRise(maxed, -10)).toBe(-10);
+  });
+
+  it("applies the Auto-Dialer, Overclocked Router and VPN Subscription", () => {
+    expect(secondsBeforeRing(none, 5)).toBe(5);
+    expect(secondsBeforeRing(maxed, 5)).toBe(5 - Config.Shop.AutoDialerSecondsSaved);
+    expect(secondsBeforeRing(maxed, 1)).toBe(0);
+    expect(extraOvertimeSeconds(none)).toBe(0);
+    expect(extraOvertimeSeconds(maxed)).toBe(Config.Shop.RouterOvertimeExtraSeconds);
+    expect(baitFine(none, 300)).toBe(300);
+    expect(baitFine(maxed, 300)).toBe(150);
+  });
+});
+
 describe("ShopService: cosmetics", () => {
   it("equips a cosmetic when it's bought, and only sells it once", () => {
     expect(shop.buy(PlayerId, "hackerGrid").success).toBe(true);
@@ -80,6 +140,20 @@ describe("ShopService: cosmetics", () => {
     expect(current().theme).toBe("classic");
     expect(shop.equip(PlayerId, "darkMode").success).toBe(true);
     expect(current()).toMatchObject({ theme: "darkMode", money: 2000 - 200 });
+  });
+
+  it("sells and equips ringtones, and the classic bell is always owned", () => {
+    expect(current().ringtone).toBe("classicBell");
+    expect(shop.buy(PlayerId, "airhorn").success).toBe(true);
+    expect(current()).toMatchObject({
+      ringtone: "airhorn",
+      money: 2000 - Config.Shop.CosmeticPrices.airhorn,
+    });
+    // The wallpaper and theme stay as they were.
+    expect(current()).toMatchObject({ wallpaper: "teal", theme: "classic" });
+    expect(shop.equip(PlayerId, "classicBell").success).toBe(true);
+    expect(current().ringtone).toBe("classicBell");
+    expect(shop.equip(PlayerId, "dialUp").success).toBe(false);
   });
 
   it("won't equip what isn't owned, or a perk", () => {

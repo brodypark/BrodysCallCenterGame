@@ -39,6 +39,13 @@
   color: var(--text-muted);
 }
 
+.actions {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 0.5cqh;
+}
+
 .owned {
   flex: none;
   color: var(--text-muted);

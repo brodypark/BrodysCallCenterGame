@@ -6,6 +6,9 @@ import { createStore, useStore } from "@client/state/createStore";
 
 const stats = createStore<PlayerStats>(PlayerStatsSchema.parse({}));
 
+/** The latest stats, read-only (e.g. which ringtone to play). */
+export const statsStore: Pick<typeof stats, "get" | "subscribe"> = stats;
+
 function onStats(next: PlayerStats): void {
   stats.set(next);
 }

@@ -12,6 +12,7 @@ import { useDesktop } from "@client/ui/DesktopContext";
 import { TitleBackground } from "@client/ui/TitleBackground";
 import { useTitleMenuShown } from "@client/ui/useTitleMenuShown";
 import { SettingsContent } from "@client/ui/apps/Settings";
+import { GameManual } from "@client/ui/GameManual";
 import styles from "@client/ui/TitleMenu.module.css";
 import { enterSandbox } from "@client/net/sandboxActions";
 
@@ -74,8 +75,8 @@ export function TitleMenu(): ReactElement | null {
   const [showSettings, setShowSettings] = useState(false);
   const [showDonate, setShowDonate] = useState(false);
   const [showHowToPlay, setShowHowToPlay] = useState(false);
+  const [showGameManual, setShowGameManual] = useState(false);
   const [showCredits, setShowCredits] = useState(false);
-  const [showPatchNotes, setShowPatchNotes] = useState(false);
   const [showCustomCallers, setShowCustomCallers] = useState(false);
 
   useEffect(() => {
@@ -97,7 +98,7 @@ export function TitleMenu(): ReactElement | null {
   ];
 
   const sideMenu: readonly { label: string; onClick: () => void; needsServer?: boolean }[] = [
-    { label: "Patch Notes", onClick: () => setShowPatchNotes(true) },
+    { label: "Documentation", onClick: () => setShowGameManual(true) },
     { label: "Credits", onClick: () => setShowCredits(true) },
     { label: "Discord", onClick: () => window.open("https://discord.gg/mfQzGC2pGX", "_blank") },
     {
@@ -208,6 +209,10 @@ export function TitleMenu(): ReactElement | null {
               </div>
             )}
 
+            {showGameManual && (
+              <GameManual onClose={() => setShowGameManual(false)} />
+            )}
+
             {showDonate && (
               <div className={styles.settingsModal}>
                 <div className={styles.settingsModalContent}>
@@ -307,39 +312,6 @@ export function TitleMenu(): ReactElement | null {
                     <p>
                       <b>Dialogue Generation:</b> Powered by Google Gemini AI
                     </p>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {showPatchNotes && (
-              <div className={styles.settingsModal}>
-                <div
-                  className={cx(styles.settingsModalContent, styles.howToPlayContent)}
-                  style={{ maxHeight: "80vh", overflowY: "auto" }}
-                >
-                  <button
-                    type="button"
-                    className={styles.closeButton}
-                    onClick={() => setShowPatchNotes(false)}
-                  >
-                    X
-                  </button>
-                  <h2 style={{ marginTop: 0 }}>Patch Notes</h2>
-                  <div style={{ fontSize: "16px", lineHeight: "1.4" }}>
-                    <h3 style={{ color: "var(--ribbon)", marginBottom: "4px" }}>
-                      v1.0.0 - The Call Center Opens!
-                    </h3>
-                    <ul style={{ paddingLeft: "20px", marginBottom: "16px" }}>
-                      <li>
-                        <b>Initial Release!</b> Welcome to your first shift at the call center.
-                      </li>
-                      <li>Added fully voice-acted callers using ElevenLabs AI.</li>
-                      <li>Integrated Google Gemini for dynamic, unscripted caller dialogue.</li>
-                      <li>Added Campaign mode with daily quotas and unlockable perks.</li>
-                      <li>Added the Wobblebucks machine for extra side-hustle profits.</li>
-                      <li>Included new desktop customization themes.</li>
-                    </ul>
                   </div>
                 </div>
               </div>

@@ -1,0 +1,71 @@
+.manualContent {
+  width: 90vw;
+  max-width: 800px;
+  height: 85vh;
+  display: flex;
+  flex-direction: column;
+  padding: 24px;
+}
+
+.tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+  border-bottom: 2px solid var(--bevel-shadow);
+  padding-bottom: 8px;
+  flex-wrap: wrap;
+}
+
+.tab {
+  flex: 1;
+  text-align: center;
+  padding: 8px 16px;
+  background: var(--field);
+  border: 1px solid var(--bevel-shadow);
+  border-radius: 6px;
+  font-family: inherit;
+  font-size: 16px;
+  font-weight: bold;
+  cursor: pointer;
+  color: var(--text);
+}
+
+.tab:hover {
+  background: var(--title-active);
+  color: #fff;
+}
+
+.activeTab {
+  background: var(--ribbon);
+  color: #fff;
+  border-color: var(--ribbon);
+}
+
+.scrollArea {
+  flex: 1;
+  overflow-y: auto;
+  font-size: 18px;
+  line-height: 1.5;
+  padding-right: 12px;
+}
+
+.scrollArea h3 {
+  color: var(--ribbon);
+  margin-top: 0;
+  margin-bottom: 12px;
+  font-size: 22px;
+}
+
+.scrollArea p {
+  margin-bottom: 14px;
+}
+
+.scrollArea ul {
+  margin-bottom: 20px;
+  padding-left: 24px;
+}
+
+.scrollArea li {
+  margin-bottom: 8px;
+}
+

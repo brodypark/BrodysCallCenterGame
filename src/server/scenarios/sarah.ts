@@ -42,6 +42,19 @@ export const sarah: ScenarioInput = {
       "Being rushed while she's walking to class",
     ],
   },
+  // Their page in the Characters app.
+  dossier: {
+    bio:
+      "Bubbly college student, always walking to class. She sat through a cyber-safety lecture, " +
+      "so she's sharper than she sounds. Her Bubble Bliss Tea card says 'invalid balance'.",
+    likes:
+      "Be genuine and casual, and explain things clearly without talking down to her. Asking " +
+      "about her boba order is a cheat code.",
+    dislikes:
+      "Robotic script lines, being called 'sweetie', being rushed, and calling boba 'bubble " +
+      "juice'.",
+    obsession: "Boba tea. She ranks every flavor in a spreadsheet. Ask for her top five.",
+  },
   situation:
     "Her aunt sent her a Bubble Bliss Tea gift card for finals week, and the shop's app keeps " +
     "saying 'invalid balance'. She searched 'boba gift card help' and called the first help " +

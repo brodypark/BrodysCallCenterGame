@@ -48,6 +48,18 @@ export const jordan: ScenarioInput = {
       "Being rushed or pressured",
     ],
   },
+  // Their page in the Characters app.
+  dossier: {
+    bio:
+      "Fast-talking optimist who's sure his big win is one bet away. He's lost his couch and " +
+      "his lucky socks this week. His Quackpot Arcade raffle card is stuck 'on hold'.",
+    likes: "Take his silly bets, talk odds, pick a side, and keep the energy upbeat and confident.",
+    dislikes:
+      "Calling anything 'guaranteed', 'risk-free' or '100% safe'. Also: calling him unlucky or " +
+      "a sore loser, jinxing his streak, or rushing him.",
+    obsession:
+      "Betting on everything: snail races, coin flips with his cat, pigeons. Offer him a bet.",
+  },
   situation:
     "He won a Quackpot Arcade gift card in the arcade's raffle (the first thing he's won all " +
     "week), and now it just says 'card on hold'. He found a 'Gift Card Help Line' number on a " +

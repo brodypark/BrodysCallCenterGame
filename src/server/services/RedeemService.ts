@@ -18,12 +18,29 @@ import { generateCode } from "@server/services/codes";
 // Machine, up to its spending limit.
 type CardKind = "giftCard" | "wobblebucks";
 
+/** A gift card: what it pays, and the scenario it came from. */
+export interface GiftCardInfo {
+  value: number;
+  // Sets the XP for cashing it in.
+  difficulty: Difficulty;
+  scenarioId: string;
+}
+
+/** A Wobblebucks Card: the most it can be charged, and the scenario it came from. */
+export interface WobblebucksCardInfo {
+  spendingLimit: number;
+  difficulty: Difficulty;
+  scenarioId: string;
+}
+
 interface IssuedCard {
   kind: CardKind;
   // A gift card pays this when it's redeemed; a Wobblebucks Card can be charged up to it.
   value: number;
   // The scenario's difficulty, which sets the XP for cashing it in.
   difficulty: Difficulty;
+  // The scenario whose victim read it out.
+  scenarioId: string;
   // Wrong tries (or declined charges) left before the card locks. 0 means locked.
   triesLeft: number;
   // Cashed in or charged. Each card pays out once.
@@ -40,9 +57,9 @@ interface PlayerCards {
 
 export interface RedeemServiceOptions {
   // A gift card was cashed in.
-  onRedeemed: (playerId: string, card: { value: number; difficulty: Difficulty }) => void;
-  // A Wobblebucks Card was charged `amount`.
-  onCharged?: (playerId: string, amount: number) => void;
+  onRedeemed: (playerId: string, card: GiftCardInfo) => void;
+  // A Wobblebucks Card from scenario `scenarioId` was charged `amount`.
+  onCharged?: (playerId: string, amount: number, scenarioId: string) => void;
   // A card ran out of tries and can't be cashed in any more.
   onLocked?: (playerId: string) => void;
   // Extra wrong tries per card for this player (the Sticky Notes perk).
@@ -118,11 +135,7 @@ export class RedeemService {
 
   /** Makes `code` redeemable by the player for `value`. Call it when the victim reads it
    * out. Registering the same code again does nothing. */
-  registerGiftCard(
-    playerId: string,
-    code: string,
-    card: { value: number; difficulty: Difficulty },
-  ): void {
+  registerGiftCard(playerId: string, code: string, card: GiftCardInfo): void {
     this.register(playerId, code, {
       kind: "giftCard",
       ...card,
@@ -130,18 +143,15 @@ export class RedeemService {
     });
   }
 
-  /** Makes Wobblebucks Card `card` chargeable by the player, up to `spendingLimit` dollars.
-   * Call it when the victim reads it out. Registering the same card again does nothing. */
-  registerWobblebucksCard(
-    playerId: string,
-    card: string,
-    spendingLimit: number,
-    difficulty: Difficulty,
-  ): void {
+  /** Makes Wobblebucks Card `card` chargeable by the player, up to its spending limit in
+   * dollars. Call it when the victim reads it out. Registering the same card again does
+   * nothing. */
+  registerWobblebucksCard(playerId: string, card: string, info: WobblebucksCardInfo): void {
     this.register(playerId, card, {
       kind: "wobblebucks",
-      value: spendingLimit,
-      difficulty,
+      value: info.spendingLimit,
+      difficulty: info.difficulty,
+      scenarioId: info.scenarioId,
       triesLeft: Config.Card.TriesPerCard,
     });
   }
@@ -171,7 +181,11 @@ export class RedeemService {
       return this.spendTry(playerId, card, "Wrong code.", "Wrong code. That card is now locked!");
     }
     card.redeemed = true;
-    this.onRedeemed(playerId, { value: card.value, difficulty: card.difficulty });
+    this.onRedeemed(playerId, {
+      value: card.value,
+      difficulty: card.difficulty,
+      scenarioId: card.scenarioId,
+    });
     return result(true, card.value, card.triesLeft, `Ka-ching! +$${card.value}`);
   }
 
@@ -233,7 +247,7 @@ export class RedeemService {
       );
     }
     card.redeemed = true;
-    this.onCharged(playerId, amount);
+    this.onCharged(playerId, amount, card.scenarioId);
     return result(true, amount, card.triesLeft, `Approved! Wobble-ka-ching! +$${amount}`);
   }
 
@@ -255,7 +269,7 @@ export class RedeemService {
   private register(
     playerId: string,
     code: string,
-    card: Pick<IssuedCard, "kind" | "value" | "difficulty" | "triesLeft">,
+    card: Pick<IssuedCard, "kind" | "value" | "difficulty" | "scenarioId" | "triesLeft">,
   ): void {
     const player = this.getOrCreate(playerId);
     const key = normalizeCode(code);

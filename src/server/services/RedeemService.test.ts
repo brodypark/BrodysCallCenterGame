@@ -3,7 +3,7 @@ import { Config } from "@shared/Config";
 import { RedeemService } from "@server/services/RedeemService";
 
 const PlayerId = "player-1";
-const Grandma = { value: 50, difficulty: "Easy" } as const;
+const Grandma = { value: 50, difficulty: "Easy", scenarioId: "grandma" } as const;
 
 function setup(): { redeem: RedeemService; paid: number[] } {
   const paid: number[] = [];
@@ -12,6 +12,16 @@ function setup(): { redeem: RedeemService; paid: number[] } {
 }
 
 describe("RedeemService", () => {
+  it("says which scenario a cashed-in gift card came from", () => {
+    const from: string[] = [];
+    const redeem = new RedeemService({
+      onRedeemed: (_playerId, card) => from.push(card.scenarioId),
+    });
+    redeem.registerGiftCard(PlayerId, "GMA-7QZ", Grandma);
+    redeem.redeem(PlayerId, "GMA-7QZ");
+    expect(from).toEqual(["grandma"]);
+  });
+
   it("cashes in a revealed code once, however it's typed", () => {
     const { redeem, paid } = setup();
     redeem.registerGiftCard(PlayerId, "GMA-7QZ", Grandma);
@@ -116,9 +126,28 @@ describe("RedeemService: Wobblebucks Cards", () => {
       onCharged: (_playerId, amount) => charged.push(amount),
       onLocked: () => locked.push(1),
     });
-    redeem.registerWobblebucksCard(PlayerId, Card, Limit, "Easy");
+    redeem.registerWobblebucksCard(PlayerId, Card, {
+      spendingLimit: Limit,
+      difficulty: "Easy",
+      scenarioId: "grandma",
+    });
     return { redeem, charged, locked };
   }
+
+  it("says which scenario a charged card came from", () => {
+    const from: string[] = [];
+    const redeem = new RedeemService({
+      onRedeemed: () => undefined,
+      onCharged: (_playerId, _amount, scenarioId) => from.push(scenarioId),
+    });
+    redeem.registerWobblebucksCard(PlayerId, Card, {
+      spendingLimit: Limit,
+      difficulty: "Hard",
+      scenarioId: "cj",
+    });
+    redeem.charge(PlayerId, Card, Limit);
+    expect(from).toEqual(["cj"]);
+  });
 
   it("approves a charge within the hidden limit, once", () => {
     const { redeem, charged } = withCard();

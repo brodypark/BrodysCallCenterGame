@@ -29,6 +29,19 @@ const PersonaSchema = z.strictObject({
   dislikes: textList,
 });
 
+// The caller's page in the Characters app, written for the player (the persona is written
+// for the AI). The bio shows once the caller is unlocked; each hint once it's earned
+// (Config.Characters).
+const DossierSchema = z.strictObject({
+  bio: text,
+  // What wins them over.
+  likes: text,
+  // What makes them angry.
+  dislikes: text,
+  // Their running gag.
+  obsession: text,
+});
+
 // ElevenLabs voice settings for the streaming text-to-speech endpoint.
 const VoiceSchema = z.strictObject({
   voiceId: text,
@@ -102,6 +115,7 @@ export const ScenarioSchema = z
     // Player level needed before this scenario can call. 1 = from the start.
     unlockLevel: z.number().int().min(1),
     persona: PersonaSchema,
+    dossier: DossierSchema,
     // Why they're calling, and what they need help with.
     situation: text,
     // What the player is trying to get out of them.

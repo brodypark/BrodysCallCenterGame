@@ -8,6 +8,8 @@ import { MaxUnitsPerCharacter } from "@shared/messageText";
 import { SandboxCheats, SandboxSettingsChangeSchema, type SandboxSnapshot } from "@shared/sandbox";
 import type {
   CallSnapshot,
+  CharactersSnapshot,
+  MailSnapshot,
   PlayerStats,
   SavesSnapshot,
   RedeemResult,
@@ -31,6 +33,8 @@ const clientEventSchemas = {
   "shift:clockIn": z.undefined(),
   // The player closed How to Play.
   "tutorial:seen": z.undefined(),
+  // The player opened an email.
+  "mail:read": z.strictObject({ id: z.number().int().min(0) }),
   // The player closed the shift report.
   "shift:resultSeen": z.undefined(),
   "call:answer": z.undefined(),
@@ -148,6 +152,8 @@ export interface ServerToClientEvents {
   "stats:snapshot": (stats: PlayerStats) => void;
   "saves:snapshot": (saves: SavesSnapshot) => void;
   "sandbox:snapshot": (snapshot: SandboxSnapshot) => void;
+  "characters:snapshot": (snapshot: CharactersSnapshot) => void;
+  "mail:snapshot": (snapshot: MailSnapshot) => void;
   // The player opened the game in another tab, which took over. This tab is disconnected
   // and doesn't reconnect by itself.
   "session:replaced": () => void;

@@ -45,6 +45,21 @@ export const grandma: ScenarioInput = {
       "Bossy orders, like 'just read me the code'",
     ],
   },
+  // Their page in the Characters app.
+  dossier: {
+    bio:
+      "Sweet, chatty widow who calls every gadget 'the computer box'. She's been scratching her " +
+      "Pudding Palace gift card with a fork, and shares a house with Sir Fluffington, a cat " +
+      "she's sure is plotting against her.",
+    likes:
+      "Patience and good manners. Say please, say thank you, and tell her to take her time. " +
+      "Kind words about Sir Fluffington go a long way.",
+    dislikes:
+      "Being rushed, computer words and bossy orders like 'just read me the code'. Never say a " +
+      "bad word about the cat.",
+    obsession:
+      "Sir Fluffington, her fat orange cat. Ask what he's up to. He's always up to something.",
+  },
   situation:
     "Her grandson Timmy mailed her a Pudding Palace gift card for her birthday and she can't " +
     "work out how to use it. She found a 'Gift Card Help Line' number in the newspaper and " +

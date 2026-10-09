@@ -19,6 +19,9 @@ import.meta.hot?.dispose(() => {
   socket.off("saves:snapshot", onSnapshot);
 });
 
+/** The latest save slots, and changes to them, for code outside React (e.g. sound cues). */
+export const savesStore: Pick<typeof saves, "get" | "subscribe"> = saves;
+
 /** The latest save slots, or null before the server has sent them. */
 export function useSaves(): SavesSnapshot | null {
   return useStore(saves);

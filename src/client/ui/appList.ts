@@ -14,7 +14,7 @@ export const AppIds = [
   "Tutorial",
   "Settings",
   "Facecam",
-  "Notepad",
+  "Characters",
   "Email",
   "ControlPanel",
 ] as const;
@@ -104,19 +104,21 @@ export const Apps: Readonly<Record<AppId, AppInfo>> = {
     tileColor: "#2f9e8f",
     layout: { x: 0.7, y: 0.45, width: 0.28, height: 0.45 },
   },
-  Notepad: {
-    id: "Notepad",
-    title: "Notepad",
-    icon: "📝",
+  // Tall, like a case file.
+  Characters: {
+    id: "Characters",
+    title: "Characters",
+    icon: "📇",
     tileColor: "#f7d238",
-    layout: { x: 0.2, y: 0.1, width: 0.3, height: 0.6 },
+    layout: { x: 0.33, y: 0.04, width: 0.34, height: 0.84 },
   },
+  // On the left, so How to Play still shows beside it when both open on a new save.
   Email: {
     id: "Email",
     title: "Email",
     icon: "📧",
     tileColor: "#4285f4",
-    layout: { x: 0.5, y: 0.1, width: 0.4, height: 0.7 },
+    layout: { x: 0.08, y: 0.04, width: 0.5, height: 0.84 },
   },
   // Sandbox's control panel, beside the Call window.
   ControlPanel: {

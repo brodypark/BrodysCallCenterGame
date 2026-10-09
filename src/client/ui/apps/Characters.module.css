@@ -1,0 +1,228 @@
+/* The Characters app: a manila case file on paper. Fixed colors, like a real folder (the
+   same in every theme). */
+.characters {
+  --folder: #e2b85c;
+  --folder-edge: #b8903c;
+  --paper: #fffdf4;
+  --paper-ink: #26231c;
+  --paper-muted: #6e6758;
+  --paper-rule: #e3dcc8;
+  --stamp: #c0392b;
+  /* The mugshot's backdrop: a height chart. */
+  --mugshot-back: #dfe6ea;
+  --mugshot-line: #b9c4ca;
+  --badge-text: #ffffff;
+  --easy: #2e7d32;
+  --medium: #b26a00;
+  --hard: #c0392b;
+}
+
+/* One tab per caller, wrapping onto a second row. */
+.index {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5cqh;
+}
+
+.tab {
+  padding: 0.3cqh 0.8cqh;
+  font-size: 1.5cqh;
+}
+
+.lockedTab {
+  color: var(--text-disabled);
+  font-style: italic;
+}
+
+.folder {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  padding: 1cqh;
+  border: 1px solid var(--folder-edge);
+  border-radius: 8px;
+  background: var(--folder);
+}
+
+.paper {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 1.2cqh;
+  min-width: 0;
+  padding: 1.4cqh 1.6cqh;
+  overflow-y: auto;
+  background: var(--paper);
+  color: var(--paper-ink);
+  box-shadow: 0 1px 3px rgb(0 0 0 / 25%);
+}
+
+.fileHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1cqh;
+  padding-bottom: 0.8cqh;
+  border-bottom: 2px solid var(--paper-rule);
+  font-family: var(--font-mono);
+  font-size: 1.5cqh;
+  font-weight: bold;
+  letter-spacing: 0.1em;
+  color: var(--paper-muted);
+}
+
+.stamp {
+  padding: 0.2cqh 0.6cqh;
+  border: 2px solid var(--stamp);
+  border-radius: 4px;
+  color: var(--stamp);
+  letter-spacing: 0.08em;
+  transform: rotate(-6deg);
+}
+
+.profile {
+  display: flex;
+  align-items: center;
+  gap: 1.4cqh;
+}
+
+/* The face fills this square (it's positioned inside it). */
+.mugshot {
+  position: relative;
+  flex: none;
+  height: 15cqh;
+  aspect-ratio: 1;
+  overflow: hidden;
+  border: 2px solid var(--paper-ink);
+  background:
+    repeating-linear-gradient(
+      to bottom,
+      transparent 0,
+      transparent calc(25% - 1px),
+      var(--mugshot-line) calc(25% - 1px),
+      var(--mugshot-line) 25%
+    ),
+    var(--mugshot-back);
+}
+
+.silhouette {
+  display: grid;
+  place-items: center;
+  font-size: 8cqh;
+  font-weight: bold;
+  color: var(--paper-muted);
+}
+
+.facts {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6cqh;
+  min-width: 0;
+}
+
+.name {
+  margin: 0;
+  font-size: 2.6cqh;
+}
+
+.difficulty {
+  align-self: flex-start;
+  padding: 0.1cqh 0.8cqh;
+  border-radius: 999px;
+  font-size: 1.4cqh;
+  font-weight: bold;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--badge-text);
+}
+
+.easy {
+  background: var(--easy);
+}
+
+.medium {
+  background: var(--medium);
+}
+
+.hard {
+  background: var(--hard);
+}
+
+.factList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3cqh;
+  margin: 0;
+  font-size: 1.6cqh;
+}
+
+.factList div {
+  display: flex;
+  gap: 0.6cqh;
+}
+
+.factList dt {
+  color: var(--paper-muted);
+}
+
+.factList dd {
+  margin: 0;
+  font-weight: bold;
+}
+
+.bio {
+  margin: 0;
+  font-size: 1.7cqh;
+  font-style: italic;
+  line-height: 1.4;
+}
+
+.hints {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9cqh;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.hint {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2cqh;
+  padding-top: 0.8cqh;
+  border-top: 1px dashed var(--paper-rule);
+  font-size: 1.65cqh;
+  line-height: 1.35;
+}
+
+.hintLabel {
+  font-family: var(--font-mono);
+  font-size: 1.4cqh;
+  font-weight: bold;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--stamp);
+}
+
+.lockedHint,
+.lockedHint .hintLabel {
+  color: var(--paper-muted);
+}
+
+/* A caller the player hasn't reached: greyed out, name only. */
+.lockedPage {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1cqh;
+  text-align: center;
+  color: var(--paper-muted);
+}
+
+.lockedPage p {
+  margin: 0;
+  font-size: 1.7cqh;
+}

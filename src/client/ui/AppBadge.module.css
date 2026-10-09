@@ -1,0 +1,25 @@
+/* A red pill in the corner. Fixed colors, like a real notification badge (the same in every
+   theme). */
+.badge {
+  --badge: #e5243b;
+  --badge-text: #ffffff;
+  --badge-ring: #ffffff;
+
+  position: absolute;
+  top: -0.6cqh;
+  right: -0.6cqh;
+  display: grid;
+  place-items: center;
+  min-width: 2.2cqh;
+  height: 2.2cqh;
+  padding: 0 0.5cqh;
+  border: 1px solid var(--badge-ring);
+  border-radius: 999px;
+  background: var(--badge);
+  font-family: var(--font-ui);
+  font-size: 1.4cqh;
+  font-weight: bold;
+  line-height: 1;
+  color: var(--badge-text);
+  pointer-events: none;
+}

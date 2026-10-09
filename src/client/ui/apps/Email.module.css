@@ -1,0 +1,160 @@
+/* The Email app: the inbox on the left, the open email on the right. */
+
+.empty {
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  font-size: 1.8cqh;
+}
+
+.folder {
+  font-size: 1.8cqh;
+  font-weight: bold;
+}
+
+.panes {
+  display: grid;
+  flex: 1;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);
+  gap: 1cqh;
+  min-height: 0;
+}
+
+.list {
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  background: var(--field);
+  list-style: none;
+  border-radius: 12px;
+  border: 1px solid var(--bevel-shadow);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3cqh;
+  width: 100%;
+  padding: 1cqh 1.2cqh;
+  border: none;
+  border-bottom: 1px solid var(--bevel-shadow);
+  background: none;
+  font: inherit;
+  text-align: left;
+  color: var(--text);
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.item:last-child {
+  border-bottom: none;
+}
+
+.item:hover {
+  background: rgba(0, 0, 0, 0.03);
+}
+
+.item:focus-visible {
+  outline: 2px solid var(--title-active);
+  outline-offset: -2px;
+}
+
+.itemTop {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.8cqh;
+  font-size: 1.5cqh;
+}
+
+.sender {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.date {
+  flex: none;
+  font-size: 1.3cqh;
+  color: var(--text-muted);
+}
+
+.itemSubject {
+  overflow: hidden;
+  font-size: 1.6cqh;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+/* Unopened: bold, with a dot before the sender. */
+.unread .sender,
+.unread .itemSubject {
+  font-weight: bold;
+}
+
+.unread .sender::before {
+  content: "● ";
+  color: var(--title-active);
+}
+
+.selected {
+  background: var(--selection) !important;
+}
+
+.selected,
+.selected .date,
+.selected .sender::before {
+  color: var(--selection-text);
+}
+
+.reader {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  padding: 1.6cqh 2cqh;
+  overflow-y: auto;
+  background: var(--field);
+  border-radius: 12px;
+  border: 1px solid var(--bevel-shadow);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.nothingOpen {
+  justify-content: center;
+  align-items: center;
+  font-size: 1.7cqh;
+}
+
+.readerHeader {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3cqh;
+  padding-bottom: 1cqh;
+  margin-bottom: 1.2cqh;
+  border-bottom: 1px solid var(--bevel-shadow);
+}
+
+.subject {
+  margin: 0 0 0.4cqh;
+  font-size: 2.2cqh;
+}
+
+.meta {
+  margin: 0;
+  font-size: 1.5cqh;
+  color: var(--text-muted);
+}
+
+.metaLabel {
+  font-weight: bold;
+}
+
+/* The server's plain text: a blank line between paragraphs. */
+.body {
+  font-size: 1.75cqh;
+  line-height: 1.45;
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+}

@@ -75,6 +75,14 @@ export const Config = {
     } satisfies Record<BuyableCosmeticId, number>,
   },
 
+  // The Characters app: a page per caller. Hints on a caller's page unlock as the player
+  // cashes in that caller's gift cards; their spending limit once their Wobblebucks Card has
+  // been charged.
+  Characters: {
+    ScamsForHint: { likes: 1, dislikes: 2, obsession: 3 },
+    ChargesForLimit: 1,
+  },
+
   Call: {
     // Seconds after clocking in before the first call rings.
     FirstCallDelaySeconds: 5,

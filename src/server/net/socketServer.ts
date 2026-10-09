@@ -22,6 +22,8 @@ import { isAllowedOrigin } from "@server/net/origin";
 import type { ScenarioRegistry } from "@server/scenarios/ScenarioRegistry";
 import type { VictimReplySource } from "@server/services/AIService";
 import { CallService } from "@server/services/CallService";
+import { CharacterService } from "@server/services/CharacterService";
+import { MailService } from "@server/services/MailService";
 import { PlayerService } from "@server/services/PlayerService";
 import { extraRedeemTries } from "@shared/Upgrades";
 import type { DataService } from "@server/services/DataService";
@@ -36,6 +38,10 @@ import { StatsService } from "@server/services/StatsService";
 
 interface SocketData {
   playerId: string;
+  // The inbox and Characters pages last sent on this connection, as JSON, so they're only
+  // sent again when they change (they're rebuilt on every stats change).
+  mailSent?: string;
+  charactersSent?: string;
 }
 
 type GameSocket = Socket<
@@ -153,7 +159,21 @@ export function startGameServer(httpServer: HttpServer, options: GameServerOptio
   const toPlayer = (playerId: string): GameSocket | undefined => players.activeSocket(playerId);
 
   const stats = new StatsService({
-    send: (playerId, snapshot) => toPlayer(playerId)?.emit("stats:snapshot", snapshot),
+    send: (playerId, snapshot) => {
+      const socket = toPlayer(playerId);
+      if (!socket) {
+        return;
+      }
+      socket.emit("stats:snapshot", snapshot);
+      // A level can unlock a caller, a scam a hint, and both send mail. A failure here is
+      // logged, never passed back to whatever changed the stats (e.g. a payout).
+      try {
+        characters.publish(playerId);
+        mail.publish(playerId);
+      } catch (error) {
+        log.error({ err: error, playerId }, "Couldn't send the Characters pages or inbox");
+      }
+    },
     save: (playerId, snapshot) => {
       try {
         saves.save(playerId, snapshot);
@@ -162,9 +182,25 @@ export function startGameServer(httpServer: HttpServer, options: GameServerOptio
       }
     },
   });
+  // Notes a scam or charge on the caller's Characters page. A failure is logged, so it can
+  // never stop the card paying out.
+  const recordOnPage = (playerId: string, record: () => void): void => {
+    try {
+      record();
+    } catch (error) {
+      log.error({ err: error, playerId }, "Couldn't update a caller's Characters page");
+    }
+  };
   const redeem = new RedeemService({
-    onRedeemed: (playerId, card) => shifts.cardRedeemed(playerId, card),
-    onCharged: (playerId, amount) => shifts.cardCharged(playerId, amount),
+    // The caller's page first, so a shift this ends counts what was learned.
+    onRedeemed: (playerId, card) => {
+      recordOnPage(playerId, () => characters.scammed(playerId, card.scenarioId));
+      shifts.cardRedeemed(playerId, card);
+    },
+    onCharged: (playerId, amount, scenarioId) => {
+      recordOnPage(playerId, () => characters.charged(playerId, scenarioId));
+      shifts.cardCharged(playerId, amount);
+    },
     onLocked: (playerId) => shifts.cardLocked(playerId),
     extraTries: (playerId) => extraRedeemTries(stats.get(playerId)),
   });
@@ -202,6 +238,14 @@ export function startGameServer(httpServer: HttpServer, options: GameServerOptio
     canClockIn: (playerId) => saves.modeOf(playerId) === "campaign",
     unlockedBetween: (fromLevel, toLevel) =>
       options.scenarios.unlockedBetween(fromLevel, toLevel).map((scenario) => scenario.displayName),
+    // Runs from the shift timer, so a failure is logged rather than thrown.
+    onEnded: (playerId, summary) => {
+      try {
+        mail.shiftEnded(playerId, summary);
+      } catch (error) {
+        log.error({ err: error, playerId }, "Couldn't send the shift's emails");
+      }
+    },
     send: (playerId, snapshot) => toPlayer(playerId)?.emit("shift:snapshot", snapshot),
     sendResult: (playerId, result) => toPlayer(playerId)?.emit("shift:ended", result),
   });
@@ -216,6 +260,33 @@ export function startGameServer(httpServer: HttpServer, options: GameServerOptio
       redeem.clearCards(playerId);
     },
     send: (playerId, snapshot) => toPlayer(playerId)?.emit("saves:snapshot", snapshot),
+  });
+  const characters: CharacterService = new CharacterService({
+    scenarios: options.scenarios,
+    stats,
+    revealAll: (playerId) => saves.modeOf(playerId) === "sandbox",
+    send: (playerId, snapshot) => {
+      const socket = toPlayer(playerId);
+      const json = JSON.stringify(snapshot);
+      if (socket && socket.data.charactersSent !== json) {
+        socket.data.charactersSent = json;
+        socket.emit("characters:snapshot", snapshot);
+      }
+    },
+    onLearned: (playerId, scenarioId) => mail.learned(playerId, scenarioId),
+  });
+  const mail: MailService = new MailService({
+    scenarios: options.scenarios,
+    stats,
+    isCampaign: (playerId) => saves.modeOf(playerId) === "campaign",
+    send: (playerId, snapshot) => {
+      const socket = toPlayer(playerId);
+      const json = JSON.stringify(snapshot);
+      if (socket && socket.data.mailSent !== json) {
+        socket.data.mailSent = json;
+        socket.emit("mail:snapshot", snapshot);
+      }
+    },
   });
   const shop = new ShopService({
     stats,
@@ -269,6 +340,8 @@ export function startGameServer(httpServer: HttpServer, options: GameServerOptio
     }
     socket.emit("shift:snapshot", shifts.snapshot(playerId));
     socket.emit("stats:snapshot", stats.get(playerId));
+    characters.publish(playerId);
+    mail.publish(playerId);
     // With no save picked (a new visit), the client shows the slot picker. Reading the
     // slots touches the database, so a failure is logged rather than crashing the server.
     try {
@@ -292,10 +365,12 @@ export function startGameServer(httpServer: HttpServer, options: GameServerOptio
     };
     listen(socket, "saves:continue", log, ({ slot }) => {
       saves.continueSlot(playerId, slot);
+      mail.savePicked(playerId);
       sendShift();
     });
     listen(socket, "saves:new", log, ({ slot }) => {
       saves.newGame(playerId, slot);
+      mail.savePicked(playerId);
       sendShift();
     });
     listen(socket, "saves:delete", log, ({ slot }) => saves.deleteSlot(playerId, slot));
@@ -333,6 +408,7 @@ export function startGameServer(httpServer: HttpServer, options: GameServerOptio
       return result;
     });
     answer(socket, "shop:equip", log, ({ id }) => shop.equip(playerId, id));
+    listen(socket, "mail:read", log, ({ id }) => mail.read(playerId, id));
     listen(socket, "tutorial:seen", log, () => {
       if (saves.activeSlot(playerId) !== null && !stats.get(playerId).tutorialSeen) {
         stats.update(playerId, (current) => {

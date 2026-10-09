@@ -38,6 +38,20 @@ export const pete: ScenarioInput = {
       "Doubt about whether he could lift something",
     ],
   },
+  // Their page in the Characters app.
+  dossier: {
+    bio:
+      "Personal trainer who does push-ups through the whole call and counts reps out loud. A " +
+      "client gave him an Iron Temple Supplements card the scanner won't read.",
+    likes:
+      "Match his energy. Hype him up, call him strong, and give quick, confident steps like a " +
+      "coach.",
+    dislikes:
+      "Slow, long-winded answers, junk food talk, a condescending 'buddy', and any doubt about " +
+      "what he can lift.",
+    obsession:
+      "Working out: reps, sets, macros, leg day. Ask about his routine and he'll never stop.",
+  },
   situation:
     "A client gave him an Iron Temple Supplements gift card as a thank-you, and the shop's " +
     "scanner says 'card not found'. He saw a 'Gift Card Help Line' number on a gym " +
@@ -54,15 +68,14 @@ export const pete: ScenarioInput = {
     similarityBoost: 0.75,
     style: 0.4,
   },
-  // Short dark hair and a blue sweatband.
+  // Bald dark hair.
   face: {
     skin: "#c68642",
     hair: "#2b1b0e",
-    hairStyle: "Short",
+    hairStyle: "Bald",
     glasses: false,
     earrings: false,
     blush: false,
-    hat: { style: "Headband", color: "#2f80ed" },
   },
   // Suspicion starts at 35 and his trust level is a low 15. With the AI off, these replies
   // drift below 15 and he reads the code out on turn 9.

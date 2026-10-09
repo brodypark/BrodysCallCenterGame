@@ -15,6 +15,17 @@ export const ServerConfig = {
   // over HTTP instead (step 10).
   MaxSocketMessageBytes: 16 * 1024,
 
+  // The Email app (MailService). Mail is written out on the server, so these stay here.
+  Mail: {
+    // Most emails kept in an inbox; the oldest go first.
+    MaxInbox: 50,
+    // In one shift: callers hanging up on the player, the player hanging up on callers, and
+    // calls declined or left ringing, before HR or the boss sends a warning.
+    HungUpOnWarning: 3,
+    HangingUpWarning: 3,
+    IgnoredCallsWarning: 3,
+  },
+
   Database: {
     // The SQLite file with everyone's saves, relative to the server's own folder (src/server
     // in development, dist/server when built), so both use the project's gitignored data/

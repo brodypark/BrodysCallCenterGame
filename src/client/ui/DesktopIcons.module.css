@@ -43,6 +43,7 @@
 
 /* The colored square, with the app's glyph filling the middle of it. */
 .tile {
+  position: relative;
   display: grid;
   place-items: center;
   height: calc(var(--tile-share) * 100%);

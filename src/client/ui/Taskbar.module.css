@@ -54,6 +54,7 @@
 
 /* Each takes up to about a quarter of the space, and they shrink to share it. */
 .windowButton {
+  position: relative;
   flex: 0 0 auto;
   aspect-ratio: 1;
   display: flex;

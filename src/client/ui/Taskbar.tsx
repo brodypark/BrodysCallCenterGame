@@ -5,6 +5,7 @@
 
 import type { ReactElement } from "react";
 import { formatClock } from "@shared/time";
+import { AppBadge } from "@client/ui/AppBadge";
 import { Apps } from "@client/ui/appList";
 import { cx } from "@client/ui/classNames";
 import controls from "@client/ui/controls.module.css";
@@ -77,7 +78,8 @@ export function Taskbar(): ReactElement {
               title={app.title}
               onClick={() => store.focusApp(id)}
             >
-              {app.icon}
+              <span aria-hidden>{app.icon}</span>
+              <AppBadge id={id} />
             </button>
           );
         })}

@@ -44,6 +44,20 @@ export const brody: ScenarioInput = {
       "Anyone who says pineapple doesn't belong on pizza",
     ],
   },
+  // Their page in the Characters app.
+  dossier: {
+    bio:
+      "Laid-back foodie who called right before dinner, so he starts out hangry and suspicious. " +
+      "His Mega Munch Burger Barn card says 'already used'.",
+    likes:
+      "Talk food, let him finish chewing, and call him 'chef'. A fed Brody is a trusting Brody.",
+    dislikes:
+      "Being rushed (especially mid-bite), formal robot talk, diets, and anyone who says " +
+      "pineapple doesn't belong on pizza.",
+    obsession:
+      "Eating: his last meal, his next meal, and the buffet that banned him for 'excellence'. " +
+      "Ask what he's having.",
+  },
   situation:
     "His friends got him a Mega Munch Burger Barn gift card for his birthday, and the " +
     "restaurant's kiosk says 'card already used'. He found a 'Gift Card Help Line' number on " +
@@ -60,12 +74,12 @@ export const brody: ScenarioInput = {
     similarityBoost: 0.75,
     style: 0.45,
   },
-  // Messy blonde hair and glasses.
+  // Messy dark brown hair.
   face: {
     skin: "#ffdbac",
-    hair: "#c9a15a",
+    hair: "#3e2723",
     hairStyle: "Short",
-    glasses: true,
+    glasses: false,
     earrings: false,
     blush: false,
   },

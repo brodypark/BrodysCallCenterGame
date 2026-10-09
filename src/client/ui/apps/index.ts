@@ -12,7 +12,7 @@ import { Shop } from "@client/ui/apps/Shop";
 import { Stats } from "@client/ui/apps/Stats";
 import { Tutorial } from "@client/ui/apps/Tutorial";
 import { Wobblebucks } from "@client/ui/apps/Wobblebucks";
-import { Notepad } from "@client/ui/apps/Notepad";
+import { Characters } from "@client/ui/apps/Characters";
 import { Email } from "@client/ui/apps/Email";
 
 export interface AppProps {
@@ -30,7 +30,7 @@ export const AppComponents: Readonly<Record<AppId, ComponentType<AppProps>>> = {
   Tutorial,
   Settings,
   Facecam,
-  Notepad,
+  Characters,
   Email,
   ControlPanel,
 };

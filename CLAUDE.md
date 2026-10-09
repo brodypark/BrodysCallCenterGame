@@ -15,7 +15,7 @@ Future: a shared office with other players. Build for that move: all game state 
 5. If suspicion maxes out, the victim hangs up with no payout. There's no turn cap.
 
 ## Apps
-Control Panel (Sandbox only), Phone (incoming call), Facecam (webcam with a call-center headset drawn on the player, optional stinky aroma, all on the device), Call (subtitles, push-to-talk, typed box, turn indicator, trust meter, cartoon face, hang up), Redeem, Wobblebucks Machine (charge a Wobblebucks Card from a side problem), Stats, Shop (perks and cosmetics), Settings (master volume, music, sound effects; also on the title menu), How to Play (opens by itself until first closed, saved as stats.tutorialSeen). Windows drag by their title bar; desktop icons drag and snap to an invisible grid.
+Control Panel (Sandbox only), Phone (incoming call), Facecam (webcam with a call-center headset drawn on the player, optional stinky aroma, all on the device), Call (subtitles, push-to-talk, typed box, turn indicator, trust meter, cartoon face, hang up), Redeem, Wobblebucks Machine (charge a Wobblebucks Card from a side problem), Stats, Shop (perks and cosmetics), Settings (master volume, music, sound effects; also on the title menu), How to Play (opens by itself until first closed, saved as stats.tutorialSeen), Characters (a dossier page per caller; locked callers show only their name; hints unlock as you scam them), Email (the story: the boss's welcome opens by itself on a save's first play; shift-end mail from the boss, HR and Research; a newsletter chapter every other level). Windows drag by their title bar; desktop icons drag and snap to an invisible grid.
 
 ## Stack
 - TypeScript (strict) everywhere, Node.js LTS, npm
@@ -30,7 +30,8 @@ Control Panel (Sandbox only), Phone (incoming call), Facecam (webcam with a call
 ## Structure
 - src/server → Node server, all game logic
   - index.ts: Fastify + Socket.IO; serves the built client in production
-  - services/: CallService, AIService, VoiceService, RedeemService, ShiftService, ShopService, SandboxService (Sandbox mode and its Control Panel), TutorialService, DataService, SaveService (3 save slots per player), PlayerService (identity, one connection per player), RateLimiter
+  - services/: CallService, AIService, VoiceService, RedeemService, ShiftService, ShopService, SandboxService (Sandbox mode and its Control Panel), TutorialService, DataService, SaveService (3 save slots per player), PlayerService (identity, one connection per player), RateLimiter, CharacterService (Characters pages; hints sent only once earned), MailService (which emails to send, and when)
+  - mail/: MailTemplates (every email's text and the story; server-only so unreached chapters stay hidden)
   - prompts/: VictimPrompt, DebugReplies
   - scenarios/: one module per scam, plus ScenarioRegistry
 - src/client → React app

@@ -31,7 +31,6 @@ import type {
   CallSnapshot,
   CallStatus,
   ChatMessage,
-  Difficulty,
   TurnState,
 } from "@shared/types";
 import { levelOf } from "@shared/Levels";
@@ -44,6 +43,7 @@ import type { HistoryLine } from "@server/prompts/VictimPrompt";
 import type { AIReply, Scenario } from "@server/scenarios/scenarioSchema";
 import type { VictimReplySource } from "@server/services/AIService";
 import { maskCodes } from "@server/services/aiReply";
+import type { GiftCardInfo, WobblebucksCardInfo } from "@server/services/RedeemService";
 import { applySuspicionChange, trustMeter } from "@server/services/suspicion";
 
 interface PlayerCall {
@@ -98,17 +98,8 @@ interface PlayerCall {
 /** What CallService needs from RedeemService: making codes and making them redeemable. */
 export interface CodeIssuer {
   generateCode: (playerId: string, prefix: string) => string;
-  registerGiftCard: (
-    playerId: string,
-    code: string,
-    card: { value: number; difficulty: Difficulty },
-  ) => void;
-  registerWobblebucksCard: (
-    playerId: string,
-    card: string,
-    spendingLimit: number,
-    difficulty: Difficulty,
-  ) => void;
+  registerGiftCard: (playerId: string, code: string, card: GiftCardInfo) => void;
+  registerWobblebucksCard: (playerId: string, card: string, info: WobblebucksCardInfo) => void;
 }
 
 /** Told about calls as they happen. Set by the shift. */
@@ -658,16 +649,16 @@ export class CallService {
       this.codes.registerGiftCard(playerId, call.code, {
         value: scenario.cardValue,
         difficulty: scenario.difficulty,
+        scenarioId: scenario.id,
       });
     }
     if (offersCard && call.card === null && trusting) {
       call.card = this.codes.generateCode(playerId, Config.Card.Prefix);
-      this.codes.registerWobblebucksCard(
-        playerId,
-        call.card,
-        sideProblem.spendingLimit,
-        scenario.difficulty,
-      );
+      this.codes.registerWobblebucksCard(playerId, call.card, {
+        spendingLimit: sideProblem.spendingLimit,
+        difficulty: scenario.difficulty,
+        scenarioId: scenario.id,
+      });
     }
     const code = reply.revealsCode ? call.code : null;
     const card = offersCard ? call.card : null;

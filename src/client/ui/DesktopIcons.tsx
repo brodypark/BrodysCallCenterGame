@@ -4,6 +4,7 @@
 // the app; so does Enter or Space when the icon has keyboard focus.
 
 import { type MouseEvent, type ReactElement, useRef, useState } from "react";
+import { AppBadge } from "@client/ui/AppBadge";
 import { type AppInfo, appsFor } from "@client/ui/appList";
 import { useGameMode } from "@client/state/savesStore";
 import { cx } from "@client/ui/classNames";
@@ -121,8 +122,9 @@ function DesktopIcon({ app, cell }: { app: AppInfo; cell: number }): ReactElemen
       onClick={open}
       {...drag}
     >
-      <span className={styles.tile} style={{ backgroundColor: app.tileColor }} aria-hidden>
-        {app.icon}
+      <span className={styles.tile} style={{ backgroundColor: app.tileColor }}>
+        <span aria-hidden>{app.icon}</span>
+        <AppBadge id={app.id} />
       </span>
       <span className={styles.label}>{app.title}</span>
     </button>

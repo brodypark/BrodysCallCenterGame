@@ -41,6 +41,19 @@ export const cj: ScenarioInput = {
       "Pressure or urgency, which he says is 'literally the scam playbook'",
     ],
   },
+  // Their page in the Characters app.
+  dossier: {
+    bio:
+      "Chronically online gamer who's watched hundreds of scam-baiting videos, and calls in " +
+      "live on stream. His Galaxy Gamer Gems card says 'code already used'.",
+    likes:
+      "Talk like a friend: slang, memes, brainrot. Call him 'bro', 'king' or 'sigma'. The more " +
+      "casual, the better.",
+    dislikes:
+      "Official talk like 'valued customer' or 'verification', being called 'sir', calling " +
+      "memes cringe, and pressure. Urgency is 'literally the scam playbook'.",
+    obsession: "Brainrot. Rate his aura or ask if he's a sigma, and he's yours.",
+  },
   situation:
     "He won a Galaxy Gamer Gems gift card in an online tournament, and the store says 'code " +
     "already used'. A 'Gift Card Help Line' number popped up in a comment under a video, and " +
@@ -57,15 +70,14 @@ export const cj: ScenarioInput = {
     similarityBoost: 0.75,
     style: 0.45,
   },
-  // Dyed blue hair and a red gamer headband.
+  // Blonde hair, no headband, pale skin.
   face: {
-    skin: "#e0ac69",
-    hair: "#3d7dd8",
+    skin: "#f5d0b5",
+    hair: "#eadd8a",
     hairStyle: "Short",
     glasses: false,
-    earrings: true,
+    earrings: false,
     blush: false,
-    hat: { style: "Headband", color: "#d93030" },
   },
   // Suspicion starts very high, at 65, with little room for mistakes, and his trust level is
   // 20. With the AI off, these replies drift below 20 and he reads the code out on turn 9.

@@ -36,6 +36,19 @@ export const hudson: ScenarioInput = {
       "Stiff, scripted help-line talk",
     ],
   },
+  // Their page in the Characters app.
+  dossier: {
+    bio:
+      "Extremely chill guy with a bag of popcorn that never seems to run out. Rates everything " +
+      "out of ten. The ticket kiosk keeps rejecting his Kernel Kingdom Cinemas card.",
+    likes:
+      "Keep it relaxed and unhurried. Call him 'dude' or 'my guy', and let him wander off into " +
+      "movie talk for a bit.",
+    dislikes: "Being rushed, stiff help-line scripts, and anyone saying popcorn is a bad snack.",
+    obsession:
+      "Popcorn: butter-to-salt ratios, microwave timing, the unpopped kernels at the bottom. " +
+      "Ask what he puts on his.",
+  },
   situation:
     "His roommate gave him a Kernel Kingdom Cinemas gift card for his birthday, and the ticket " +
     "kiosk keeps saying 'card not recognised'. He found a 'Gift Card Help Line' number on a " +
@@ -47,7 +60,7 @@ export const hudson: ScenarioInput = {
   suspicionThreshold: 100,
   trustLevel: 25,
   voice: {
-    voiceId: "TX3LPaxmHKxFdv7VOQHJ", // Liam: young, casual American male (ElevenLabs default)
+    voiceId: "5GCoyE3YOS7VTHfTkvhi", // Hudson Finn custom voice on ElevenLabs
     stability: 0.45,
     similarityBoost: 0.75,
     style: 0.2,

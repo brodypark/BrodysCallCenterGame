@@ -145,6 +145,71 @@ export interface ShiftResult {
   unlockedCallers: string[];
 }
 
+// What a hint on a caller's page is about: what wins them over, what makes them angry, their
+// running gag, and the most their Wobblebucks Card can be charged.
+export type CallerHintKind = "likes" | "dislikes" | "obsession" | "spendingLimit";
+
+export interface CallerHint {
+  kind: CallerHintKind;
+  // The hint, or null until it's earned.
+  text: string | null;
+  // How many more of the caller's gift cards to cash in (Wobblebucks Cards to charge, for
+  // the spending limit) to earn it. 0 once it's earned.
+  remaining: number;
+}
+
+/** A caller the player hasn't reached yet: only their name and when they unlock. */
+export interface LockedCallerPage {
+  unlocked: false;
+  id: string;
+  name: string;
+  unlockLevel: number;
+}
+
+/** A caller who can call the player. */
+export interface UnlockedCallerPage {
+  unlocked: true;
+  id: string;
+  name: string;
+  unlockLevel: number;
+  difficulty: Difficulty;
+  face: FaceLook;
+  bio: string;
+  // What their gift card pays.
+  cardValue: number;
+  // Their gift cards the player has cashed in.
+  scams: number;
+  hints: CallerHint[];
+}
+
+export type CallerPage = LockedCallerPage | UnlockedCallerPage;
+
+/** The Characters app: a page for every caller, in unlock order. Hints and spending limits
+ * the player hasn't earned are never in it. */
+export interface CharactersSnapshot {
+  pages: CallerPage[];
+}
+
+/** One email, written out by the server. */
+export interface MailMessage {
+  id: number;
+  from: string;
+  subject: string;
+  // Plain text; a blank line between paragraphs.
+  body: string;
+  // When it arrived (milliseconds since 1970, server clock).
+  sentAt: number;
+  read: boolean;
+}
+
+/** The Email app's inbox. */
+export interface MailSnapshot {
+  // Newest first.
+  messages: MailMessage[];
+  // An unread email that opens the Email app by itself (the boss's welcome), or null.
+  autoOpenId: number | null;
+}
+
 /** The server's answer to buying or equipping something in the Shop. */
 export interface ShopResult {
   success: boolean;

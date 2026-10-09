@@ -252,6 +252,9 @@ const Makers: Record<SoundName, (rate: number) => Float32Array<ArrayBuffer>> = {
     })
       .tone(0.3, 0.4, { from: C6 * 2, decay: 8, volume: 0.3 })
       .done(),
+  // A bright two-note chime: you've got mail.
+  "new-mail": (rate) =>
+    arpeggio(new Track(rate), [G5, E6], 0.12, { wave: "sine", decay: 9 }).done(),
 };
 
 /** The samples for `name` at `rate` samples a second. */

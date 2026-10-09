@@ -6,7 +6,7 @@ import { grandma } from "@server/scenarios/grandma";
 import { createScenarioRegistry } from "@server/scenarios/ScenarioRegistry";
 import { CallService } from "@server/services/CallService";
 import { RedeemService } from "@server/services/RedeemService";
-import { ShiftService } from "@server/services/ShiftService";
+import { ShiftService, type ShiftSummary } from "@server/services/ShiftService";
 import { defaultStats, StatsService } from "@server/services/StatsService";
 
 const PlayerId = "player-1";
@@ -29,8 +29,11 @@ function createGame(): {
   call: () => CallSnapshot;
   shift: () => ShiftSnapshot;
   results: ShiftResult[];
+  // What onEnded was told, and how many shifts were failed in the saved stats by then.
+  summaries: { summary: ShiftSummary; shiftsFailed: number }[];
 } {
   const results: ShiftResult[] = [];
+  const summaries: { summary: ShiftSummary; shiftsFailed: number }[] = [];
   let lastShift: ShiftSnapshot | null = null;
   const stats: StatsService = new StatsService({ send: () => undefined, save: () => undefined });
   const redeem = new RedeemService({
@@ -56,6 +59,8 @@ function createGame(): {
       lastShift = snapshot;
     },
     sendResult: (_playerId, result) => results.push(result),
+    onEnded: (playerId, summary) =>
+      summaries.push({ summary, shiftsFailed: stats.get(playerId).shiftsFailed }),
   });
   calls.setListener({
     callEnded: (playerId, reason) => shifts.callEnded(playerId, reason),
@@ -68,6 +73,7 @@ function createGame(): {
     redeem,
     stats,
     results,
+    summaries,
     call: () => calls.snapshot(PlayerId) as CallSnapshot,
     shift: () => lastShift ?? shifts.snapshot(PlayerId),
   };
@@ -174,6 +180,36 @@ describe("ShiftService: levels and perks", () => {
 });
 
 describe("ShiftService: the end of a shift", () => {
+  it("doesn't count a call still ringing when time runs out as ignored", () => {
+    const game = createGame();
+    clockInAndRing(game);
+    // Shifts the rings so one is still ringing when the shift ends: they start at 10, 30,
+    // 50, 70, 90 (each missed 15 s later) and 110 (cut off at 120).
+    game.calls.decline(PlayerId);
+    advanceSeconds(ShiftSeconds);
+    expect(game.summaries[0]?.summary.endings).toEqual({ declined: 1, missed: 5 });
+  });
+
+  it("tells onEnded how the shift's calls ended, once the results are saved", () => {
+    const game = createGame();
+    clockInAndRing(game);
+    answer(game);
+    game.calls.hangUp(PlayerId);
+    advanceSeconds(Config.Call.SecondsBetweenCalls);
+    game.calls.decline(PlayerId);
+    advanceSeconds(Config.Call.SecondsBetweenCalls + Config.Call.RingSeconds);
+    advanceSeconds(ShiftSeconds);
+
+    expect(game.summaries).toHaveLength(1);
+    const [{ summary, shiftsFailed } = { summary: null, shiftsFailed: 0 }] = game.summaries;
+    expect(summary).toMatchObject({
+      result: { passed: false },
+      levelBefore: 1,
+      endings: { playerHungUp: 1, declined: 1, missed: expect.any(Number) as number },
+    });
+    expect(shiftsFailed).toBe(1);
+  });
+
   it("passes when earnings reach the quota: banked, with the pass bonus", () => {
     const game = createGame();
     clockInAndRing(game);

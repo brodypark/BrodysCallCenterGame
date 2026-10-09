@@ -45,6 +45,19 @@ export const uncleMike: ScenarioInput = {
       "Being rushed or told what to do",
     ],
   },
+  // Their page in the Characters app.
+  dossier: {
+    bio:
+      "Loud, stubborn and suspicious, and he tests you with trick questions. Has the Georgia " +
+      "game on purely so he can yell at it. His End Zone Sports card keeps getting declined.",
+    likes:
+      "Confident, straight answers that never change. Agree that Georgia football stinks, and " +
+      "trash-talk them with him.",
+    dislikes:
+      "Defending Georgia (never say 'Go Dawgs'), tech jargon, answers that contradict each " +
+      "other, and being told what to do.",
+    obsession: "How bad Georgia's football team is. Agree loudly.",
+  },
   situation:
     "His nephew gave him an End Zone Sports gift card for his birthday, and the store's " +
     "website keeps saying 'card declined'. He found a 'Gift Card Help Line' number in the " +
@@ -61,11 +74,11 @@ export const uncleMike: ScenarioInput = {
     similarityBoost: 0.75,
     style: 0.25,
   },
-  // Bald, with a big grey mustache.
+  // Short black hair, with a big black mustache.
   face: {
     skin: "#e8b796",
-    hair: "#9e9e9e",
-    hairStyle: "Bald",
+    hair: "#111111",
+    hairStyle: "Short",
     glasses: false,
     earrings: false,
     blush: true,

@@ -44,6 +44,19 @@ export const evan: ScenarioInput = {
       "Any threat to tell CJ",
     ],
   },
+  // Their page in the Characters app.
+  dossier: {
+    bio:
+      "Sweet, nervous overthinker who double-checks anything that sounds off. He wants to send " +
+      "flowers to his friend CJ's sister, but his Rose & Ribbon Florist card isn't activated.",
+    likes:
+      "Kindness, patience and encouragement: tell him he's got a shot. Dating advice works " +
+      "wonders, even bad dating advice.",
+    dislikes:
+      "Teasing about his crush, pushy or bossy talk, saying she's out of his league, and any " +
+      "threat to tell CJ.",
+    obsession: "His crush on CJ's sister. Help him practise asking her out.",
+  },
   situation:
     "He has a Rose & Ribbon Florist gift card he wants to use to send flowers to CJ's sister, " +
     "but the florist's website says 'card not activated'. He found a 'Gift Card Help Line' " +
@@ -60,12 +73,12 @@ export const evan: ScenarioInput = {
     similarityBoost: 0.75,
     style: 0.3,
   },
-  // Short reddish hair, glasses, and permanently blushing.
+  // Short dirty blonde hair, and permanently blushing.
   face: {
     skin: "#f5d0b5",
-    hair: "#a0522d",
+    hair: "#c2a077",
     hairStyle: "Short",
-    glasses: true,
+    glasses: false,
     earrings: false,
     blush: true,
   },

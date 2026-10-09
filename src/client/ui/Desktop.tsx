@@ -27,6 +27,7 @@ import { useCallPopups } from "@client/ui/useCallPopups";
 import { useDesktopSounds } from "@client/ui/useDesktopSounds";
 import { useTitleMenuReset, useTitleMenuShown } from "@client/ui/useTitleMenuShown";
 import { useTutorialPopup } from "@client/ui/useTutorialPopup";
+import { useMailPopup } from "@client/ui/useMailPopup";
 import { keepAudioUnlocked, unlockAudio } from "@client/voice/audioUnlock";
 import { Windows } from "@client/ui/Windows";
 import { SuspicionAlert } from "@client/ui/SuspicionAlert";
@@ -47,6 +48,8 @@ export function Desktop(): ReactElement {
   useCallPopups(store);
   useTitleMenuReset(store);
   useTutorialPopup(store);
+  // After How to Play, so the welcome email opens in front of it.
+  useMailPopup(store);
   // The title menu covers the desk; keyboard focus mustn't reach what's under it.
   const menuShown = useTitleMenuShown(store);
   // Also after a refresh mid-shift, when there's no Clock In click to do it.

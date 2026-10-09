@@ -22,7 +22,8 @@ export type SoundName =
   | "stamp"
   | "promoted"
   | "fired"
-  | "level-up";
+  | "level-up"
+  | "new-mail";
 
 interface SoundInfo {
   // From 0 to 1, before the player's master and sound effects volumes.
@@ -54,4 +55,5 @@ export const Sounds: Record<SoundName, SoundInfo> = {
   promoted: { volume: 0.5 },
   fired: { volume: 0.6 },
   "level-up": { volume: 0.5 },
+  "new-mail": { volume: 0.5 },
 };

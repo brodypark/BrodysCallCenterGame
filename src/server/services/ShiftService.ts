@@ -29,6 +29,15 @@ const AnsweredReasons: ReadonlySet<CallEndReason> = new Set([
   "shiftEnded",
 ]);
 
+/** How a shift went, told to whoever's listening once its results are saved. */
+export interface ShiftSummary {
+  result: ShiftResult;
+  // The player's level before this shift's XP.
+  levelBefore: number;
+  // How many of the shift's calls ended each way.
+  endings: Partial<Record<CallEndReason, number>>;
+}
+
 /** What the shift needs from the calls. */
 export interface ShiftCalls {
   startCalls: (playerId: string) => void;
@@ -58,6 +67,8 @@ export interface ShiftServiceOptions {
   canClockIn: (playerId: string) => boolean;
   // Names of the callers that unlock between two levels, for the report.
   unlockedBetween: (fromLevel: number, toLevel: number) => string[];
+  // A shift ended and its results are saved (e.g. for the boss's email).
+  onEnded?: (playerId: string, summary: ShiftSummary) => void;
 }
 
 interface PlayerShift {
@@ -70,6 +81,8 @@ interface PlayerShift {
   xpEarned: number;
   callsTaken: number;
   successfulCalls: number;
+  // How many of the shift's calls ended each way.
+  endings: Partial<Record<CallEndReason, number>>;
   // The last shift's report, kept until the player closes it, so one that ends while they're
   // reconnecting isn't lost.
   unseenResult: ShiftResult | null;
@@ -87,6 +100,7 @@ function newShift(): PlayerShift {
     xpEarned: 0,
     callsTaken: 0,
     successfulCalls: 0,
+    endings: {},
     unseenResult: null,
     timer: null,
   };
@@ -146,6 +160,11 @@ export class ShiftService {
     }
     if (AnsweredReasons.has(reason)) {
       shift.callsTaken += 1;
+    }
+    // A call still ringing when the shift timer runs out was cut off, not ignored.
+    const cutOff = reason === "missed" && shift.endsAt !== null && Date.now() >= shift.endsAt;
+    if (!cutOff) {
+      shift.endings[reason] = (shift.endings[reason] ?? 0) + 1;
     }
     this.checkOvertime(playerId, shift);
   }
@@ -332,6 +351,8 @@ export class ShiftService {
       this.options.sendResult(playerId, result);
     }
     this.publish(playerId, shift);
+    // After the report, so the client knows it's up when the mail arrives.
+    this.options.onEnded?.(playerId, { result, levelBefore, endings: { ...shift.endings } });
   }
 
   /** How long the player's shifts last: the dev override, or Config plus Extra Coffee. */

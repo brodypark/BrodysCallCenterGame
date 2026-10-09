@@ -26,15 +26,15 @@ The game is played in **shifts**. The player starts one by clicking **Clock In**
 also unlocks the browser's audio).
 
 - A shift lasts **8 minutes**, which fits about **4–5 calls**.
-- Each shift has a **fixed money quota** (the same every shift).
+- Each shift has a **money quota** that grows with the player's level (see Economy).
 - **Pass** (earnings ≥ quota): the shift's earnings are added to your bank, you get a shift
   XP bonus, and you see a "PROMOTED" results screen.
 - **Fail** (earnings < quota): "FIRED". You **lose the money earned during that shift** but
   **keep all XP** earned. Then you start a new shift.
 - Between shifts, you can spend banked money on upgrades (see Upgrades).
 
-Because the quota is fixed, difficulty comes from the scenarios you unlock, not from a rising
-target. Progress shows up as more variety and better upgrades.
+The quota grows only as fast as the cards do (and a bit slower), so difficulty mostly comes from
+the scenarios you unlock. Progress shows up as more variety and better upgrades.
 
 ### Shift timer running out
 
@@ -162,8 +162,17 @@ A bonus way to earn on top of the gift card.
 
 - **Payout = the scenario's card value.** Each scenario sets its own value, from $50 (Grandma)
   to $250 (The Villain). Harder scenarios have bigger cards.
-- **Quota:** fixed per shift. Starting value: **$150** (3 Grandma successes out of ~4–5 calls).
-  A failed live audit raises it for the rest of that shift.
+- **Quota:** **$150** at level 1 (3 Grandma successes out of ~4–5 calls). Each level that
+  unlocks bigger cards raises it in proportion to the average card value of the unlocked callers
+  (compared with level 1's), but only **75%** of that growth is passed on, since harder callers
+  hang up more often. Rounded to $5; set when the player clocks in. With today's callers:
+
+  | Level | 1 | 2 | 3 | 4 | 5 | 6+ |
+  | --- | --- | --- | --- | --- | --- | --- |
+  | Quota | $150 | $150 | $170 | $200 | $235 | $275 |
+
+  It stops growing once every caller is unlocked. A failed live audit raises it for the rest of
+  that shift. Numbers in Config.Shift (Quota, QuotaScaling, QuotaRoundTo).
 - **Shift earnings vs. bank:** money earned during a shift is held as shift earnings. It moves to
   the bank only if the shift is passed. Upgrades are paid from the bank.
 
@@ -417,8 +426,8 @@ Dreadfulness", questions about his schemes and praise for his evil laugh; hates 
 speeches, being laughed at or called cute, and anyone saying his plan won't work. Still sore that a fat orange cat once out-schemed him. Green skin, an eyepatch, a
 mustache and a purple captain's hat. The biggest card ($250).
 
-**Economy check:** with the fixed $150 quota, two Hard cards nearly pass a shift, but Hard
-victims hang up far more often, so later shifts pay better without being free. Calls still pick
+**Economy check:** at level 6 the $275 quota is about a Hard card and a half, and Hard victims hang up
+far more often, so later shifts pay better without being free. Calls still pick
 randomly from every unlocked scenario, so Easy ones keep turning up too.
 
 ## Desktop and apps
@@ -494,7 +503,7 @@ moderation first.
 | Max suspicion change per turn | -25 / +15 |
 | Player turns before a reveal is allowed | 3 |
 | Obsession chance per reply | 20% |
-| Shift quota | $150 |
+| Shift quota | $150 at level 1, up to $275 at level 6 |
 | Redeem tries per code | 3 |
 | XP per success (Easy / Medium / Hard) | 10 / 20 / 30 |
 | XP for passing a shift | 25 |
@@ -574,7 +583,5 @@ decides every reveal and makes every code.
   "Indian scam caller" stereotype, which clashes with the cartoonish tone and would likely
   read as mocking a real group. Decide before step 16; silly character voices (robot,
   chipmunk, posh butler, pirate) are the alternative.
-- **Fixed quota vs. bigger cards:** later scenarios pay more, so the fixed quota gets easier.
-  Is that okay (progression reward), or should the quota scale a little?
 - **Name:** "GPT" is closely tied to another company's product. Check that the name doesn't
   conflict with the "no real brands" content rule before publishing.

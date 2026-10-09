@@ -12,6 +12,8 @@
 // Once the quota is met the player may clock out early: that runs out the timer now, so the
 // same overtime rules finish any call and open code.
 //
+// The quota grows with the player's level (services/quota); it's set when they clock in.
+//
 // Skibidi's live audits (AuditService) change a shift: a pass adds a bonus to its earnings
 // and XP, a fail raises its quota.
 //
@@ -78,6 +80,8 @@ export interface ShiftServiceOptions {
   canClockIn: (playerId: string) => boolean;
   // Names of the callers that unlock between two levels, for the report.
   unlockedBetween: (fromLevel: number, toLevel: number) => string[];
+  // The quota a shift starts with at a level. Config.Shift.Quota at every level if not given.
+  quotaForLevel?: (level: number) => number;
   // A shift ended and its results are saved (e.g. for the boss's email).
   onEnded?: (playerId: string, summary: ShiftSummary) => void;
 }
@@ -89,7 +93,8 @@ interface PlayerShift {
   // True once the overtime redeem window has opened (the last call is over).
   redeemWindowOpen: boolean;
   earnings: number;
-  // Config.Shift.Quota, plus any raises from failed audits.
+  // The level's quota when clocking in, plus any raises from failed audits. Only used on
+  // shift: off shift, snapshots show the quota for the player's level now.
   quota: number;
   xpEarned: number;
   callsTaken: number;
@@ -139,6 +144,12 @@ export class ShiftService {
     return this.makeSnapshot(playerId, this.shifts.get(playerId) ?? newShift());
   }
 
+  /** The quota the player's next shift would start with, at their current level. */
+  quotaFor(playerId: string): number {
+    const level = levelOf(this.options.stats.get(playerId).xp);
+    return this.options.quotaForLevel?.(level) ?? Config.Shift.Quota;
+  }
+
   /** The last shift's report if the player hasn't closed it yet, e.g. to send again after a
    * reconnect. */
   unseenResult(playerId: string): ShiftResult | null {
@@ -165,6 +176,7 @@ export class ShiftService {
     }
     const shift = newShift();
     this.shifts.set(playerId, shift);
+    shift.quota = this.quotaFor(playerId);
     const lengthSeconds = this.lengthSeconds(playerId);
     shift.status = "onShift";
     shift.endsAt = Date.now() + secondsToMs(lengthSeconds);
@@ -448,8 +460,6 @@ export class ShiftService {
     shift.endsAt = null;
     shift.overtimeEndsAt = null;
     shift.earnings = 0;
-    // The next shift starts from the usual quota (Clock In shows it).
-    shift.quota = Config.Shift.Quota;
     shift.unseenResult = quiet ? null : result;
     if (!quiet) {
       this.options.sendResult(playerId, result);
@@ -486,7 +496,8 @@ export class ShiftService {
     return {
       status: shift.status,
       earnings: shift.earnings,
-      quota: shift.quota,
+      // Off shift, the quota the next shift would start with (the level may have changed).
+      quota: shift.status === "offShift" ? this.quotaFor(playerId) : shift.quota,
       lengthSeconds: this.lengthSeconds(playerId),
       endsAt: shift.endsAt,
       overtimeEndsAt: shift.overtimeEndsAt,

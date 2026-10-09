@@ -21,7 +21,7 @@ function advanceSeconds(seconds: number): void {
 // Whether the test player has picked a save, so they may clock in.
 let canPlay = true;
 
-function createGame(): {
+function createGame(quotaForLevel?: (level: number) => number): {
   shifts: ShiftService;
   calls: CallService;
   redeem: RedeemService;
@@ -56,6 +56,7 @@ function createGame(): {
     lengthSeconds: ShiftSeconds,
     canClockIn: () => canPlay,
     unlockedBetween: (from, to) => (from < 3 && to >= 3 ? ["Zorp the Alien"] : []),
+    quotaForLevel,
     send: (_playerId, snapshot) => {
       lastShift = snapshot;
     },
@@ -170,6 +171,24 @@ describe("ShiftService: levels and perks", () => {
     advanceSeconds(ShiftSeconds);
     // 170 + 10 XP = 180: level 3 (175 XP).
     expect(game.results[0]).toMatchObject({ newLevel: 3, unlockedCallers: ["Zorp the Alien"] });
+  });
+
+  it("sets the quota from the player's level, and shows the next level's once they level up", () => {
+    const game = createGame((level) => 100 * level);
+    expect(game.shifts.snapshot(PlayerId).quota).toBe(100);
+    game.stats.load(PlayerId, { ...defaultStats(), xp: 170 });
+    expect(game.shifts.snapshot(PlayerId).quota).toBe(200);
+    clockInAndRing(game);
+    expect(game.shift().quota).toBe(200);
+    expect(game.shifts.auditFailed(PlayerId, 25)).toBe(225);
+    answer(game);
+    const code = getCode(game);
+    game.calls.hangUp(PlayerId);
+    game.redeem.redeem(PlayerId, code);
+    advanceSeconds(ShiftSeconds);
+    // 180 XP is level 3; the report keeps the quota the shift had, audit raise included.
+    expect(game.results[0]).toMatchObject({ newLevel: 3, quota: 225 });
+    expect(game.shift()).toMatchObject({ status: "offShift", quota: 300 });
   });
 
   it("says nothing about levels when there wasn't one", () => {

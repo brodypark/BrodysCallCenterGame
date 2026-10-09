@@ -29,8 +29,13 @@ export const Config = {
   Shift: {
     // The design is 360 (6 minutes).
     LengthSeconds: 360,
-    // Money a shift must earn to pass. The same every shift.
+    // Money a level 1 shift must earn to pass. Later levels unlock callers with bigger cards,
+    // so the quota grows with the average card value of the callers unlocked at the player's
+    // level (server/services/quota): QuotaScaling of that growth is passed on (less than all of
+    // it, since harder callers hang up more), rounded to the nearest QuotaRoundTo dollars.
     Quota: 150,
+    QuotaScaling: 0.75,
+    QuotaRoundTo: 5,
     // In overtime, once the last call is over, seconds left to redeem any code still open
     // before the shift ends anyway.
     OvertimeRedeemSeconds: 30,

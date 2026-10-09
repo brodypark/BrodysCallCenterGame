@@ -36,6 +36,7 @@ import { matchDevCommand } from "@server/prompts/DevCommands";
 import { BaitTestWord } from "@server/prompts/DebugReplies";
 import { endPlayerSession } from "@server/services/playerExit";
 import { SaveService } from "@server/services/SaveService";
+import { averageOf, quotaForLevel } from "@server/services/quota";
 import { ShiftService } from "@server/services/ShiftService";
 import { ShopService } from "@server/services/ShopService";
 import { StatsService } from "@server/services/StatsService";
@@ -280,6 +281,10 @@ export function startGameServer(httpServer: HttpServer, options: GameServerOptio
     canClockIn: (playerId) => saves.modeOf(playerId) === "campaign",
     unlockedBetween: (fromLevel, toLevel) =>
       options.scenarios.unlockedBetween(fromLevel, toLevel).map((scenario) => scenario.displayName),
+    quotaForLevel: (level) =>
+      quotaForLevel(level, (atLevel) =>
+        averageOf(options.scenarios.unlockedFor(atLevel).map((scenario) => scenario.cardValue)),
+      ),
     // Runs from the shift timer, so a failure is logged rather than thrown.
     onEnded: (playerId, summary) => {
       try {
@@ -419,8 +424,8 @@ export function startGameServer(httpServer: HttpServer, options: GameServerOptio
       socket.emit("shift:ended", report);
     }
 
-    // Perks change the shift length the shift snapshot shows, so it's sent again whenever
-    // they can change: picking a save, and buying.
+    // Perks and the level change the shift length and quota the shift snapshot shows, so it's
+    // sent again whenever they can change: picking or leaving a save, and buying.
     const sendShift = (): void => {
       socket.emit("shift:snapshot", shifts.snapshot(playerId));
     };
@@ -438,10 +443,12 @@ export function startGameServer(httpServer: HttpServer, options: GameServerOptio
     listen(socket, "saves:leave", log, () => {
       shifts.abandon(playerId, true);
       saves.leave(playerId);
+      sendShift();
     });
     listen(socket, "sandbox:enter", log, () => {
       saves.enterSandbox(playerId);
       sandbox.enter(playerId);
+      sendShift();
     });
     listen(socket, "sandbox:settings", log, (change) => sandbox.update(playerId, change));
     listen(socket, "sandbox:ringNow", log, () => sandbox.ringNow(playerId));

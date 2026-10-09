@@ -233,7 +233,8 @@ const Writers: Record<MailTemplateId, Writer> = {
         "the back of their gift card. Pop it into the Redeem app and boom: money.",
       "Hit your quota by the end of a shift and you get PROMOTED. Miss it and, well, let's " +
         "not talk about that on your first day.",
-      "Your first caller will probably be Grandma Gertrude. Lovely woman. Has a cat. Gary from " +
+      "Your first callers will be Grandma Gertrude (lovely woman, has a cat), Grandpa Gus or " +
+        "Hubble. Gary from " +
         "Research keeps a case file on every caller in the Characters app, and he adds notes " +
         "as you go. Read them. Gary gets lonely.",
       "I've left How to Play open on your desk. When you're ready, smash that Clock In button.",

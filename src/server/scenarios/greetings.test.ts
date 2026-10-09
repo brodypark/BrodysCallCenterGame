@@ -5,6 +5,8 @@ import { AllScenarios } from "@server/scenarios/all";
 // meets the running gag straight away; after that it only comes up now and then.
 const ObsessionWords: Readonly<Record<string, RegExp>> = {
   grandma: /Sir Fluffington/,
+  grandpa: /Old Whiskers|catfish/i,
+  hubble: /Gerald|router|screen|firmware|diagnostic|gadget/i,
   hudson: /popcorn/i,
   sarah: /boba|milk tea/i,
   pete: /leg day|push-ups|squats|in shape|protein/i,
@@ -13,6 +15,7 @@ const ObsessionWords: Readonly<Record<string, RegExp>> = {
   evan: /CJ's sister/,
   cj: /skibidi|aura|sigma|Ohio/i,
   jordan: /\b(bet|betting|odds|double or nothing|streak|lucky)\b/i,
+  villain: /evil|scheme|diabolical|mwaha/i,
 };
 
 describe("Scenario greetings", () => {

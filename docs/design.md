@@ -130,11 +130,12 @@ A bonus way to earn on top of the gift card.
 
 - **Side problem:** on about **35%** of calls (`Config.Card.SideProblemChance`), the victim also
   has a second problem at home, and mentions it early in passing. Grandma's computer box is full
-  of pop-ups, Hudson's microwave popcorn button sets off the smoke alarm, Sarah's laptop
+  of pop-ups, Grandpa Gus's hearing aid only plays polka, Hubble's smart lights are stuck in disco mode, Hudson's microwave popcorn button sets off the smoke alarm, Sarah's laptop
   autocorrects everything to "boba", Pete's smart scale says he weighs three pounds, Brody's smart
   fridge locks itself at night, Uncle Mike's smart TV only shows Georgia's worst losses, Evan's phone sends
   his half-written texts to CJ's sister, CJ's PC fans sound like a jet engine on stream, and
-  Jordan's robot vacuum won't clean until someone calls heads or tails.
+  Jordan's robot vacuum won't clean until someone calls heads or tails, and The Villain's
+  laugh-activated gadget vault won't open now that he's laughed himself hoarse.
 - **The pitch:** the player offers to fix it for a small fee. Asking for money makes the victim
   more careful, so the fix has to sound believable. Asking how much they can pay is suspicious.
 - **Wobblebucks Card:** if they agree, they read out their Wobblebucks Card, a made-up card with
@@ -143,8 +144,8 @@ A bonus way to earn on top of the gift card.
   decides the reveal with the same rules as the gift card code (suspicion below the trust
   level, not too early).
 - **Wobblebucks Machine app:** type the card and an amount to charge. Each victim's card has a
-  hidden **spending limit** (Grandma $40, Hudson $50, Sarah $70, Pete $80, Brody $100,
-  Uncle Mike $120, Evan $140, CJ $160, Jordan $180), kept on the server. Charging within it pays that amount; charging over
+  hidden **spending limit** (Grandma $40, Grandpa Gus $45, Hubble $45, Hudson $50, Sarah $70, Pete $80, Brody $100,
+  Uncle Mike $120, Evan $140, CJ $160, Jordan $180, The Villain $200), kept on the server. Charging within it pays that amount; charging over
   it is **declined** and uses a try. **2 tries per card**, then it's frozen. Each card can be
   charged once.
 - A charge adds to shift earnings and gives **5 XP**, but doesn't count as a successful call (the
@@ -156,7 +157,7 @@ A bonus way to earn on top of the gift card.
 ## Economy
 
 - **Payout = the scenario's card value.** Each scenario sets its own value, from $50 (Grandma)
-  to $225 (Jordan). Harder scenarios have bigger cards.
+  to $250 (The Villain). Harder scenarios have bigger cards.
 - **Quota:** fixed per shift. Starting value: **$150** (3 Grandma successes out of ~4–5 calls).
 - **Shift earnings vs. bank:** money earned during a shift is held as shift earnings. It moves to
   the bank only if the shift is passed. Upgrades are paid from the bank.
@@ -181,8 +182,8 @@ A bonus way to earn on top of the gift card.
 
   A passed Grandma shift earns about 55 XP, so level 5 takes about 8 passed shifts (~1 hour)
   and level 10 about 29 (~4 hours). Harder scenarios pay more XP, which speeds later levels up.
-- **Scenario unlocks:** a new scenario every **2 levels**: Grandma at level 1, then levels 3, 5,
-  7, 9, 11, ... Easy ones come first, Medium around levels 5-7, Hard from level 9. Each
+- **Scenario unlocks:** a new scenario every **2 levels**: three at level 1 (Grandma, Grandpa Gus and
+  Hubble), then levels 3, 5, 7, 9, 11, ... up to The Villain at 19. Easy ones come first, Medium around levels 5-7, Hard from level 9. Each
   scenario module sets its own `unlockLevel` to follow this. Scenarios are unlocked **only**
   through XP, never bought.
 
@@ -253,6 +254,8 @@ gap and shrink the second, and pay more.
 | Lvl | Scenario | Diff | Card | Prefix | Start | Threshold | Trust | To convince | Room for mistakes |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | 1 | Grandma Gertrude | Easy | $50 | `GMA` | 40 | 100 | 30 | 10 | 60 |
+| 1 | Grandpa Gus | Easy | $55 | `GPZ` | 40 | 100 | 30 | 10 | 60 |
+| 1 | Hubble | Easy | $55 | `HBL` | 40 | 100 | 30 | 10 | 60 |
 | 3 | Hudson | Easy | $60 | `HDS` | 35 | 100 | 25 | 10 | 65 |
 | 5 | Sarah | Medium | $80 | `SRH` | 45 | 90 | 25 | 20 | 45 |
 | 7 | Pete | Medium | $100 | `PTF` | 35 | 80 | 15 | 20 | 45 |
@@ -261,16 +264,31 @@ gap and shrink the second, and pay more.
 | 13 | Evan | Hard | $175 | `EVN` | 50 | 85 | 20 | 30 | 35 |
 | 15 | CJ | Hard | $200 | `CJZ` | 65 | 85 | 20 | 45 | 20 |
 | 17 | Jordan | Hard | $225 | `JRD` | 55 | 90 | 20 | 35 | 35 |
+| 19 | The Villain | Hard | $250 | `VLN` | 60 | 90 | 20 | 40 | 30 |
 
 Prefixes are never real words, since the AI's replies are cleaned of anything shaped like a code
-with the scenario's prefix. Grandma is ported from the Roblox version; the other eight are new to
-the browser version.
+with the scenario's prefix. Grandma is ported from the Roblox version; the other eleven are new to
+the browser version. Three callers are unlocked from the start (Grandma, Grandpa Gus and
+Hubble), so early shifts aren't all one voice.
 
 **Grandma Gertrude (Easy, level 1):** a sweet, confused grandma who can't figure out how to
 redeem the Pudding Palace card her grandson Timmy sent. Obsession: Sir Fluffington, her fat,
 judgmental cat. Likes patience, good manners and questions about the cat; hates being rushed,
 computer words and bossy orders. The most forgiving scenario: she never hangs up unless you're
 really rude.
+
+**Grandpa Gus (Easy, level 1):** a gruff, hard-of-hearing old-timer whose Wormy Wally's Bait
+Emporium card keeps getting spat out of the store's machine. Obsession: Old Whiskers, the catfish
+that got away in 1974 (she's the size of a canoe now). Calls the internet "the world wide
+wire". Likes respect ("sir"), patience and his fishing stories; hates being rushed, long
+explanations, computer words, being called old and anyone doubting Old Whiskers. Bald under an olive cap,
+glasses and a white mustache. As forgiving as Grandma.
+
+**Hubble (Easy, level 1):** a gadget-obsessed tech geek whose Gadget Gulch card won't scan with
+the card reader he built out of a webcam and a toaster. Obsession: technology (his seven-screen
+battle station, and Gerald, his router, who he treats like a pet). The twist on Grandma: confident tech jargon impresses him.
+Hates being told to turn it off and on again, being talked down to and being rushed. Short
+dark hair and glasses.
 
 **Hudson (Easy, level 3):** a super chill movie fan whose Kernel Kingdom Cinemas card says "card
 not recognised". Obsession: popcorn (butter ratios, microwave timing, the kernels at the
@@ -322,7 +340,15 @@ Arcade card (won in the arcade's raffle) says "card on hold". Obsession: gamblin
 bets are always silly stuff (snacks, socks, his couch), never money. Likes the help line taking
 his bets, odds talk and cheering for his snail; hates "guaranteed" or "risk-free" promises
 (nothing's a sure thing), being called a sore loser and anyone jinxing his streak. Short black
-hair and a thin mustache. The biggest card ($225).
+hair and a thin mustache.
+
+**The Villain (Hard, level 19):** a dramatic cartoon super-villain with a volcano lair and
+henchmen all named Doug, whose Sinister Supplies Co. card (a Villain Appreciation Day gift) keeps
+getting declined, so he can't finish his Mega Tickle Ray. Obsession: his evil schemes, cartoon
+style (the Tickle Ray, stealing every left sock; nobody hurt). He's always watching for heroes in disguise. Likes being called "Your
+Dreadfulness", questions about his schemes and praise for his evil laugh; hates heroic
+speeches, being laughed at or called cute, and anyone saying his plan won't work. Still sore that a fat orange cat once out-schemed him. Green skin, an eyepatch, a
+mustache and a purple captain's hat. The biggest card ($250).
 
 **Economy check:** with the fixed $150 quota, two Hard cards nearly pass a shift, but Hard
 victims hang up far more often, so later shifts pay better without being free. Calls still pick

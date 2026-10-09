@@ -31,6 +31,8 @@ const clientEventSchemas = {
   // Stop playing the current save and go back to the slot picker (off shift only).
   "saves:leave": z.undefined(),
   "shift:clockIn": z.undefined(),
+  // End the shift early (only once the quota is met; the server checks).
+  "shift:clockOut": z.undefined(),
   // The player closed How to Play.
   "tutorial:seen": z.undefined(),
   // The player opened an email.

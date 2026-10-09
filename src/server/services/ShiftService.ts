@@ -8,6 +8,9 @@
 // Once the call is over, a player still holding a code gets OvertimeRedeemSeconds to cash
 // it in. Then the shift ends: passing banks the shift's earnings, failing loses them, and
 // XP is kept either way.
+//
+// Once the quota is met the player may clock out early: that runs out the timer now, so the
+// same overtime rules finish any call and open code.
 
 import { Config } from "@shared/Config";
 import { secondsToMs } from "@shared/time";
@@ -150,6 +153,19 @@ export class ShiftService {
     this.startTimer(shift, lengthSeconds, () => this.timeUp(playerId, shift));
     this.options.calls.startCalls(playerId);
     this.publish(playerId, shift);
+  }
+
+  /** Ends the shift early, once the quota is met. Works like the timer running out now: a
+   * call in progress finishes and an open code gets the redeem window. */
+  clockOut(playerId: string): void {
+    const shift = this.shifts.get(playerId);
+    if (!shift || shift.status !== "onShift" || shift.earnings < Config.Shift.Quota) {
+      return;
+    }
+    // So a call still ringing counts as cut off, not missed (see callEnded).
+    shift.endsAt = Date.now();
+    this.cancelTimer(shift);
+    this.timeUp(playerId, shift);
   }
 
   /** A call ended. Counts answered ones, and in overtime checks whether the shift is done. */

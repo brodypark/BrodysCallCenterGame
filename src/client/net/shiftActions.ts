@@ -8,6 +8,13 @@ export function clockIn(): void {
   }
 }
 
+/** Ends the shift early. The server only allows it once the quota is met. */
+export function clockOut(): void {
+  if (socket.connected) {
+    socket.emit("shift:clockOut");
+  }
+}
+
 /** The player closed the shift report, so the server needn't send it again. */
 export function resultSeen(): void {
   if (socket.connected) {

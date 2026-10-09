@@ -398,6 +398,7 @@ export function startGameServer(httpServer: HttpServer, options: GameServerOptio
     listen(socket, "sandbox:reset", log, () => sandbox.reset(playerId));
     // Nothing starts until a save is picked (ShiftService checks).
     listen(socket, "shift:clockIn", log, () => shifts.clockIn(playerId));
+    listen(socket, "shift:clockOut", log, () => shifts.clockOut(playerId));
     listen(socket, "shift:resultSeen", log, () => shifts.resultSeen(playerId));
     listen(socket, "call:answer", log, () => calls.answer(playerId));
     listen(socket, "call:decline", log, () => calls.decline(playerId));

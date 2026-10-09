@@ -409,6 +409,76 @@ describe("ShiftService: overtime", () => {
   });
 });
 
+describe("ShiftService: clocking out early", () => {
+  /** On shift with the quota met (three Grandma cards), the next call ringing. */
+  function quotaMet(): Game {
+    const game = createGame();
+    clockInAndRing(game);
+    for (let card = 0; card < 3; card++) {
+      answer(game);
+      const code = getCode(game);
+      game.calls.hangUp(PlayerId);
+      game.redeem.redeem(PlayerId, code);
+      advanceSeconds(Config.Call.SecondsBetweenCalls);
+    }
+    return game;
+  }
+
+  it("does nothing below the quota", () => {
+    const game = createGame();
+    clockInAndRing(game);
+    game.shifts.clockOut(PlayerId);
+    expect(game.shift().status).toBe("onShift");
+    expect(game.results).toHaveLength(0);
+  });
+
+  it("does nothing off shift", () => {
+    const game = createGame();
+    game.shifts.clockOut(PlayerId);
+    expect(game.shift().status).toBe("offShift");
+    expect(game.results).toHaveLength(0);
+  });
+
+  it("passes right away once the quota is met, a ringing call not counted as missed", () => {
+    const game = quotaMet();
+    expect(game.call().status).toBe("ringing");
+    game.shifts.clockOut(PlayerId);
+    expect(game.results[0]).toMatchObject({ passed: true, earnings: 150 });
+    expect(game.summaries[0]?.summary.endings).toEqual({ playerHungUp: 3 });
+    expect(game.shift().status).toBe("offShift");
+    expect(game.call().status).toBe("idle");
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
+  it("opens the redeem window for a code still open between calls", () => {
+    const game = quotaMet();
+    answer(game);
+    getCode(game);
+    game.calls.hangUp(PlayerId);
+    game.shifts.clockOut(PlayerId);
+    expect(game.shift().status).toBe("overtime");
+    expect(game.shift().overtimeEndsAt).toBe(
+      Date.now() + secondsToMs(Config.Shift.OvertimeRedeemSeconds),
+    );
+    advanceSeconds(Config.Shift.OvertimeRedeemSeconds);
+    expect(game.results[0]).toMatchObject({ passed: true, earnings: 150 });
+  });
+
+  it("lets a call in progress finish first, like overtime", () => {
+    const game = quotaMet();
+    answer(game);
+    game.shifts.clockOut(PlayerId);
+    expect(game.shift().status).toBe("overtime");
+    expect(game.results).toHaveLength(0);
+    const code = getCode(game);
+    game.calls.hangUp(PlayerId);
+    // The redeem window is open for the code.
+    expect(game.shift().status).toBe("overtime");
+    game.redeem.redeem(PlayerId, code);
+    expect(game.results[0]).toMatchObject({ passed: true, earnings: 200 });
+  });
+});
+
 describe("ShiftService: leaving mid-shift", () => {
   it("ends an abandoned shift as if time ran out, keeping the XP", () => {
     const game = createGame();

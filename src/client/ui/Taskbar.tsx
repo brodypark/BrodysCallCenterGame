@@ -1,6 +1,7 @@
 // The bar along the bottom of the desktop: the start button, a button for each open window,
 // and a tray with the shift timer, earnings vs. quota (rolling up on a payout), the server
-// connection and a clock. In Sandbox (no shifts, unlimited money) the timer and earnings
+// connection and a clock. Once the quota is met, a Clock Out button ends the shift early. In
+// Sandbox (no shifts, unlimited money) the timer and earnings
 // become SANDBOX and $∞.
 
 import type { ReactElement } from "react";
@@ -13,6 +14,7 @@ import { useDesktop, useDesktopState } from "@client/ui/DesktopContext";
 import { RollingNumber } from "@client/ui/Effects";
 import { useNow } from "@client/ui/useNow";
 import { leaveSave } from "@client/net/saveActions";
+import { clockOut } from "@client/net/shiftActions";
 import { type ConnectionStatus, useConnection } from "@client/state/connectionStore";
 import { useGameMode } from "@client/state/savesStore";
 import { secondsUntil, type ShiftState, useShift } from "@client/state/shiftStore";
@@ -29,6 +31,8 @@ export function Taskbar(): ReactElement {
   const shift = useShift();
   const sandbox = useGameMode() === "sandbox";
   const focused = stackOrder.at(-1);
+  const { status, earnings, quota } = shift.snapshot;
+  const canClockOut = !sandbox && status === "onShift" && earnings >= quota;
 
   return (
     // Clicking any empty part of the taskbar closes the start menu.
@@ -84,6 +88,20 @@ export function Taskbar(): ReactElement {
           );
         })}
       </div>
+
+      {canClockOut && (
+        <button
+          type="button"
+          className={cx(controls.button, styles.clockOut)}
+          onClick={(event) => {
+            event.stopPropagation();
+            clockOut();
+          }}
+          title="Quota met: end the shift now"
+        >
+          Clock Out
+        </button>
+      )}
 
       <div className={cx(controls.sunken, styles.tray)}>
         {sandbox ? (

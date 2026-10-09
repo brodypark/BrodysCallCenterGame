@@ -10,6 +10,7 @@ import type {
   AuditSnapshot,
   CallSnapshot,
   CharactersSnapshot,
+  HackInfo,
   MailSnapshot,
   PlayerStats,
   SavesSnapshot,
@@ -159,6 +160,8 @@ export interface ServerToClientEvents {
   "mail:snapshot": (snapshot: MailSnapshot) => void;
   // Skibidi's live audit on the current call (or the last one's result), or null for none.
   "audit:snapshot": (snapshot: AuditSnapshot | null) => void;
+  // The player cashed in a bait caller's trap code: play the hacked screen.
+  "hack:triggered": (hack: HackInfo) => void;
   // The player opened the game in another tab, which took over. This tab is disconnected
   // and doesn't reconnect by itself.
   "session:replaced": () => void;

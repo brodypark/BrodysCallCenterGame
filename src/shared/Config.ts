@@ -324,6 +324,10 @@ export const Config = {
     // Shift report: when the stamp lands, and how long after it the level up jingle plays.
     ReportStampDelaySeconds: 0.9,
     LevelUpJingleDelaySeconds: 2.5,
+    // The hacked screen (a bait caller's trap; it lasts as long as the server says): its fake
+    // console types its lines out over this long, and the countdown updates this often.
+    HackConsoleSeconds: 6,
+    HackTickSeconds: 0.25,
   },
 
   // New-mail notifications (ui/Toasts): a card slides in at the bottom right of the desk with

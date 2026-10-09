@@ -215,6 +215,29 @@ graded. Numbers live in ServerConfig.Audit. Dev test word: `!audit` or `!audit <
 In Sandbox, audits only start from the Control Panel's Trigger audit button (or the test word);
 they're graded and emailed the same way, but nothing is paid out or raised.
 
+## Bait callers
+
+From level 2, 7% of Campaign calls are bait: an undercover scam-buster playing the usual
+caller. The name, face, voice, greeting and starting trust are all the same, so nothing gives
+them away at first. The tells:
+
+- they stall ("my computer is updating", "I dropped the phone");
+- they ask oddly technical questions (which server, your employee number, is this recorded);
+- they're a little too keen, and trust falls fast;
+- their code always starts with HNY (e.g. HNY-7QZ), not the caller's usual prefix.
+
+They never have a side problem. **Hanging up** is always safe, even after they read the code.
+**Redeeming** the trap code (or a typo with its prefix) pays nothing. Instead the screen is
+hacked for 10 seconds: it glitches and freezes, with a fake console. The shift fails on the
+spot, whatever it earned (XP is kept). A $300 fine comes out of the bank, never below $0. Then
+the report shows HACKED, and Linda from HR emails about the fine. A trap code doesn't count as
+"getting the code" for Skibidi's audits.
+
+Bait cards don't keep overtime open. Numbers live in ServerConfig.Bait. In Sandbox, the
+Control Panel's "Bait caller" box makes every call bait (never rolled). Redeeming there plays
+the hacked screen and ends the bait call, with no fine. Dev test word: `!bait` turns the call
+in progress into bait, if they haven't read their code yet.
+
 ## Upgrades (bought with money)
 
 Bought in the **Shop** app with banked money, **only between shifts**. Everything is kept

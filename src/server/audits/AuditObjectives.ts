@@ -24,6 +24,8 @@ export interface CallProgress {
   cardRevealed: boolean;
   hasSideProblem: boolean;
   trust: TrustWord | null;
+  // A bait caller (an undercover scam-buster): their code is a trap, so it never counts.
+  bait: boolean;
 }
 
 /** What has happened on the call since the audit arrived. */
@@ -39,6 +41,9 @@ export interface AuditFacts {
   saidForbiddenWord: boolean;
   // The player's message count when the code was read out, or null if it hasn't been.
   codeTurn: number | null;
+  // True if that code was a bait caller's trap, which doesn't count as getting the code. Only
+  // used when grading, so the Call window shows nothing different on a bait call.
+  codeWasBait: boolean;
   cardRevealed: boolean;
   // True once the trust bar has hit ANGRY.
   wentRed: boolean;
@@ -104,6 +109,8 @@ const { Phrase, PhraseTimes, ForbiddenWord, SpeedRunTurns } = ServerConfig.Audit
 
 // The player's messages since the audit arrived.
 const turnsUsed = (facts: AuditFacts): number => facts.playerTurns - facts.startTurn;
+// Whether a real code (not a bait caller's trap) was read out.
+const gotRealCode = (facts: AuditFacts): boolean => facts.codeTurn !== null && !facts.codeWasBait;
 // Turns of the speed run the code took, or null if it hasn't been read out.
 const codeTurns = (facts: AuditFacts): number | null =>
   facts.codeTurn === null ? null : facts.codeTurn - facts.startTurn;
@@ -128,7 +135,7 @@ export const AuditObjectives: Readonly<Record<AuditObjectiveId, AuditObjective>>
       return facts.codeTurn === null ? "Clean so far" : "Clean, code got";
     },
     lost: (facts) => facts.saidForbiddenWord,
-    won: (facts) => !facts.saidForbiddenWord && facts.codeTurn !== null,
+    won: (facts) => !facts.saidForbiddenWord && gotRealCode(facts),
   },
   speedRun: {
     id: "speedRun",
@@ -152,7 +159,7 @@ export const AuditObjectives: Readonly<Record<AuditObjectiveId, AuditObjective>>
     },
     won: (facts) => {
       const took = codeTurns(facts);
-      return took !== null && took <= SpeedRunTurns;
+      return gotRealCode(facts) && took !== null && took <= SpeedRunTurns;
     },
   },
   upsell: {
@@ -175,7 +182,7 @@ export const AuditObjectives: Readonly<Record<AuditObjectiveId, AuditObjective>>
       return facts.codeTurn === null ? "Calm so far" : "Calm, code got";
     },
     lost: (facts) => facts.wentRed,
-    won: (facts) => !facts.wentRed && facts.codeTurn !== null,
+    won: (facts) => !facts.wentRed && gotRealCode(facts),
   },
 };
 

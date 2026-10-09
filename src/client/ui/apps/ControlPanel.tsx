@@ -1,7 +1,8 @@
-// Control Panel app (Sandbox only): pick who calls next and whether they have a side
-// problem, ring a call (Sandbox calls never ring by themselves), bend the call in progress (set the trust bar,
-// make them read their code or card, make them hang up), choose AI or scripted replies, and
-// change the desktop's look. Every control only asks; the server decides.
+// Control Panel app (Sandbox only): pick who calls next, whether they have a side problem
+// and whether they're bait, ring a call (Sandbox calls never ring by themselves), bend the
+// call in progress (set the trust bar, make them read their code or card, make them hang
+// up), choose AI or scripted replies, and change the desktop's look. Every control only
+// asks; the server decides.
 
 import { type ReactElement, useId, useState } from "react";
 import { Config } from "@shared/Config";
@@ -118,6 +119,15 @@ export function ControlPanel(): ReactElement {
             ))}
           </span>
         </div>
+        <label className={styles.row}>
+          Bait caller
+          <input
+            type="checkbox"
+            checked={settings.bait}
+            disabled={!online}
+            onChange={(event) => changeSandbox({ bait: event.target.checked })}
+          />
+        </label>
         <div className={styles.buttons}>
           <button
             type="button"

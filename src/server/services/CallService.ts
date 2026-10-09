@@ -21,6 +21,10 @@
 // On some calls (Config.Card.SideProblemChance) the victim also has a side problem. If the
 // player talks them into paying to fix it, they read out a Wobblebucks Card, which the
 // server makes and RedeemService charges, under the same rules as the gift card code.
+//
+// Now and then (ServerConfig.Bait.Chance, from ServerConfig.Bait.MinLevel) the caller is
+// bait: an undercover scam-buster playing the usual victim (scenarios/bait). Their code is a
+// trap that RedeemService springs when it's cashed in. The snapshot never says so.
 
 import { Config } from "@shared/Config";
 import { cleanMessage } from "@shared/messageText";
@@ -37,6 +41,8 @@ import { levelOf } from "@shared/Levels";
 import type { PlayerStats } from "@shared/stats";
 import { lowerStartingSuspicion } from "@shared/Upgrades";
 import type { SandboxCheat } from "@shared/sandbox";
+import { ServerConfig } from "@server/config";
+import { toBaitScenario } from "@server/scenarios/bait";
 import { matchTestWord } from "@server/prompts/DebugReplies";
 import type { ScenarioRegistry } from "@server/scenarios/ScenarioRegistry";
 import type { HistoryLine } from "@server/prompts/VictimPrompt";
@@ -64,6 +70,8 @@ interface PlayerCall {
   code: string | null;
   // Whether the victim has a side problem this call (rolled when it rings).
   hasSideProblem: boolean;
+  // Whether this caller is bait (rolled when it rings). scenario is then the bait version.
+  bait: boolean;
   // Their Wobblebucks Card, once they've read it out. null before that.
   card: string | null;
   // Set while the victim says their last line: how the call ends once they finish.
@@ -101,6 +109,8 @@ export interface CodeIssuer {
   generateCode: (playerId: string, prefix: string) => string;
   registerGiftCard: (playerId: string, code: string, card: GiftCardInfo) => void;
   registerWobblebucksCard: (playerId: string, card: string, info: WobblebucksCardInfo) => void;
+  // A bait caller's trap code: cashing it in gets the player hacked.
+  registerBaitCard: (playerId: string, code: string, card: Omit<GiftCardInfo, "value">) => void;
 }
 
 /** Told about calls as they happen. Set by the socket server, for the shift and the audits. */
@@ -148,6 +158,9 @@ export interface CallServiceOptions {
   replies?: VictimReplySource;
   // A random number from 0 up to 1. Tests pass a predictable one.
   random?: () => number;
+  // The chance a call is bait, from ServerConfig.Bait.MinLevel. ServerConfig.Bait.Chance if
+  // left out; tests with a fixed `random` pass 0.
+  baitChance?: number;
   // Sandbox overrides. Each is left out, or returns null, to play as normal.
   sandbox?: CallOverrides;
 }
@@ -162,6 +175,8 @@ export interface CallOverrides {
   useAI: (playerId: string) => boolean;
   // False when calls only ring when asked (ringNow), never by themselves.
   autoRing: (playerId: string) => boolean;
+  // Whether the next caller is bait, instead of rolling for it.
+  bait: (playerId: string) => boolean | null;
 }
 
 /** What the Sandbox control panel can make a victim do on the player's turn. */
@@ -177,6 +192,7 @@ export class CallService {
   private readonly devCommand: NonNullable<CallServiceOptions["devCommand"]>;
   private readonly replies: VictimReplySource | null;
   private readonly random: () => number;
+  private readonly baitChance: number;
   private readonly overrides: CallOverrides | null;
   private listener: CallListener | null = null;
 
@@ -189,6 +205,7 @@ export class CallService {
     this.devCommand = options.devCommand ?? (() => false);
     this.replies = options.replies ?? null;
     this.random = options.random ?? Math.random;
+    this.baitChance = options.baitChance ?? ServerConfig.Bait.Chance;
     this.overrides = options.sandbox ?? null;
   }
 
@@ -212,6 +229,7 @@ export class CallService {
       suspicion: 0,
       code: null,
       hasSideProblem: false,
+      bait: false,
       card: null,
       endAfterLine: null,
       nextReply: 0,
@@ -309,6 +327,32 @@ export class CallService {
     this.speak(playerId, call, this.decideLine(playerId, call, scenario, reply, true), true);
   }
 
+  /** Turns the call in progress into a bait call (the !bait test word), if the victim hasn't
+   * read their code yet. Returns whether there was a call to change. */
+  makeBait(playerId: string): boolean {
+    const call = this.calls.get(playerId);
+    if (call?.status !== "inCall" || !call.scenario || call.code !== null) {
+      return false;
+    }
+    if (!call.bait) {
+      call.bait = true;
+      call.scenario = toBaitScenario(call.scenario);
+      call.nextReply = 0;
+    }
+    return true;
+  }
+
+  /** Ends the call in progress if it's a bait caller who has read their trap code, e.g. when
+   * the player springs it in Sandbox (no shift to end). Returns whether it did. */
+  endBaitCall(playerId: string): boolean {
+    const call = this.calls.get(playerId);
+    if (call?.status !== "inCall" || !call.bait || call.code === null) {
+      return false;
+    }
+    this.endCall(playerId, call, "playerHungUp");
+    return true;
+  }
+
   /** Stops new calls, e.g. when the shift timer runs out. A call in progress carries on; one
    * that's still ringing counts as missed. */
   stopCalls(playerId: string): void {
@@ -366,6 +410,7 @@ export class CallService {
       hasSideProblem: call.hasSideProblem,
       trust: trustMeter(call.suspicion, call.scenario.suspicionThreshold, call.scenario.trustLevel)
         .word,
+      bait: call.bait,
     };
   }
 
@@ -575,6 +620,7 @@ export class CallService {
           cardRevealed: call.card !== null,
         },
         stillWanted,
+        bait: call.bait,
       });
     } catch {
       // getReply shouldn't reject; if it does, the victim just says a scripted line.
@@ -602,9 +648,15 @@ export class CallService {
     call.callId += 1;
     const stats = this.statsOf(playerId);
     const lastId = call.scenario?.id ?? null;
-    call.scenario =
+    const level = levelOf(stats.xp);
+    const scenario =
       this.overrides?.pickScenario(playerId, lastId) ??
-      this.scenarios.pick(levelOf(stats.xp), lastId, this.random);
+      this.scenarios.pick(level, lastId, this.random);
+    // Only rolled from MinLevel, so a new player's first shifts are never baited.
+    call.bait =
+      this.overrides?.bait(playerId) ??
+      (level >= ServerConfig.Bait.MinLevel && this.random() < this.baitChance);
+    call.scenario = call.bait ? toBaitScenario(scenario) : scenario;
     call.status = "ringing";
     call.nextReply = 0;
     // The Smooth Talker perk. It never takes a victim below their trust level, so nobody
@@ -686,11 +738,12 @@ export class CallService {
       (isTest || call.playerTurns >= Config.Call.MinTurnsBeforeReveal);
     if (reply.revealsCode && call.code === null && trusting) {
       call.code = this.codes.generateCode(playerId, scenario.codePrefix);
-      this.codes.registerGiftCard(playerId, call.code, {
-        value: scenario.cardValue,
-        difficulty: scenario.difficulty,
-        scenarioId: scenario.id,
-      });
+      const card = { difficulty: scenario.difficulty, scenarioId: scenario.id };
+      if (call.bait) {
+        this.codes.registerBaitCard(playerId, call.code, card);
+      } else {
+        this.codes.registerGiftCard(playerId, call.code, { ...card, value: scenario.cardValue });
+      }
     }
     if (offersCard && call.card === null && trusting) {
       call.card = this.codes.generateCode(playerId, Config.Card.Prefix);

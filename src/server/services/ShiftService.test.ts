@@ -47,6 +47,7 @@ function createGame(): {
     statsOf: (playerId) => stats.get(playerId),
     send: () => undefined,
     random: () => 0,
+    baitChance: 0,
   });
   const shifts = new ShiftService({
     calls,
@@ -238,6 +239,8 @@ describe("ShiftService: the end of a shift", () => {
         unlockedCallers: [],
         auditsPassed: 0,
         auditsFailed: 0,
+        hacked: false,
+        fine: 0,
       },
     ]);
     expect(game.stats.get(PlayerId)).toMatchObject({
@@ -556,5 +559,59 @@ describe("ShiftService: Skibidi's audits", () => {
     advanceSeconds(ShiftSeconds);
     expect(game.shift().status).toBe("overtime");
     expect(game.shifts.claimAudit(PlayerId, true)).toBe(false);
+  });
+});
+
+describe("ShiftService: getting hacked", () => {
+  it("fails the shift on the spot, whatever it earned, and fines the bank", () => {
+    const game = createGame();
+    game.stats.load(PlayerId, { ...defaultStats(), money: 1000 });
+    game.shifts.clockIn(PlayerId);
+    game.shifts.cardCharged(PlayerId, Config.Shift.Quota);
+
+    const announced: number[] = [];
+    expect(
+      game.shifts.hacked(PlayerId, 300, (fine) => {
+        announced.push(fine);
+        // Told before the report goes out.
+        expect(game.results).toEqual([]);
+      }),
+    ).toBe(true);
+    expect(announced).toEqual([300]);
+    expect(game.shifts.isOnShift(PlayerId)).toBe(false);
+    expect(game.results[0]).toMatchObject({
+      passed: false,
+      hacked: true,
+      fine: 300,
+      earnings: Config.Shift.Quota,
+    });
+    expect(game.stats.get(PlayerId)).toMatchObject({ money: 700, shiftsFailed: 1 });
+  });
+
+  it("never fines the bank below zero", () => {
+    const game = createGame();
+    game.stats.load(PlayerId, { ...defaultStats(), money: 120 });
+    game.shifts.clockIn(PlayerId);
+    const announced: number[] = [];
+    game.shifts.hacked(PlayerId, 300, (fine) => announced.push(fine));
+    expect(announced).toEqual([120]);
+    expect(game.results[0]).toMatchObject({ fine: 120 });
+    expect(game.stats.get(PlayerId).money).toBe(0);
+  });
+
+  it("ends the call in progress", () => {
+    const game = createGame();
+    clockInAndRing(game);
+    answer(game);
+    game.shifts.hacked(PlayerId, 300, () => undefined);
+    expect(game.call().status).toBe("idle");
+  });
+
+  it("does nothing off shift", () => {
+    const game = createGame();
+    const announced: number[] = [];
+    expect(game.shifts.hacked(PlayerId, 300, (fine) => announced.push(fine))).toBe(false);
+    expect(announced).toEqual([]);
+    expect(game.results).toEqual([]);
   });
 });

@@ -8,6 +8,10 @@
 // tries; so does charging more than a Wobblebucks Card's limit. Out of tries, the card
 // locks (a gift card after Config.Redeem.TriesPerCode, a Wobblebucks Card after
 // Config.Card.TriesPerCard). Each app turns away the other's cards without costing a try.
+//
+// A bait caller's code is a trap: typing it (or anything with its prefix) into the Redeem app
+// springs it once, pays nothing and tells onHacked. Bait cards never count as cards the
+// player can still cash in, so overtime doesn't wait for them.
 
 import { normalizeCode } from "@shared/cardCode";
 import { Config } from "@shared/Config";
@@ -15,8 +19,8 @@ import type { Difficulty, RedeemResult } from "@shared/types";
 import { generateCode } from "@server/services/codes";
 
 // giftCard: cashed in whole in the Redeem app. wobblebucks: charged in the Wobblebucks
-// Machine, up to its spending limit.
-type CardKind = "giftCard" | "wobblebucks";
+// Machine, up to its spending limit. bait: a trap that looks like a gift card.
+type CardKind = "giftCard" | "wobblebucks" | "bait";
 
 /** A gift card: what it pays, and the scenario it came from. */
 export interface GiftCardInfo {
@@ -43,7 +47,7 @@ interface IssuedCard {
   scenarioId: string;
   // Wrong tries (or declined charges) left before the card locks. 0 means locked.
   triesLeft: number;
-  // Cashed in or charged. Each card pays out once.
+  // Cashed in or charged (or, for bait, sprung). Each card pays out once.
   redeemed: boolean;
   // Goes up with every card issued, so ties can go to the newest one.
   order: number;
@@ -62,6 +66,8 @@ export interface RedeemServiceOptions {
   onCharged?: (playerId: string, amount: number, scenarioId: string) => void;
   // A card ran out of tries and can't be cashed in any more.
   onLocked?: (playerId: string) => void;
+  // The player tried to cash in a bait caller's trap code from scenario `scenarioId`.
+  onHacked?: (playerId: string, scenarioId: string) => void;
   // Extra wrong tries per card for this player (the Sticky Notes perk).
   extraTries?: (playerId: string) => number;
 }
@@ -69,6 +75,8 @@ export interface RedeemServiceOptions {
 const NotACode = "That doesn't look like a card code.";
 const WobblebucksInRedeem = "That's a Wobblebucks Card. Charge it in the Wobblebucks Machine.";
 const GiftCardInMachine = "That's a gift card code. Cash it in with the Redeem app.";
+const Hacked = "ACCESS DENIED. Nice try, scammer!";
+const BaitAlreadySprung = "That code was a trap. Leave it alone!";
 const OnlyLettersAndDigits = /^[A-Z0-9]+$/;
 
 function result(
@@ -100,7 +108,7 @@ function editDistance(a: string, b: string): number {
 }
 
 function isRedeemable(card: IssuedCard): boolean {
-  return !card.redeemed && card.triesLeft > 0;
+  return card.kind !== "bait" && !card.redeemed && card.triesLeft > 0;
 }
 
 /** When two cards are equally close to a guess, whether `candidate` should win: one that
@@ -117,12 +125,14 @@ export class RedeemService {
   private readonly onRedeemed: RedeemServiceOptions["onRedeemed"];
   private readonly onCharged: NonNullable<RedeemServiceOptions["onCharged"]>;
   private readonly onLocked: NonNullable<RedeemServiceOptions["onLocked"]>;
+  private readonly onHacked: NonNullable<RedeemServiceOptions["onHacked"]>;
   private readonly extraTries: NonNullable<RedeemServiceOptions["extraTries"]>;
 
   constructor(options: RedeemServiceOptions) {
     this.onRedeemed = options.onRedeemed;
     this.onCharged = options.onCharged ?? (() => undefined);
     this.onLocked = options.onLocked ?? (() => undefined);
+    this.onHacked = options.onHacked ?? (() => undefined);
     this.extraTries = options.extraTries ?? (() => 0);
   }
 
@@ -141,6 +151,12 @@ export class RedeemService {
       ...card,
       triesLeft: Config.Redeem.TriesPerCode + this.extraTries(playerId),
     });
+  }
+
+  /** Registers a bait caller's trap code. Cashing it in pays nothing and tells onHacked.
+   * Registering the same code again does nothing. */
+  registerBaitCard(playerId: string, code: string, card: Omit<GiftCardInfo, "value">): void {
+    this.register(playerId, code, { kind: "bait", value: 0, ...card, triesLeft: 1 });
   }
 
   /** Makes Wobblebucks Card `card` chargeable by the player, up to its spending limit in
@@ -164,6 +180,15 @@ export class RedeemService {
     }
     if (typed.startsWith(Config.Card.Prefix)) {
       return result(false, 0, null, WobblebucksInRedeem);
+    }
+    const bait = this.findBait(playerId, typed);
+    if (bait) {
+      if (bait.redeemed) {
+        return result(false, 0, null, BaitAlreadySprung);
+      }
+      bait.redeemed = true;
+      this.onHacked(playerId, bait.scenarioId);
+      return result(false, 0, null, Hacked);
     }
     const match = this.findCard(playerId, typed, "giftCard");
     if (!match) {
@@ -302,8 +327,25 @@ export class RedeemService {
     const prefix = typed.slice(0, Config.Code.PrefixLength);
     const cards = this.players.get(playerId)?.cards;
     return cards
-      ? [...cards].some(([code, card]) => card.kind === "giftCard" && code.startsWith(prefix))
+      ? [...cards].some(([code, card]) => card.kind !== "wobblebucks" && code.startsWith(prefix))
       : false;
+  }
+
+  /** The bait card `typed` was meant to be: one that shares its prefix, a trap not yet sprung
+   * first. A near miss springs the trap too: the player was going for it. */
+  private findBait(playerId: string, typed: string): IssuedCard | null {
+    const prefix = typed.slice(0, Config.Code.PrefixLength);
+    const cards = this.players.get(playerId)?.cards;
+    if (!cards || prefix.length < Config.Code.PrefixLength) {
+      return null;
+    }
+    let found: IssuedCard | null = null;
+    for (const [code, card] of cards) {
+      if (card.kind === "bait" && code.startsWith(prefix) && (!found || found.redeemed)) {
+        found = card;
+      }
+    }
+    return found;
   }
 
   private getOrCreate(playerId: string): PlayerCards {

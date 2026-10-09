@@ -26,6 +26,8 @@
   --layer-overlay: 6;
   /* The New Game intro video, over the save picker it starts from. */
   --layer-intro: 7;
+  /* The hacked screen from a bait caller's trap, over everything on the desk. */
+  --layer-hack: 8;
 
   /* Classic Grey: grey faces, and the 3D bevels on windows, buttons and the taskbar. */
   --face: #c0c0c0;

@@ -37,6 +37,14 @@ describe("systemPrompt", () => {
   it("is the same every time, so it can be cached", () => {
     expect(systemPrompt(scenario)).toBe(systemPrompt(scenario));
   });
+
+  it("only tells a bait caller their secret", () => {
+    expect(systemPrompt(scenario)).not.toContain("scam-buster");
+    const bait = systemPrompt(scenario, true);
+    expect(bait).toContain("undercover scam-buster");
+    expect(bait).toContain("Never admit it");
+    expect(bait).toContain('"suspicionChange"');
+  });
 });
 
 describe("turnPrompt", () => {

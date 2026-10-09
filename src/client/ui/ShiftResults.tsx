@@ -1,11 +1,13 @@
 // The report card when a shift ends: calls taken, earnings against the quota (raised by any
-// failed audits), Skibidi's audits if there were any, XP, and a
-// PROMOTED or FIRED stamp that slams down a moment after it opens, with a jingle (and
-// another if the player levelled up). Closing it goes back to the title menu.
+// failed audits), Skibidi's audits if there were any, any fine for getting hacked, XP, and a
+// PROMOTED, FIRED or HACKED stamp that slams down a moment after it opens, with a jingle (and
+// another if the player levelled up). It waits for the hacked screen to finish. Closing it
+// goes back to the title menu.
 
 import { type ReactElement, useEffect } from "react";
 import { Config } from "@shared/Config";
 import { secondsToMs } from "@shared/time";
+import { useHack } from "@client/state/hackStore";
 import { dismissShiftResult, useShift } from "@client/state/shiftStore";
 import { cx } from "@client/ui/classNames";
 import controls from "@client/ui/controls.module.css";
@@ -39,7 +41,9 @@ function useReportSounds(passed: boolean | null, levelledUp: boolean): void {
 }
 
 export function ShiftResults(): ReactElement | null {
-  const { result } = useShift();
+  const shift = useShift();
+  // Held back until the hacked screen lets go, so its stamp and jingle aren't missed.
+  const result = useHack() === null ? shift.result : null;
   useReportSounds(result?.passed ?? null, result?.newLevel != null);
   if (!result) {
     return null;
@@ -52,6 +56,9 @@ export function ShiftResults(): ReactElement | null {
     [result.passed ? "Banked" : "Lost", `$${result.earnings}`],
     ["XP earned", `+${result.xpEarned}`],
   ];
+  if (result.hacked) {
+    rows.splice(rows.length - 1, 0, ["Hacker's fine", `-$${result.fine}`]);
+  }
   if (result.auditsPassed + result.auditsFailed > 0) {
     rows.splice(2, 0, [
       "QA audits",
@@ -86,7 +93,7 @@ export function ShiftResults(): ReactElement | null {
           </div>
         )}
         <Stamp
-          text={result.passed ? "PROMOTED" : "FIRED"}
+          text={result.passed ? "PROMOTED" : result.hacked ? "HACKED" : "FIRED"}
           tone={result.passed ? "good" : "bad"}
           delaySeconds={Config.Effects.ReportStampDelaySeconds}
         />

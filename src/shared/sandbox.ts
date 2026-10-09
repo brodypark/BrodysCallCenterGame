@@ -23,6 +23,8 @@ export const SandboxSettingsSchema = z.object({
   sideProblem: z.enum(SideProblemChoices).catch("random").default("random"),
   // Where victims' replies come from. The AI's cost limits apply either way.
   replies: z.enum(ReplySources).catch("ai").default("ai"),
+  // Whether the next callers are bait (undercover scam-busters). Never rolled in Sandbox.
+  bait: z.boolean().catch(false).default(false),
 });
 
 export type SandboxSettings = z.output<typeof SandboxSettingsSchema>;
@@ -32,6 +34,7 @@ export const SandboxSettingsChangeSchema = z.strictObject({
   nextCaller: callerChoice.optional(),
   sideProblem: z.enum(SideProblemChoices).optional(),
   replies: z.enum(ReplySources).optional(),
+  bait: z.boolean().optional(),
 });
 
 export type SandboxSettingsChange = z.output<typeof SandboxSettingsChangeSchema>;

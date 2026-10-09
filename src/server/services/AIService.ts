@@ -38,6 +38,8 @@ export interface VictimReplyRequest {
   history: readonly HistoryLine[];
   // Everything but the obsession roll, which is made here.
   context: Omit<CallContext, "mentionObsession">;
+  // A bait caller (an undercover scam-buster), who gets their secret in the system prompt.
+  bait?: boolean;
   // False once the reply is no longer wanted (the call moved on); no new try starts then.
   stillWanted: () => boolean;
 }
@@ -173,7 +175,8 @@ export class AIService implements VictimReplySource {
   private readonly allowRequest: (playerId: string) => boolean;
   private readonly log: AILog;
   private readonly random: () => number;
-  // Built once per scenario: it never changes, which lets Gemini cache it.
+  // Built once per scenario (and once more for it as bait): it never changes, which lets
+  // Gemini cache it.
   private readonly systemPrompts = new Map<string, string>();
   // Each player's reply being fetched, so a call ending can stop its requests.
   private readonly inFlight = new Map<string, AbortController>();
@@ -234,11 +237,12 @@ export class AIService implements VictimReplySource {
     this.callEnded(playerId);
   }
 
-  private systemPromptFor(scenario: Scenario): string {
-    let prompt = this.systemPrompts.get(scenario.id);
+  private systemPromptFor(scenario: Scenario, bait: boolean): string {
+    const key = bait ? `${scenario.id}:bait` : scenario.id;
+    let prompt = this.systemPrompts.get(key);
     if (prompt === undefined) {
-      prompt = systemPrompt(scenario);
-      this.systemPrompts.set(scenario.id, prompt);
+      prompt = systemPrompt(scenario, bait);
+      this.systemPrompts.set(key, prompt);
     }
     return prompt;
   }
@@ -250,7 +254,7 @@ export class AIService implements VictimReplySource {
   ): Promise<AIReply | null> {
     const { playerId, scenario } = request;
     const mentionObsession = this.random() < Config.AI.ObsessionChance;
-    const system = this.systemPromptFor(scenario);
+    const system = this.systemPromptFor(scenario, request.bait === true);
     // Built now, so later changes to the call don't matter.
     const input = turnPrompt(scenario, request.history, { ...request.context, mentionObsession });
     const deadline = Date.now() + secondsToMs(Config.AI.ReplyDeadlineSeconds);

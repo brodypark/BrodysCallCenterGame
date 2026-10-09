@@ -147,6 +147,19 @@ export interface ShiftResult {
   // Skibidi's live audits this shift: passed (bonus paid) and failed (quota raised).
   auditsPassed: number;
   auditsFailed: number;
+  // The player cashed in a bait caller's trap code: the shift failed on the spot.
+  hacked: boolean;
+  // Taken from the bank for getting hacked. 0 if they weren't.
+  fine: number;
+}
+
+/** A bait caller's trap was sprung: the screen is hacked for `seconds`, and `fine` was taken
+ * from the bank. */
+export interface HackInfo {
+  seconds: number;
+  fine: number;
+  // False in Sandbox, which has no shift (and no fine).
+  shiftFailed: boolean;
 }
 
 // What a hint on a caller's page is about: what wins them over, what makes them angry, their

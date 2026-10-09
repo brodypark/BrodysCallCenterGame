@@ -236,6 +236,7 @@ export class AuditService {
         phraseCount: 0,
         saidForbiddenWord: false,
         codeTurn: null,
+        codeWasBait: false,
         cardRevealed: false,
         wentRed: false,
       },
@@ -269,6 +270,7 @@ export class AuditService {
     facts.awaitingReply = false;
     if (call.codeRevealed && facts.codeTurn === null) {
       facts.codeTurn = call.playerTurns;
+      facts.codeWasBait = call.bait;
     }
     facts.cardRevealed ||= call.cardRevealed;
     facts.wentRed ||= call.trust === "angry";

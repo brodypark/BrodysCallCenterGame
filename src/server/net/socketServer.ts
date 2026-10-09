@@ -33,6 +33,7 @@ import type { DataService } from "@server/services/DataService";
 import { RedeemService } from "@server/services/RedeemService";
 import { SandboxService } from "@server/services/SandboxService";
 import { matchDevCommand } from "@server/prompts/DevCommands";
+import { BaitTestWord } from "@server/prompts/DebugReplies";
 import { endPlayerSession } from "@server/services/playerExit";
 import { SaveService } from "@server/services/SaveService";
 import { ShiftService } from "@server/services/ShiftService";
@@ -210,6 +211,22 @@ export function startGameServer(httpServer: HttpServer, options: GameServerOptio
       shifts.cardCharged(playerId, amount);
     },
     onLocked: (playerId) => shifts.cardLocked(playerId),
+    // A bait caller's trap: the screen is hacked (sent before the shift report), and a
+    // Campaign shift fails with a fine. In Sandbox (no shift) the bait call just ends.
+    onHacked: (playerId) => {
+      const announce = (fine: number, shiftFailed: boolean): void => {
+        log.info({ playerId, fine }, "Player redeemed a bait code and got hacked");
+        toPlayer(playerId)?.emit("hack:triggered", {
+          seconds: ServerConfig.Bait.HackSeconds,
+          fine,
+          shiftFailed,
+        });
+      };
+      if (!shifts.hacked(playerId, ServerConfig.Bait.Fine, (fine) => announce(fine, true))) {
+        announce(0, false);
+        calls.endBaitCall(playerId);
+      }
+    },
     extraTries: (playerId) => extraRedeemTries(stats.get(playerId)),
   });
   const sandbox = new SandboxService({
@@ -225,7 +242,7 @@ export function startGameServer(httpServer: HttpServer, options: GameServerOptio
     },
     send: (playerId, snapshot) => toPlayer(playerId)?.emit("sandbox:snapshot", snapshot),
   });
-  const calls = new CallService({
+  const calls: CallService = new CallService({
     scenarios: options.scenarios,
     codes: redeem,
     allowTestWords: options.allowTestWords,
@@ -234,6 +251,11 @@ export function startGameServer(httpServer: HttpServer, options: GameServerOptio
       ? undefined
       : (playerId, text) => {
           // "!audit" (or "!audit <objective>") makes Skibidi audit this call now.
+          // "!bait" makes this call a bait caller (before they've read their code).
+          if (text.trim().toLowerCase() === BaitTestWord) {
+            calls.makeBait(playerId);
+            return true;
+          }
           const auditId = matchAuditTestWord(text);
           if (auditId !== undefined) {
             audits.force(playerId, auditId);

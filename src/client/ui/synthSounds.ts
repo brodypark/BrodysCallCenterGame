@@ -1,8 +1,8 @@
 // The game's sound effects, made from tones and noise in code rather than recorded files,
 // so there's nothing to license: a soft click, a classic double ring, a cash register, a
 // buzzer, a stamp thud, fanfares and a sad trombone. Cartoonish and retro, like the rest of
-// the desktop. Plain functions that return samples (-1 to 1), so they're tested without a
-// browser; ui/sounds turns them into audio.
+// the desktop, and a glitchy meltdown for getting hacked. Plain functions that return
+// samples (-1 to 1), so they're tested without a browser; ui/sounds turns them into audio.
 
 import type { SoundName } from "@client/ui/soundList";
 
@@ -255,6 +255,18 @@ const Makers: Record<SoundName, (rate: number) => Float32Array<ArrayBuffer>> = {
   // A bright two-note chime: you've got mail.
   "new-mail": (rate) =>
     arpeggio(new Track(rate), [G5, E6], 0.12, { wave: "sine", decay: 9 }).done(),
+  // Hacked: stuttering bleeps and bursts of static, then the computer powering down.
+  hacked: (rate) => {
+    const track = new Track(rate);
+    [1760, 220, 1320, 330, 1980, 247].forEach((pitch, index) => {
+      track.tone(index * 0.09, 0.06, { from: pitch, wave: "square", volume: 0.5 });
+      track.noise(index * 0.09 + 0.05, 0.04, 20, 6000, 0.6);
+    });
+    return track
+      .tone(0.6, 1.2, { from: 880, to: 55, wave: "square", decay: 1.5, vibrato: [14, 0.04] })
+      .noise(0.6, 1.2, 2, 2500, 0.3)
+      .done();
+  },
 };
 
 /** The samples for `name` at `rate` samples a second. */

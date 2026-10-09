@@ -1,5 +1,5 @@
 // The whole computer screen: wallpaper, desktop icons, app windows, taskbar, start menu,
-// new-mail notifications and the title menu between shifts.
+// new-mail notifications, the title menu between shifts, and the hacked screen.
 // It renders inside whatever element it's given (the full page today, a monitor in a shared
 // office later): a 16:9 screen sized to that element, never to the browser window, with
 // black bars around it. Everything inside scales with the screen.
@@ -13,6 +13,7 @@ import { clockIn } from "@client/net/shiftActions";
 import { formatClock } from "@shared/time";
 import { DesktopContext, type DesktopContextValue } from "@client/ui/DesktopContext";
 import { DesktopIcons } from "@client/ui/DesktopIcons";
+import { HackOverlay } from "@client/ui/HackOverlay";
 import { IntroVideo } from "@client/ui/IntroVideo";
 import { useIntroShown } from "@client/ui/introPlayer";
 import { createDesktopStore } from "@client/ui/desktopStore";
@@ -25,6 +26,7 @@ import { Taskbar } from "@client/ui/Taskbar";
 import { Toasts } from "@client/ui/Toasts";
 import { TitleMenu } from "@client/ui/TitleMenu";
 import { useStats } from "@client/state/statsStore";
+import { useHack } from "@client/state/hackStore";
 import { useDesktopShake } from "@client/ui/desktopShake";
 import { useCallPopups } from "@client/ui/useCallPopups";
 import { useDesktopSounds } from "@client/ui/useDesktopSounds";
@@ -57,6 +59,8 @@ export function Desktop(): ReactElement {
   // under them.
   const menuShown = useTitleMenuShown(store);
   const introShown = useIntroShown();
+  // The hacked screen freezes everything under it, the shift report included.
+  const hacked = useHack() !== null;
   // Also after a refresh mid-shift, when there's no Clock In click to do it.
   useEffect(() => keepAudioUnlocked(), []);
   // While another tab has the game, nothing here can be clicked, typed in or focused.
@@ -87,7 +91,7 @@ export function Desktop(): ReactElement {
           data-wallpaper={wallpaper}
         >
           <div ref={layersRef} className={styles.layers} inert={replaced}>
-            <div className={styles.desk} inert={menuShown || introShown}>
+            <div className={styles.desk} inert={menuShown || introShown || hacked}>
               {/* Clicking the bare wallpaper closes the start menu. */}
               <div className={styles.wallpaper} onClick={() => store.setStartMenuOpen(false)} />
 
@@ -117,12 +121,13 @@ export function Desktop(): ReactElement {
               <Toasts />
             </div>
             {/* Under the intro until the new save has loaded, and if it never does. */}
-            <div className={styles.menus} inert={introShown}>
+            <div className={styles.menus} inert={introShown || hacked}>
               <TitleMenu />
               <ShiftResults />
               <SavePicker />
             </div>
             <IntroVideo />
+            <HackOverlay />
           </div>
           <SuspicionAlert />
           <SessionOverlay />

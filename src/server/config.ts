@@ -65,6 +65,22 @@ export const ServerConfig = {
     SpeedRunTurns: 4,
   },
 
+  // Bait callers: now and then a caller is secretly an undercover scam-buster. They play the
+  // usual victim but drop tells and read out a trap code; cashing it in gets the player
+  // hacked. Hidden from the client, so a call never gives away that it's bait.
+  Bait: {
+    // The chance (0 to 1) that a call is bait, rolled when it rings, from MinLevel up.
+    Chance: 0.07,
+    MinLevel: 2,
+    // Every bait code starts with this (e.g. HNY-7QZ), so players can learn to spot one. No
+    // scenario may use it.
+    CodePrefix: "HNY",
+    // Taken from the player's banked money (never below 0) when they're hacked.
+    Fine: 300,
+    // How long the hacked screen stays frozen.
+    HackSeconds: 10,
+  },
+
   Database: {
     // The SQLite file with everyone's saves, relative to the server's own folder (src/server
     // in development, dist/server when built), so both use the project's gitignored data/

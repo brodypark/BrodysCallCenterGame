@@ -65,6 +65,11 @@ function buildPages(shift: ShiftSnapshot, stats: PlayerStats): readonly Page[] {
           Charge it in the <b>Wobblebucks Machine</b>. Go over their secret limit and it&apos;s
           declined. You get {Config.Card.TriesPerCard} tries.
         </>,
+        <>
+          Watch out for <b>bait callers</b>: undercover scam-busters who stall, ask odd technical
+          questions and read out a code that doesn&apos;t look like theirs. <b>Hang up!</b>{" "}
+          Redeeming their code gets you hacked.
+        </>,
       ],
     },
     {

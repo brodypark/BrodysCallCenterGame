@@ -1,7 +1,8 @@
 // Sandbox mode (docs/design.md "Game modes"): no shifts, quota or XP. Calls never ring by
-// themselves: the control panel's Ring now does it. The panel also picks who calls, whether they
-// have a side problem, and where replies come from, and can make the victim read their card
-// or hang up. Everything here only works while the player is playing their Sandbox save;
+// themselves: the control panel's Ring now does it. The panel also picks who calls, whether
+// they have a side problem or are bait, and where replies come from, and can make the victim
+// read their card or hang up. Everything here only works while the player is playing their
+// Sandbox save;
 // a Campaign player's requests are ignored. The settings live in the Sandbox save's stats,
 // so they never touch a Campaign slot.
 
@@ -109,6 +110,7 @@ export class SandboxService implements CallOverrides {
       nextCaller: nextCaller ?? before.nextCaller,
       sideProblem: change.sideProblem ?? before.sideProblem,
       replies: change.replies ?? before.replies,
+      bait: change.bait ?? before.bait,
     };
     this.options.stats.update(playerId, (stats) => {
       stats.sandbox = after;
@@ -195,6 +197,10 @@ export class SandboxService implements CallOverrides {
     }
     const { sideProblem } = this.settings(playerId);
     return sideProblem === "random" ? null : sideProblem === "always";
+  }
+
+  bait(playerId: string): boolean | null {
+    return this.options.isSandbox(playerId) ? this.settings(playerId).bait : null;
   }
 
   autoRing(playerId: string): boolean {

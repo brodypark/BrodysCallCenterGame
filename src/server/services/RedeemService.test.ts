@@ -226,3 +226,58 @@ describe("RedeemService: Wobblebucks Cards", () => {
     });
   });
 });
+
+describe("RedeemService: bait cards", () => {
+  const Bait = { difficulty: "Easy", scenarioId: "grandma" } as const;
+
+  function baited(): { redeem: RedeemService; paid: number[]; hacked: string[] } {
+    const paid: number[] = [];
+    const hacked: string[] = [];
+    const redeem = new RedeemService({
+      onRedeemed: (_playerId, card) => paid.push(card.value),
+      onHacked: (_playerId, scenarioId) => hacked.push(scenarioId),
+    });
+    redeem.registerBaitCard(PlayerId, "HNY-7QZ", Bait);
+    return { redeem, paid, hacked };
+  }
+
+  it("springs the trap once, paying nothing", () => {
+    const { redeem, paid, hacked } = baited();
+    expect(redeem.redeem(PlayerId, "hny 7qz")).toMatchObject({ success: false, payout: 0 });
+    expect(hacked).toEqual(["grandma"]);
+    expect(redeem.redeem(PlayerId, "HNY-7QZ")).toMatchObject({
+      success: false,
+      message: "That code was a trap. Leave it alone!",
+    });
+    expect(hacked).toEqual(["grandma"]);
+    expect(paid).toEqual([]);
+  });
+
+  it("springs on a near miss with the trap's prefix too", () => {
+    const { redeem, hacked } = baited();
+    redeem.redeem(PlayerId, "HNY-BBB");
+    expect(hacked).toEqual(["grandma"]);
+  });
+
+  it("leaves real gift cards alone", () => {
+    const { redeem, paid, hacked } = baited();
+    redeem.registerGiftCard(PlayerId, "GMA-7QZ", Grandma);
+    expect(redeem.redeem(PlayerId, "GMA-7QZ")).toMatchObject({ success: true, payout: 50 });
+    expect(paid).toEqual([50]);
+    expect(hacked).toEqual([]);
+  });
+
+  it("never counts as a card left to cash in", () => {
+    const { redeem } = baited();
+    expect(redeem.hasRedeemableCards(PlayerId)).toBe(false);
+  });
+
+  it("is turned away by the Wobblebucks Machine like a gift card", () => {
+    const { redeem, hacked } = baited();
+    expect(redeem.charge(PlayerId, "HNY-7QZ", 10)).toMatchObject({
+      success: false,
+      message: "That's a gift card code. Cash it in with the Redeem app.",
+    });
+    expect(hacked).toEqual([]);
+  });
+});

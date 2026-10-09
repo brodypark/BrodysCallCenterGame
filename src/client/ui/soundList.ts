@@ -23,7 +23,8 @@ export type SoundName =
   | "promoted"
   | "fired"
   | "level-up"
-  | "new-mail";
+  | "new-mail"
+  | "hacked";
 
 interface SoundInfo {
   // From 0 to 1, before the player's master and sound effects volumes.
@@ -56,4 +57,6 @@ export const Sounds: Record<SoundName, SoundInfo> = {
   fired: { volume: 0.6 },
   "level-up": { volume: 0.5 },
   "new-mail": { volume: 0.5 },
+  // Harsh square waves and static: kept low like the buzzer.
+  hacked: { volume: 0.3 },
 };

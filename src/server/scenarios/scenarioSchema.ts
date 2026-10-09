@@ -4,6 +4,7 @@
 
 import { z } from "zod";
 import { Config } from "@shared/Config";
+import { ServerConfig } from "@server/config";
 import type { Difficulty, FaceLook } from "@shared/types";
 
 const text = z.string().trim().min(1);
@@ -129,7 +130,8 @@ export const ScenarioSchema = z
     codePrefix: z
       .string()
       .regex(codePrefixPattern, `must be ${Config.Code.PrefixLength} capitals or digits`)
-      .refine((prefix) => prefix !== Config.Card.Prefix, "is saved for Wobblebucks Cards"),
+      .refine((prefix) => prefix !== Config.Card.Prefix, "is saved for Wobblebucks Cards")
+      .refine((prefix) => prefix !== ServerConfig.Bait.CodePrefix, "is saved for bait callers"),
     startingSuspicion: suspicion,
     // The victim hangs up when suspicion reaches this.
     suspicionThreshold: suspicion,

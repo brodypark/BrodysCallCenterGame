@@ -1,6 +1,6 @@
 // Test words, so the reveal and hang-up paths can be tried without playing a whole call.
 // !card makes the victim read their Wobblebucks Card, even on a call without a side
-// problem.
+// problem. !bait turns the call into a bait call.
 // Typed as a message, one gets the matching reply instead of the scripted (or AI) one.
 // Development only: CallService ignores them in production. The replies still go through
 // the normal rules (suspicion is capped per turn, and the code is only revealed below the
@@ -33,6 +33,10 @@ const Replies: Readonly<Record<string, AIReply>> = {
     revealsCode: false,
   },
 };
+
+/** Makes the call in progress a bait caller (before they've read their code), so the trap
+ * can be tested without waiting for one. Not a reply: it's handled as a dev command. */
+export const BaitTestWord = "!bait";
 
 /** The test reply for `message`, or null if it isn't a test word. */
 export function matchTestWord(message: string): AIReply | null {

@@ -14,6 +14,9 @@
 //
 // Skibidi's live audits (AuditService) change a shift: a pass adds a bonus to its earnings
 // and XP, a fail raises its quota.
+//
+// Cashing in a bait caller's trap code gets the player hacked: the shift fails on the spot
+// (its earnings are lost, XP kept) and a fine comes out of their banked money.
 
 import { Config } from "@shared/Config";
 import { secondsToMs } from "@shared/time";
@@ -279,6 +282,21 @@ export class ShiftService {
     return shift.quota;
   }
 
+  /** The player cashed in a bait caller's trap code: the shift fails now and `fine` comes
+   * out of their banked money (never below 0). `announce` is told the fine actually taken
+   * just before the shift ends, so the hacked screen can go up before the report. Returns
+   * false (and does nothing) off shift. */
+  hacked(playerId: string, fine: number, announce: (taken: number) => void): boolean {
+    const shift = this.shifts.get(playerId);
+    if (!shift || shift.status === "offShift") {
+      return false;
+    }
+    const taken = Math.max(0, Math.min(fine, this.options.stats.get(playerId).money));
+    announce(taken);
+    this.endShift(playerId, shift, false, taken);
+    return true;
+  }
+
   /** A card ran out of tries: in overtime, that may be the last thing left to finish. */
   cardLocked(playerId: string): void {
     const shift = this.shifts.get(playerId);
@@ -370,7 +388,14 @@ export class ShiftService {
     this.publish(playerId, shift);
   }
 
-  private endShift(playerId: string, shift: PlayerShift, quiet = false): void {
+  /** Ends the shift and saves its results. A `fine` means the player was hacked: the shift
+   * fails whatever it earned, and the fine is taken from the bank. */
+  private endShift(
+    playerId: string,
+    shift: PlayerShift,
+    quiet = false,
+    fine: number | null = null,
+  ): void {
     if (shift.status === "offShift") {
       return;
     }
@@ -386,7 +411,8 @@ export class ShiftService {
     this.options.cards.clearCards(playerId);
 
     const quota = shift.quota;
-    const passed = shift.earnings >= quota;
+    const hacked = fine !== null;
+    const passed = !hacked && shift.earnings >= quota;
     const xpEarned = shift.xpEarned + (passed ? Config.XP.ShiftPassBonus : 0);
     const before = this.options.stats.get(playerId);
     const levelBefore = levelOf(before.xp);
@@ -402,6 +428,8 @@ export class ShiftService {
       unlockedCallers: this.options.unlockedBetween(levelBefore, levelAfter),
       auditsPassed: shift.auditsPassed,
       auditsFailed: shift.auditsFailed,
+      hacked,
+      fine: fine ?? 0,
     };
     // Passing banks the earnings; failing loses them. XP is kept either way.
     this.options.stats.update(playerId, (stats) => {
@@ -411,6 +439,7 @@ export class ShiftService {
       } else {
         stats.shiftsFailed += 1;
       }
+      stats.money = Math.max(0, stats.money - result.fine);
       stats.xp += result.xpEarned;
       stats.callsCompleted += result.callsTaken;
       stats.successfulCalls += result.successfulCalls;

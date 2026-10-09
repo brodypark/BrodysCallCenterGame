@@ -94,7 +94,10 @@ export function shiftMail(
   const { result } = summary;
   const { Mail } = ServerConfig;
 
-  if (context.firstPass) {
+  if (result.hacked) {
+    // Not "under quota": the shift was cancelled, whatever it earned.
+    drafts.push({ template: "shiftHacked", vars: { fine: result.fine } });
+  } else if (context.firstPass) {
     drafts.push({ template: "firstPass" });
   } else if (context.failStreak === 1) {
     drafts.push({ template: "shiftFailed" });

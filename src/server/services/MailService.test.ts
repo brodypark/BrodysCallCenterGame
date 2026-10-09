@@ -31,6 +31,8 @@ function result(passed: boolean, newLevel: number | null = null): ShiftResult {
     unlockedCallers: [],
     auditsPassed: 0,
     auditsFailed: 0,
+    hacked: false,
+    fine: 0,
   };
 }
 
@@ -161,6 +163,14 @@ describe("MailService: shifts", () => {
     endShift(summary({ result: result(true) }));
     endShift(summary());
     expect(templates().slice(-2)).toEqual(["firstPass", "shiftFailed"]);
+  });
+
+  it("tells a hacked player about the fine, not the quota", () => {
+    endShift(summary({ result: { ...result(false), earnings: 500, hacked: true, fine: 300 } }));
+    expect(templates()).toEqual(["shiftHacked"]);
+    const body = mail.snapshot(PlayerId).messages[0]?.body ?? "";
+    expect(body).toContain("$300");
+    expect(body).not.toContain("under quota");
   });
 
   it("only celebrates the first pass", () => {

@@ -21,6 +21,7 @@ export type MailTemplateId =
   | "firstPass"
   | "shiftFailed"
   | "shiftFailedAgain"
+  | "shiftHacked"
   | "improvementPlan"
   | "hungUpOn"
   | "hangingUp"
@@ -436,6 +437,30 @@ const Writers: Record<MailTemplateId, Writer> = {
       "Trust the process (please),\nChad",
     ),
   }),
+
+  shiftHacked: (vars) => {
+    const fine = int(vars, "fine");
+    if (fine === null) {
+      return null;
+    }
+    return {
+      from: Linda,
+      subject: "Re: Your computer (it is not well)",
+      body: paragraphs(
+        "Hello,",
+        "IT tells me you cashed in a gift card from a caller who turned out to be an undercover " +
+          "scam-buster. Your computer is now mostly ducks.",
+        fine > 0
+          ? `The cleanup fee of $${fine} has been taken from your bank. Your shift was ` +
+              "cancelled too, so its earnings went with it."
+          : "There was nothing in your bank to take for the cleanup fee, which is its own " +
+              "kind of sad. Your shift was cancelled, so its earnings are gone.",
+        "In future: if a caller stalls, asks what server you're on, or reads you a code that " +
+          "doesn't look like theirs, hang up. Hanging up is free. Ducks are not.",
+        LindaSignOff,
+      ),
+    };
+  },
 
   improvementPlan: (vars) => {
     const streak = int(vars, "streak");

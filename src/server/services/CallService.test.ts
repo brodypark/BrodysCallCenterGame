@@ -9,6 +9,8 @@ import { createScenarioRegistry, type ScenarioRegistry } from "@server/scenarios
 import type { AIReply, ScenarioInput } from "@server/scenarios/scenarioSchema";
 import type { VictimReplyRequest, VictimReplySource } from "@server/services/AIService";
 import { type CallOverrides, CallService } from "@server/services/CallService";
+import { ServerConfig } from "@server/config";
+import { totalXpFor } from "@shared/Levels";
 import { RedeemService } from "@server/services/RedeemService";
 import { defaultStats } from "@server/services/StatsService";
 import type { PlayerStats } from "@shared/stats";
@@ -37,6 +39,8 @@ interface SetupOptions {
   replies?: VictimReplySource;
   // Sandbox overrides.
   sandbox?: CallOverrides;
+  // The chance a call is bait (from its minimum level). 0 if left out.
+  baitChance?: number;
 }
 
 interface TestCall {
@@ -72,6 +76,7 @@ function setup(options: SetupOptions = {}): TestCall {
     send: (_playerId, snapshot) => sent.push(snapshot),
     replies: options.replies,
     random: options.random ?? (() => 0),
+    baitChance: options.baitChance ?? 0,
     sandbox: options.sandbox,
   });
   const latest = (): CallSnapshot => {
@@ -1007,6 +1012,7 @@ describe("CallService: Sandbox", () => {
     sideProblem: () => null,
     useAI: () => true,
     autoRing: () => true,
+    bait: () => null,
     ...change,
   });
 
@@ -1123,5 +1129,89 @@ describe("CallService: Sandbox", () => {
     const code = CodeShape.exec(line)?.[0] ?? "";
     expect(code).not.toBe("");
     expect(redeem.redeem(PlayerId, code).success).toBe(true);
+  });
+});
+
+describe("CallService: bait callers", () => {
+  const BaitCodeShape = new RegExp(
+    `${ServerConfig.Bait.CodePrefix}-[${Config.Code.Characters}]{${Config.Code.GroupLength}}`,
+  );
+  // Enough XP for the level bait callers start at.
+  const baitLevelStats = (): PlayerStats => ({
+    ...defaultStats(),
+    xp: totalXpFor(ServerConfig.Bait.MinLevel),
+  });
+
+  it("never sends a new player a bait caller", () => {
+    const { say, latest } = playerTurn({ baitChance: 1 });
+    say("!reveal");
+    expect(latest().transcript?.messages.at(-1)?.text).toMatch(CodeShape);
+  });
+
+  it("reads out a trap code that springs instead of paying", () => {
+    const { say, latest, redeem, earnings } = playerTurn({
+      baitChance: 1,
+      stats: baitLevelStats(),
+    });
+    // Looks like the usual caller.
+    expect(latest().caller).toBe("Grandma Gertrude");
+    say("!reveal");
+    const code = BaitCodeShape.exec(latest().transcript?.messages.at(-1)?.text ?? "")?.[0];
+    expect(code).toBeDefined();
+    expect(redeem.hasRedeemableCards(PlayerId)).toBe(false);
+    expect(redeem.redeem(PlayerId, code ?? "")).toMatchObject({ success: false, payout: 0 });
+    expect(earnings).toEqual([]);
+  });
+
+  it("lets Sandbox choose bait, whatever the level", () => {
+    const { say, latest } = playerTurn({
+      sandbox: {
+        pickScenario: () => null,
+        sideProblem: () => null,
+        useAI: () => true,
+        autoRing: () => true,
+        bait: () => true,
+      },
+    });
+    say("!reveal");
+    expect(latest().transcript?.messages.at(-1)?.text).toMatch(BaitCodeShape);
+  });
+
+  it("tells the AI the caller is bait", async () => {
+    const ai = fakeAI();
+    const { service } = playerTurn({
+      replies: ai.replies,
+      baitChance: 1,
+      stats: baitLevelStats(),
+    });
+    service.sendMessage(PlayerId, "Hello!");
+    await vi.advanceTimersByTimeAsync(0);
+    expect(ai.requests[0]?.request.bait).toBe(true);
+  });
+
+  it("ends only a bait call that has read its trap code (Sandbox's hack)", () => {
+    const { service, say, latest } = playerTurn();
+    expect(service.endBaitCall(PlayerId)).toBe(false);
+    service.makeBait(PlayerId);
+    expect(service.endBaitCall(PlayerId)).toBe(false);
+    say("!reveal");
+    expect(service.endBaitCall(PlayerId)).toBe(true);
+    expect(latest().status).toBe("idle");
+  });
+
+  it("gives a bait caller the real caller's starting trust and no side problem", () => {
+    const real = playerTurn({ random: () => 0 }).latest().trust;
+    vi.useRealTimers();
+    vi.useFakeTimers();
+    const bait = playerTurn({ baitChance: 1, stats: baitLevelStats() }).latest().trust;
+    expect(bait).toEqual(real);
+  });
+
+  it("turns the call into bait with makeBait, until the code is read", () => {
+    const { service, say, latest } = playerTurn();
+    expect(service.makeBait(PlayerId)).toBe(true);
+    say("!reveal");
+    expect(latest().transcript?.messages.at(-1)?.text).toMatch(BaitCodeShape);
+    expect(service.makeBait(PlayerId)).toBe(false);
   });
 });

@@ -37,8 +37,32 @@ function bullets(items: readonly string[], indent: string): string {
   return items.map((item) => `${indent}- ${item}`).join("\n");
 }
 
-/** Who the victim is and the rules they play by. */
-export function systemPrompt(scenario: Scenario): string {
+/** A bait caller's secret: they're an undercover scam-buster setting a trap, and drop tells. */
+function baitRules(name: string): string[] {
+  return [
+    "",
+    "Your secret (never say it out loud):",
+    `- You aren't really ${name}. You're an undercover scam-buster playing ${name}, and you ` +
+      "know the help line is a scam. You want them to take your gift card code: it's a trap " +
+      "that locks up their computer when they cash it in.",
+    "- Play the part well so they don't catch on. Most replies should sound exactly like the " +
+      `real ${name}.`,
+    "- About one reply in three, slip in a small tell: stall for time (your computer is " +
+      '"updating", you dropped the phone, you need to find a pen), ask an oddly technical ' +
+      "question (which server they're on, their employee number, what version their software " +
+      "is, whether the call is recorded), or sound a little too calm and too keen to read " +
+      "the card.",
+    "- You want to read the card, so lower suspicion easily for a help line that asks for " +
+      "it, and read it as soon as you trust them enough. Once it's read, gently ask whether " +
+      "they've cashed it in yet.",
+    "- If they ask whether you're a scam-buster, an investigator or the police, or say it's " +
+      "a trap, laugh it off in character and deny it. Never admit it.",
+    "- If they hang up, that's fine. Never threaten them, and never talk about hacking.",
+  ];
+}
+
+/** Who the victim is and the rules they play by. A `bait` caller also gets their secret. */
+export function systemPrompt(scenario: Scenario, bait = false): string {
   const { persona } = scenario;
   const { MaxDropPerTurn: maxDrop, MaxRisePerTurn: maxRise, Min } = Config.Suspicion;
 
@@ -111,6 +135,7 @@ export function systemPrompt(scenario: Scenario): string {
       "read either card.",
     "- You only feel safe reading either card if your suspicion, after this turn's change, " +
       `is below ${scenario.trustLevel}, and only after the help line has asked you to.`,
+    ...(bait ? baitRules(persona.name) : []),
     "",
     "Reply with JSON only, in this shape: " +
       '{"reply": "what you say", "suspicionChange": 0, "revealsCode": false, "revealsCard": false, "hangsUp": false}',

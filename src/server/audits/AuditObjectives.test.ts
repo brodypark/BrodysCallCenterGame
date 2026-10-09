@@ -19,6 +19,7 @@ function facts(changes: Partial<AuditFacts> = {}): AuditFacts {
     phraseCount: 0,
     saidForbiddenWord: false,
     codeTurn: null,
+    codeWasBait: false,
     cardRevealed: false,
     wentRed: false,
     ...changes,
@@ -126,5 +127,16 @@ function call(): Parameters<(typeof AuditObjectives)["upsell"]["fits"]>[0] {
     cardRevealed: false,
     hasSideProblem: false,
     trust: "unsure",
+    bait: false,
   };
 }
+
+describe("bait callers", () => {
+  it("never counts a bait caller's trap code as getting the code", () => {
+    const got = facts({ codeTurn: 3, codeWasBait: true });
+    expect(AuditObjectives.forbiddenWord.won(got)).toBe(false);
+    expect(AuditObjectives.speedRun.won(got)).toBe(false);
+    expect(AuditObjectives.smoothTalker.won(got)).toBe(false);
+    expect(AuditObjectives.speedRun.won(facts({ codeTurn: 3 }))).toBe(true);
+  });
+});

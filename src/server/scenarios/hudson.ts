@@ -7,7 +7,7 @@ export const hudson: ScenarioInput = {
   id: "hudson",
   displayName: "Hudson",
   difficulty: "Easy",
-  unlockLevel: 3,
+  unlockLevel: 2,
   persona: {
     name: "Hudson",
     personality:

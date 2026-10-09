@@ -9,7 +9,7 @@ export const hubble: ScenarioInput = {
   id: "hubble",
   displayName: "Hubble",
   difficulty: "Easy",
-  unlockLevel: 1,
+  unlockLevel: 2,
   persona: {
     name: "Hubble",
     personality:

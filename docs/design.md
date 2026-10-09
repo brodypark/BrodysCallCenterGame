@@ -186,8 +186,9 @@ A bonus way to earn on top of the gift card.
 
   A passed Grandma shift earns about 55 XP, so level 5 takes about 8 passed shifts (~1 hour)
   and level 10 about 29 (~4 hours). Harder scenarios pay more XP, which speeds later levels up.
-- **Scenario unlocks:** a new scenario every **2 levels**: three at level 1 (Grandma, Grandpa Gus and
-  Hubble), then levels 3, 5, 7, 9, 11, ... up to The Villain at 19. Easy ones come first, Medium around levels 5-7, Hard from level 9. Each
+- **Scenario unlocks:** **two new scenarios every level**: Grandma and Grandpa Gus at level 1,
+  then two more each level up to Jordan and The Villain at 6. Easy ones come first, Medium at
+  level 3, Hard from level 4. Each
   scenario module sets its own `unlockLevel` to follow this. Scenarios are unlocked **only**
   through XP, never bought.
 
@@ -259,21 +260,21 @@ gap and shrink the second, and pay more.
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | 1 | Grandma Gertrude | Easy | $50 | `GMA` | 40 | 100 | 30 | 10 | 60 |
 | 1 | Grandpa Gus | Easy | $55 | `GPZ` | 40 | 100 | 30 | 10 | 60 |
-| 1 | Hubble | Easy | $55 | `HBL` | 40 | 100 | 30 | 10 | 60 |
-| 3 | Hudson | Easy | $60 | `HDS` | 35 | 100 | 25 | 10 | 65 |
-| 5 | Sarah | Medium | $80 | `SRH` | 45 | 90 | 25 | 20 | 45 |
-| 7 | Pete | Medium | $100 | `PTF` | 35 | 80 | 15 | 20 | 45 |
-| 9 | Brody | Hard | $125 | `BRZ` | 60 | 90 | 25 | 35 | 30 |
-| 11 | Uncle Mike | Hard | $150 | `MKE` | 55 | 85 | 20 | 35 | 30 |
-| 13 | Evan | Hard | $175 | `EVN` | 50 | 85 | 20 | 30 | 35 |
-| 15 | CJ | Hard | $200 | `CJZ` | 65 | 85 | 20 | 45 | 20 |
-| 17 | Jordan | Hard | $225 | `JRD` | 55 | 90 | 20 | 35 | 35 |
-| 19 | The Villain | Hard | $250 | `VLN` | 60 | 90 | 20 | 40 | 30 |
+| 2 | Hubble | Easy | $55 | `HBL` | 40 | 100 | 30 | 10 | 60 |
+| 2 | Hudson | Easy | $60 | `HDS` | 35 | 100 | 25 | 10 | 65 |
+| 3 | Sarah | Medium | $80 | `SRH` | 45 | 90 | 25 | 20 | 45 |
+| 3 | Pete | Medium | $100 | `PTF` | 35 | 80 | 15 | 20 | 45 |
+| 4 | Brody | Hard | $125 | `BRZ` | 60 | 90 | 25 | 35 | 30 |
+| 4 | Uncle Mike | Hard | $150 | `MKE` | 55 | 85 | 20 | 35 | 30 |
+| 5 | Evan | Hard | $175 | `EVN` | 50 | 85 | 20 | 30 | 35 |
+| 5 | CJ | Hard | $200 | `CJZ` | 65 | 85 | 20 | 45 | 20 |
+| 6 | Jordan | Hard | $225 | `JRD` | 55 | 90 | 20 | 35 | 35 |
+| 6 | The Villain | Hard | $250 | `VLN` | 60 | 90 | 20 | 40 | 30 |
 
 Prefixes are never real words, since the AI's replies are cleaned of anything shaped like a code
 with the scenario's prefix. Grandma is ported from the Roblox version; the other eleven are new to
-the browser version. Three callers are unlocked from the start (Grandma, Grandpa Gus and
-Hubble), so early shifts aren't all one voice.
+the browser version. Two callers are unlocked from the start (Grandma and Grandpa Gus), so
+early shifts aren't all one voice.
 
 **Grandma Gertrude (Easy, level 1):** a sweet, confused grandma who can't figure out how to
 redeem the Pudding Palace card her grandson Timmy sent. Obsession: Sir Fluffington, her fat,
@@ -288,57 +289,57 @@ wire". Likes respect ("sir"), patience and his fishing stories; hates being rush
 explanations, computer words, being called old and anyone doubting Old Whiskers. Bald under an olive cap,
 glasses and a white mustache. As forgiving as Grandma.
 
-**Hubble (Easy, level 1):** a gadget-obsessed tech geek whose Gadget Gulch card won't scan with
+**Hubble (Easy, level 2):** a gadget-obsessed tech geek whose Gadget Gulch card won't scan with
 the card reader he built out of a webcam and a toaster. Obsession: technology (his seven-screen
 battle station, and Gerald, his router, who he treats like a pet). The twist on Grandma: confident tech jargon impresses him.
 Hates being told to turn it off and on again, being talked down to and being rushed. Short
 dark hair and glasses.
 
-**Hudson (Easy, level 3):** a super chill movie fan whose Kernel Kingdom Cinemas card says "card
+**Hudson (Easy, level 2):** a super chill movie fan whose Kernel Kingdom Cinemas card says "card
 not recognised". Obsession: popcorn (butter ratios, microwave timing, the kernels at the
 bottom). Rates everything out of ten. Likes a relaxed, friendly tone and snack talk; hates being
 rushed, stiff scripted talk and anyone dissing popcorn. Short brown hair. As forgiving as
 Grandma, but needs a little more convincing (trust 25) and pays a bit more.
 
-**Sarah (Medium, level 5):** a bubbly college student walking to class whose Bubble Bliss Tea
+**Sarah (Medium, level 3):** a bubbly college student walking to class whose Bubble Bliss Tea
 card says "invalid balance". Obsession: boba tea; she ranks every flavor in a spreadsheet. She's
 sat through a phone-scam lecture, so she starts warier (45). Likes a genuine, casual tone and
 being asked about her boba order; hates being talked down to, robotic help-line phrases and
 "bubble juice". Long black hair, earrings, rosy cheeks.
 
-**Pete (Medium, level 7):** a high-energy personal trainer doing push-ups all call, whose Iron
+**Pete (Medium, level 3):** a high-energy personal trainer doing push-ups all call, whose Iron
 Temple Supplements card says "card not found". Obsession: working out (reps, macros, never
 skipping leg day). Likes hype, confident coach-like instructions and being called strong; hates
 slow explanations and junk-food talk. Blue headband. Starts friendly (35) but his trust level is
 very low (15) and his fuse short (80), so you have to keep the energy up.
 
-**Brody (Hard, level 9):** a big foodie who called right before dinner and is always mid-bite,
+**Brody (Hard, level 4):** a big foodie who called right before dinner and is always mid-bite,
 whose Mega Munch Burger Barn card says "card already used". Obsession: eating (his next meal,
 his last meal, snack combos). He starts hangry and suspicious (60); talking food with him and
 letting him finish his bite win him over, while rushing him through dinner or telling him to
 skip a meal makes it worse. Calls people "chef". Blonde hair and glasses.
 
-**Uncle Mike (Hard, level 11):** a loud, stubborn uncle watching the Georgia game only to
+**Uncle Mike (Hard, level 4):** a loud, stubborn uncle watching the Georgia game only to
 complain about it, whose End Zone Sports card says "card declined". Obsession: the University of Georgia football
 team and how bad it is. He tests you with questions and pounces on answers that change. Likes
 confidence, straight answers and agreeing that Georgia football stinks; saying "Go Dawgs" or
 defending them sets him off. Bald with a big grey mustache. The lowest threshold (85) and trust
 level 20 mean you need a story and you have to stick to it.
 
-**Evan (Hard, level 13):** a sweet, nervous guy with a hopeless crush on his friend CJ's sister,
+**Evan (Hard, level 5):** a sweet, nervous guy with a hopeless crush on his friend CJ's sister,
 whose Rose & Ribbon Florist card (for flowers for her) says "card not activated". Obsession: the
 crush; he rehearses asking her out mid-call and begs you not to tell CJ. Likes encouragement,
 kindness and (bad) dating advice; hates being teased, pushy talk and anyone saying she's out of
 his league. Short reddish hair, glasses, always blushing.
 
-**CJ (Hard, level 15):** a chronically online gamer streaming the call to his chat, whose Galaxy
+**CJ (Hard, level 5):** a chronically online gamer streaming the call to his chat, whose Galaxy
 Gamer Gems card says "code already used". Obsession: brainrot (skibidi, sigma, rizz, aura,
 "only in Ohio"), and he rates everything's aura. The twist: formal, official help-line talk makes
 him *more* suspicious; slang and memes win him over. Hates being called "sir" and anything
 urgent ("the scam playbook"). Dyed blue hair, a red headband. The final boss: he starts the most
 suspicious (65) with the least room for mistakes.
 
-**Jordan (Hard, level 17):** a fast-talking guy who bets on everything (snail races, coin flips
+**Jordan (Hard, level 6):** a fast-talking guy who bets on everything (snail races, coin flips
 with his cat, which pigeon lands first) and can't stop until he's lost it all, whose Quackpot
 Arcade card (won in the arcade's raffle) says "card on hold". Obsession: gambling, cartoon style: his
 bets are always silly stuff (snacks, socks, his couch), never money. Likes the help line taking
@@ -346,7 +347,7 @@ his bets, odds talk and cheering for his snail; hates "guaranteed" or "risk-free
 (nothing's a sure thing), being called a sore loser and anyone jinxing his streak. Short black
 hair and a thin mustache.
 
-**The Villain (Hard, level 19):** a dramatic cartoon super-villain with a volcano lair and
+**The Villain (Hard, level 6):** a dramatic cartoon super-villain with a volcano lair and
 henchmen all named Doug, whose Sinister Supplies Co. card (a Villain Appreciation Day gift) keeps
 getting declined, so he can't finish his Mega Tickle Ray. Obsession: his evil schemes, cartoon
 style (the Tickle Ray, stealing every left sock; nobody hurt). He's always watching for heroes in disguise. Likes being called "Your

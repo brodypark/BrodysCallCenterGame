@@ -212,7 +212,7 @@ describe("MailService: shifts", () => {
 
   it("sends the level emails after the rest", () => {
     endShift(summary({ result: result(true, 2), levelBefore: 1 }));
-    expect(templates()).toEqual(["firstPass", "story"]);
+    expect(templates()).toEqual(["firstPass", "newLead", "newLead", "story"]);
     expect(subjects()[0]).toBe("The Trust Fall, Issue #1: Meet the Office");
   });
 });

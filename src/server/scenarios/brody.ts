@@ -8,7 +8,7 @@ export const brody: ScenarioInput = {
   id: "brody",
   displayName: "Brody",
   difficulty: "Hard",
-  unlockLevel: 9,
+  unlockLevel: 4,
   persona: {
     name: "Brody",
     personality:

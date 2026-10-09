@@ -1,7 +1,7 @@
 // Scenario: The Villain, a dramatic cartoon super-villain whose evil supply store gift card
 // keeps getting declined. Admiring his evil genius wins him over; heroic speeches, or laughing
 // at him, don't. His schemes are always silly and nobody gets hurt. The last caller to unlock
-// (two levels after Jordan), with the biggest card. Values come from docs/design.md
+// (alongside Jordan), with the biggest card. Values come from docs/design.md
 // ("Scenarios").
 
 import type { ScenarioInput } from "@server/scenarios/scenarioSchema";
@@ -10,7 +10,7 @@ export const villain: ScenarioInput = {
   id: "villain",
   displayName: "The Villain",
   difficulty: "Hard",
-  unlockLevel: 19,
+  unlockLevel: 6,
   persona: {
     name: "The Villain",
     personality:

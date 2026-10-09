@@ -13,6 +13,8 @@ import { clockIn } from "@client/net/shiftActions";
 import { formatClock } from "@shared/time";
 import { DesktopContext, type DesktopContextValue } from "@client/ui/DesktopContext";
 import { DesktopIcons } from "@client/ui/DesktopIcons";
+import { IntroVideo } from "@client/ui/IntroVideo";
+import { useIntroShown } from "@client/ui/introPlayer";
 import { createDesktopStore } from "@client/ui/desktopStore";
 import { DesktopIconGrid, DesktopLayout, layoutVars } from "@client/ui/layout";
 import { SavePicker } from "@client/ui/SavePicker";
@@ -50,8 +52,10 @@ export function Desktop(): ReactElement {
   useTutorialPopup(store);
   // After How to Play, so the welcome email opens in front of it.
   useMailPopup(store);
-  // The title menu covers the desk; keyboard focus mustn't reach what's under it.
+  // The title menu and the intro video cover the desk; keyboard focus mustn't reach what's
+  // under them.
   const menuShown = useTitleMenuShown(store);
+  const introShown = useIntroShown();
   // Also after a refresh mid-shift, when there's no Clock In click to do it.
   useEffect(() => keepAudioUnlocked(), []);
   // While another tab has the game, nothing here can be clicked, typed in or focused.
@@ -82,7 +86,7 @@ export function Desktop(): ReactElement {
           data-wallpaper={wallpaper}
         >
           <div ref={layersRef} className={styles.layers} inert={replaced}>
-            <div className={styles.desk} inert={menuShown}>
+            <div className={styles.desk} inert={menuShown || introShown}>
               {/* Clicking the bare wallpaper closes the start menu. */}
               <div className={styles.wallpaper} onClick={() => store.setStartMenuOpen(false)} />
 
@@ -110,9 +114,13 @@ export function Desktop(): ReactElement {
               <Taskbar />
               <StartMenu />
             </div>
-            <TitleMenu />
-            <ShiftResults />
-            <SavePicker />
+            {/* Under the intro until the new save has loaded, and if it never does. */}
+            <div className={styles.menus} inert={introShown}>
+              <TitleMenu />
+              <ShiftResults />
+              <SavePicker />
+            </div>
+            <IntroVideo />
           </div>
           <SuspicionAlert />
           <SessionOverlay />

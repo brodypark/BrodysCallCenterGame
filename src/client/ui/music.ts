@@ -11,6 +11,7 @@ import { callStore } from "@client/state/callStore";
 import { connectionStore } from "@client/state/connectionStore";
 import { musicVolume } from "@client/ui/audioSettings";
 import { audioSettingsStore as settings } from "@client/ui/audioSettingsStore";
+import { introStore } from "@client/ui/introPlayer";
 import { findSong } from "@client/ui/songs";
 
 let element: HTMLAudioElement | null = null;
@@ -50,8 +51,13 @@ function fadeVolume(): void {
 /** Starts, switches or stops the music to match the settings. */
 function sync(): void {
   const song = findSong(settings.get().songId);
-  // Another tab took over the game, so it plays the music instead.
-  if (song === undefined || connectionStore.get().status === "replaced") {
+  // Another tab took over the game, so it plays the music instead. The intro video has its
+  // own sound, so the music waits for it.
+  if (
+    song === undefined ||
+    connectionStore.get().status === "replaced" ||
+    introStore.get() !== "off"
+  ) {
     element?.pause();
     return;
   }
@@ -88,6 +94,7 @@ export function startMusic(): void {
   }
   unsubscribers = [
     settings.subscribe(sync),
+    introStore.subscribe(sync),
     callStore.subscribe(fadeVolume),
     connectionStore.subscribe(() => {
       if (connectionStore.get().status === "replaced") {

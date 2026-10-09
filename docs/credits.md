@@ -19,6 +19,11 @@ Looped background music, picked in the Settings app (`src/client/ui/songs.ts`).
   Stack, downloaded from APLMate. **License unconfirmed**: confirm the rights (or replace it).
 - **Patapim**: `public/sounds/music/patapim.mp3`. A user-uploaded meme clip. **License unconfirmed**: fine for local testing; confirm the rights before deploying.
 
+## Intro video
+
+- **Intro**: `public/videos/intro.mp4`, the opening cutscene that plays on New Game
+  (`src/client/ui/introPlayer.ts`). Supplied by the game's author.
+
 ## Facecam
 
 - **MediaPipe Face Landmarker** (`@mediapipe/tasks-vision` 1.1.0) by Google. Apache License 2.0.

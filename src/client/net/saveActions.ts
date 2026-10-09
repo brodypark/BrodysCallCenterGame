@@ -9,10 +9,13 @@ export function continueSave(slot: number): void {
   }
 }
 
-export function newSave(slot: number): void {
-  if (socket.connected) {
-    socket.emit("saves:new", { slot });
+/** Returns whether the request was sent (not while offline). */
+export function newSave(slot: number): boolean {
+  if (!socket.connected) {
+    return false;
   }
+  socket.emit("saves:new", { slot });
+  return true;
 }
 
 export function deleteSave(slot: number): void {

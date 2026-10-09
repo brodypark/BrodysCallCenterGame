@@ -326,6 +326,12 @@ export const Config = {
     LevelUpJingleDelaySeconds: 2.5,
   },
 
+  // The intro video that plays when a new Campaign save starts (ui/introPlayer).
+  Intro: {
+    // When it ends (or is skipped), it fades into the desk over this long.
+    FadeSeconds: 1.5,
+  },
+
   // Sound effects (ui/sounds), made in code (ui/synthSounds) unless a file replaces one.
   Sounds: {
     // Where a new player's master volume (over everything) and sound effects volume start,

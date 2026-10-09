@@ -55,6 +55,10 @@ Each player has **3 save slots** (tied to their browser's player cookie until ac
 
 - Every new visit opens the **Save Slots** screen: **Continue** a save, start a **New Game** in
   an empty slot, or **Delete** a slot (after "Are you sure?").
+- **New Game** plays the intro video (`public/videos/intro.mp4`, about 20 s) over the screen,
+  with a **Skip** button in the bottom right until it ends. It then fades into the desk, and
+  only then do How to Play and the boss's welcome email open. Music waits for it. It doesn't
+  replay on a refresh, on Continue or in Sandbox.
 - Refreshing or dropping out and coming back within **30 s** skips the screen: same slot, same
   shift, same call.
 - Away longer, an unfinished shift ends as a **failed shift** (earnings lost, XP kept) and is

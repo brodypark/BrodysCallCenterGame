@@ -6,6 +6,7 @@ import {
   effectsVolume,
   musicVolume,
   parseAudioSettings,
+  videoVolume,
   voiceVolume,
 } from "@client/ui/audioSettings";
 import { Songs } from "@client/ui/songs";
@@ -67,6 +68,7 @@ describe("volumes", () => {
     expect(musicVolume(settings, false)).toBeCloseTo(0.4);
     expect(effectsVolume(settings)).toBeCloseTo(0.3);
     expect(voiceVolume(settings)).toBe(0.5);
+    expect(videoVolume(settings)).toBe(0.5);
   });
 
   it("drops the music while the victim talks", () => {

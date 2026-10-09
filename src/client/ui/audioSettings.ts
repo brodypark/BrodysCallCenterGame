@@ -83,3 +83,8 @@ export function effectsVolume(settings: AudioSettings): number {
 export function voiceVolume(settings: AudioSettings): number {
   return settings.masterVolume;
 }
+
+/** How loud the intro video plays. */
+export function videoVolume(settings: AudioSettings): number {
+  return settings.masterVolume;
+}

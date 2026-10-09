@@ -8,6 +8,7 @@ import { tutorialSeen } from "@client/net/tutorialActions";
 import { useSaves } from "@client/state/savesStore";
 import { useShift } from "@client/state/shiftStore";
 import { useStats } from "@client/state/statsStore";
+import { useIntroShown } from "@client/ui/introPlayer";
 import { useTitleMenuShown } from "@client/ui/useTitleMenuShown";
 
 export function useTutorialPopup(store: DesktopStore): void {
@@ -15,8 +16,9 @@ export function useTutorialPopup(store: DesktopStore): void {
   const { tutorialSeen: seen } = useStats();
   const menuShown = useTitleMenuShown(store);
   const shiftStatus = useShift().snapshot.status;
-  // Never mid-shift, on top of a ringing phone.
-  const deskShown = !menuShown && shiftStatus === "offShift";
+  const introShown = useIntroShown();
+  // Never mid-shift, on top of a ringing phone, or under the intro video.
+  const deskShown = !menuShown && shiftStatus === "offShift" && !introShown;
   // Read when a save is picked, not watched: the server sends a save's stats before the
   // saves snapshot that picks it, and default stats (seen false) when leaving one.
   const seenRef = useRef(seen);

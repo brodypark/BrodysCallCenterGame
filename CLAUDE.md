@@ -39,10 +39,10 @@ Control Panel (Sandbox only), Phone (incoming call), Facecam (webcam with a call
   - state/: client stores holding what the server last said
   - voice/: VictimVoice (plays lines, measures loudness), PlayerVoice + pushToTalk (push-to-talk with the browser's speech recognition)
   - facecam/: camera, faceTracker (MediaPipe Face Landmarker) + blockTrackerLogs, headsetPose (plain rules) + drawHeadset, facecamSession (draw, track, add the headset each frame), facecamSettingsStore (stinky)
-  - ui/: Desktop, Window, DesktopIcons, Taskbar, StartMenu, TitleMenu (home screen with Clock In, between shifts), ShiftResults, Face (+ faceParts), StinkCloud (the facecam's stinky aroma), Effects (stamp, coins, rolling number, + desktopShake), sounds (+ soundList, synthSounds: effects made in code) + soundCues, music + songs, audioSettings + audioSettingsStore (per-browser sound settings), themes
+  - ui/: Desktop, Window, DesktopIcons, Taskbar, StartMenu, TitleMenu (home screen with Clock In, between shifts), IntroVideo (+ introPlayer: the video that plays on New Game, skippable, fades into the desk), ShiftResults, Face (+ faceParts), StinkCloud (the facecam's stinky aroma), Effects (stamp, coins, rolling number, + desktopShake), sounds (+ soundList, synthSounds: effects made in code) + soundCues, music + songs, audioSettings + audioSettingsStore (per-browser sound settings), themes
   - ui/apps/: Phone, Call, Redeem, Wobblebucks, Stats, Shop, Tutorial, Settings, Facecam
 - src/shared → used by both: Config, events (Socket.IO event types + Zod schemas), types, Levels, Upgrades
-- public/sounds (optional recorded replacements for the made-in-code effects, listed in SoundFiles in ui/sounds), public/sounds/music (looped songs), public/facecam (MediaPipe's WebAssembly and face model, same version as package.json), public/fonts → files we have the rights to (credited in docs/credits.md)
+- public/sounds (optional recorded replacements for the made-in-code effects, listed in SoundFiles in ui/sounds), public/sounds/music (looped songs), public/videos (the New Game intro), public/facecam (MediaPipe's WebAssembly and face model, same version as package.json), public/fonts → files we have the rights to (credited in docs/credits.md)
 - docs/ → design notes. data/ → SQLite file (gitignored)
 
 ## Architecture Rules

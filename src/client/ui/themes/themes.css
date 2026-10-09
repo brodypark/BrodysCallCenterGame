@@ -24,6 +24,8 @@
   --layer-start-menu: 4;
   --layer-title-menu: 5;
   --layer-overlay: 6;
+  /* The New Game intro video, over the save picker it starts from. */
+  --layer-intro: 7;
 
   /* Classic Grey: grey faces, and the 3D bevels on windows, buttons and the taskbar. */
   --face: #c0c0c0;

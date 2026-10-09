@@ -9,6 +9,7 @@ import { useConnection } from "@client/state/connectionStore";
 import { useSaves } from "@client/state/savesStore";
 import { cx } from "@client/ui/classNames";
 import { useDesktop } from "@client/ui/DesktopContext";
+import { playIntro } from "@client/ui/introPlayer";
 import { useSyncExternalStore } from "react";
 import styles from "@client/ui/SavePicker.module.css";
 
@@ -19,7 +20,10 @@ const lastPlayedFormat = new Intl.DateTimeFormat(undefined, {
 
 export function SavePicker(): ReactElement | null {
   const { store } = useDesktop();
-  const savePickerOpen = useSyncExternalStore(store.subscribe, () => store.getState().savePickerOpen);
+  const savePickerOpen = useSyncExternalStore(
+    store.subscribe,
+    () => store.getState().savePickerOpen,
+  );
   const saves = useSaves();
   const online = useConnection().status === "connected";
   // The slot waiting for "Are you sure?" before it's deleted.
@@ -147,7 +151,13 @@ function SlotActions({
         <button
           type="button"
           className={cx(styles.button, styles.primary)}
-          onClick={() => newSave(slot.slot)}
+          onClick={() => {
+            // The intro starts in the click itself, so the browser lets it play with sound,
+            // and only if the new save was asked for.
+            if (newSave(slot.slot)) {
+              playIntro();
+            }
+          }}
         >
           New Game
         </button>

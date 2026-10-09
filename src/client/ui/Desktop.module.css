@@ -46,6 +46,12 @@
   display: contents;
 }
 
+/* The title menu, shift report and save picker: a group only so the intro video can make
+   them inert. */
+.menus {
+  display: contents;
+}
+
 /* Floating Clock In button on the desktop wallpaper */
 .clockInWrapper {
   position: absolute;

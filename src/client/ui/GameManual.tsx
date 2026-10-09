@@ -73,6 +73,10 @@ export function GameManual({ onClose }: { onClose: () => void }): ReactElement {
               <h3>Gift Card Scams & The Credit Card Side Quest</h3>
               <p>The primary goal of any call is to gain enough trust that the caller reads out their <strong>Gift Card Code</strong>. Be extremely careful—if you ask too early, they will grow suspicious. Once they read it, you must type the exact code into the <strong>Redeem App</strong> to cash it in.</p>
               <p><strong>The Credit Card Side Quest:</strong> Occasionally, callers will have secondary technical issues (like a loud PC, a locked smart fridge, or a malfunctioning microwave). In these rare Side Quests, they will offer to pay you with a <strong>Wobblebucks Credit Card</strong> to fix the issue. You must take this specific code and run it through the <strong>Wobblebucks Machine</strong>. Be prepared for anything, as these side quests require you to navigate entirely different conversation branches and handle complex tech support lies.</p>
+              
+              <h3>Bait Callers & QA Audits</h3>
+              <p><strong>Bait Callers:</strong> Keep an ear out for undercover scam-busters. If their setup sounds too perfect, they ask odd technical questions, or they deliberately stall you, hang up immediately! If you attempt to redeem a Bait Caller's fake code, your computer will be hacked, you'll be heavily fined, and your shift will instantly fail.</p>
+              <p><strong>QA Audits:</strong> Occasionally, your boss Skibidi will email you a secret mid-call objective (e.g., "Upsell them to $500" or "Do not curse"). A "QA AUDIT" strip will appear under the Trust bar. Complete the objective for bonus XP and cash, but fail and he'll aggressively raise your daily quota!</p>
             </div>
           )}
 
@@ -114,7 +118,7 @@ export function GameManual({ onClose }: { onClose: () => void }): ReactElement {
               
               <h3>Career vs Sandbox</h3>
               <p>In <strong>Career Mode</strong>, you earn XP, level up, unlock new callers, and must survive the daily quota grind.</p>
-              <p>In <strong>Sandbox Mode</strong>, you are given unlimited money and time. You have access to the <strong>Control Panel</strong>, allowing you to force specific characters to call you instantly, so you can practice your social engineering techniques in a risk-free environment.</p>
+              <p>In <strong>Sandbox Mode</strong>, you are given unlimited money and time. You have access to the <strong>Control Panel</strong>, allowing you to force specific characters to call you instantly, trigger live QA Audits, or manually set a caller's trust level, so you can practice your social engineering techniques in a risk-free environment.</p>
             </div>
           )}
         </div>

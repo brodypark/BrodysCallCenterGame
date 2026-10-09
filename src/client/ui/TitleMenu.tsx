@@ -250,27 +250,12 @@ export function TitleMenu(): ReactElement | null {
                     X
                   </button>
                   <h2 style={{ marginTop: 0 }}>How to Play</h2>
-                  <div style={{ fontSize: "18px", lineHeight: "1.4" }}>
-                    <p>
-                      <b>1. Clock In:</b> Start your shift. You must meet your quota before time
-                      runs out or you're fired!
-                    </p>
-                    <p>
-                      <b>2. Take Calls:</b> Use the Phone app to answer calls. Sweet-talk victims
-                      without raising their Suspicion.
-                    </p>
-                    <p>
-                      <b>3. Get Codes:</b> Once they trust you, they'll read you a Gift Card code or
-                      Wobblebucks card.
-                    </p>
-                    <p>
-                      <b>4. Redeem:</b> Type the codes into the Redeem app or Wobblebucks machine to
-                      get paid.
-                    </p>
-                    <p>
-                      <b>5. Upgrades:</b> Use the Shop between shifts to buy perks. Hold <b>V</b> to
-                      use your microphone!
-                    </p>
+                  <div style={{ fontSize: "24px", lineHeight: "1.8", textAlign: "center", fontWeight: "bold", padding: "10px 0 20px" }}>
+                    <p>1. Clock In 💼</p>
+                    <p>2. Take Calls 📞</p>
+                    <p>3. Gain Trust 🤝</p>
+                    <p>4. Get Codes 🎁</p>
+                    <p>5. Redeem & Get Rich! 💸</p>
                   </div>
                 </div>
               </div>

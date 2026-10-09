@@ -1,4 +1,19 @@
 TODO:
-- Add better tutorial
-- Make words come out as they speak, click message bubble to skip to the end and cancel voice over
-- Make full documentation of how everything works and how the game works - EVERYTHING - ORGANIZED
+- Add Audits, Undercover Callers, and Spouse Interception Events to documentation
+  - update instructions to hint that there might be special events
+
+
+
+## Step 18 — The "Spouse Interception" Event
+
+Build step 18: The "Spouse Interception" Event.
+
+Requirements:
+- Add a dynamic event where a call is suddenly interrupted by a secondary character.
+- The trigger: Right as Trust reaches roughly 90% and the primary caller is about to read their code, a secondary voice (their skeptical spouse, parent, or grandson) takes the phone.
+- The AI prompt and face must instantly shift to this new, angry/suspicious family member. 
+- The player's Trust bar takes a massive hit, and they must pass a high-stakes dialogue check to convince the family member they are legitimate tech support. If they fail to lower the suspicion quickly, the family member hangs up the phone and the payout is lost.
+
+Done when: Calls are occasionally interrupted at the last second by a family member, forcing me to adapt my strategy and talk my way out of the situation.
+
+Propose a short plan first and wait for my OK. Then tell me exactly how to test it.

@@ -28,60 +28,37 @@ function buildPages(shift: ShiftSnapshot, stats: PlayerStats): readonly Page[] {
   const codeTries = Config.Redeem.TriesPerCode + extraRedeemTries(stats);
   return [
     {
-      title: "💼 The Job",
+      title: "💼 1. The Core Loop",
       lines: [
-        <>
-          Click <b>Clock In</b> to start a shift. Earn <b>${shift.quota}</b> in <b>{shiftTime}</b>{" "}
-          to get PROMOTED.
-        </>,
-        "Fall short and you're FIRED: you lose that shift's money, but keep your XP.",
+        <>Click <b>Clock In</b> to start your shift. Your goal is to meet the daily quota (<b>${shift.quota}</b>) before the <b>{shiftTime}</b> timer runs out.</>,
+        <>Answer the <b>Phone</b> when it rings and use the <b>Call</b> app to talk to the victim.</>,
+        <>Watch their <b>Trust</b> bar. Say the wrong thing and they'll get suspicious and hang up.</>,
       ],
     },
     {
-      title: "📞 Calls",
+      title: "🎙️ 2. Social Engineering",
       lines: [
-        <>
-          Answer the <b>Phone</b> when it rings, then talk in the <b>Call</b> app.
-        </>,
-        <>
-          Play along with the caller&apos;s quirks. Watch the <b>Trust</b> bar: if they get too
-          suspicious, they hang up.
-        </>,
-        "Win them over and they'll read you a gift card code.",
+        <>Hold <b>V</b> (or the 🎤 button) to use your microphone, or type your response.</>,
+        <>Every caller has a unique personality and obsession. Adapt your persona to match theirs to gain trust.</>,
+        <>Once they trust you enough, they will read out a <b>Gift Card Code</b>.</>,
+        <><b>WARNING:</b> Keep an ear out for <i>Bait Callers</i>. If their setup sounds too perfect or they try to stall, hang up. Redeeming a bait code will get you hacked.</>
       ],
     },
     {
-      title: "🎁 Cards",
+      title: "💸 3. Cashing Out",
       lines: [
-        <>
-          <b>Gift cards</b> (like GMA-7QZ): type the code into <b>Redeem</b>. You get {codeTries}{" "}
-          tries.
-        </>,
-        <>
-          Some callers have a second problem. Offer to fix it for a fee and they&apos;ll read you
-          their <b>Wobblebucks Card</b> ({Config.Card.Prefix}-...).
-        </>,
-        <>
-          Charge it in the <b>Wobblebucks Machine</b>. Go over their secret limit and it&apos;s
-          declined. You get {Config.Card.TriesPerCard} tries.
-        </>,
-        <>
-          Watch out for <b>bait callers</b>: undercover scam-busters who stall, ask odd technical
-          questions and read out a code that doesn&apos;t look like theirs. <b>Hang up!</b>{" "}
-          Redeeming their code gets you hacked.
-        </>,
+        <>Type the gift card code (e.g. GMA-7QZ) into the <b>Redeem</b> app. You get {codeTries} tries before it locks.</>,
+        <><b>Wobblebucks:</b> Some callers have a side problem (like a loud PC). Fix it for a fee and they'll read their credit card ({Config.Card.Prefix}-...).</>,
+        <>Run credit cards in the <b>Wobblebucks Machine</b>. Guess the maximum they can afford without getting declined! You get {Config.Card.TriesPerCard} tries.</>,
       ],
     },
     {
-      title: "🎮 Controls",
+      title: "📈 4. Progression & Audits",
       lines: [
-        <>
-          Hold <b>V</b> (or the 🎤 button) to talk on your turn, or type and press <b>Enter</b>.
-        </>,
-        "Drag windows by their title bar, and icons wherever you like.",
-        <>
-          Between shifts, spend your bank in the <b>Shop</b>. Level up to unlock new callers.
-        </>,
+        <>Meeting your quota banks your earnings. Failing means you lose the shift's money, but keep the XP.</>,
+        <>Between shifts, use the <b>Shop</b> to buy perks and cosmetics with your banked money.</>,
+        <>Level up to unlock new callers in the <b>Characters</b> app.</>,
+        <><b>Audits:</b> Your boss Skibidi might email you a secret mid-call objective. Complete it for bonus XP and cash, but fail and he'll raise your quota!</>
       ],
     },
   ];

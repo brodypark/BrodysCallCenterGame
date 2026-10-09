@@ -4,7 +4,8 @@
 // speaker and hold-to-talk buttons. It opens by itself when a call is answered. Holding V
 // (outside the message box) or the talk button talks; the words show as a "Listening..."
 // bubble and send when it's let go. The caller's face shows their mood and talks with
-// their voice; big trust swings flash the bar and make it react, and a victim hanging up
+// their voice, and the line they're saying types out letter by letter as they say it (clicking
+// it skips to the end); big trust swings flash the bar and make it react, and a victim hanging up
 // slams a CALL ENDED stamp on the window. When Skibidi is auditing the call, a QA AUDIT strip
 // under the trust bar shows the task and how it's going.
 
@@ -47,7 +48,9 @@ import {
   stopTalking,
   usePlayerVoice,
 } from "@client/voice/PlayerVoice";
-import { setVictimMuted, useVictimMuted } from "@client/voice/VictimVoice";
+import { setVictimMuted, skipVictimLine, useVictimMuted } from "@client/voice/VictimVoice";
+import { currentVictimLine, type VictimLine } from "@client/voice/victimLine";
+import { useSpokenLine } from "@client/ui/apps/useSpokenLine";
 import styles from "@client/ui/apps/Call.module.css";
 
 // The status line after each way a call can end, also shown at the end of its chat.
@@ -121,6 +124,7 @@ export function Call(): ReactElement {
   const talking = voice.status !== "idle";
   usePushToTalkKey(canType);
   const reaction = useTrustReaction(call.trust);
+  const victimLine = currentVictimLine(call);
 
   // A half-typed message doesn't carry over into the next call.
   const [wasInCall, setWasInCall] = useState(inCall);
@@ -233,7 +237,16 @@ export function Call(): ReactElement {
             <p className={styles.chatHint}>Subtitles for both sides of the call show up here.</p>
           ) : (
             messages.map((message, index) => (
-              <Bubble key={index} message={message} callerName={transcript?.callerName ?? ""} />
+              <Bubble
+                key={index}
+                message={message}
+                callerName={transcript?.callerName ?? ""}
+                saying={
+                  message.speaker === "victim" && message.lineId === victimLine?.lineId
+                    ? victimLine
+                    : null
+                }
+              />
             ))
           )}
           {talking && (
@@ -359,15 +372,42 @@ function AuditStrip({ audit }: { audit: AuditSnapshot }): ReactElement {
 function Bubble({
   message,
   callerName,
+  saying,
 }: {
   message: ChatMessage;
   callerName: string;
+  // The line, while the victim is saying it.
+  saying: VictimLine | null;
 }): ReactElement {
+  // Only the bubble being said re-renders as its letters show.
+  const spoken = useSpokenLine(saying);
   const fromPlayer = message.speaker === "player";
   // Replies from the script rather than the AI say so.
   const scripted = message.speaker === "victim" && message.scripted === true;
+  const skippable = spoken !== null && !spoken.done;
+
+  function skip(): void {
+    if (spoken !== null) {
+      skipVictimLine(spoken.lineId);
+    }
+  }
+
+  // Dragging to select the words isn't a click to skip.
+  function onBubbleClick(): void {
+    if (window.getSelection()?.isCollapsed !== false) {
+      skip();
+    }
+  }
+
   return (
-    <div className={cx(styles.bubble, fromPlayer ? styles.playerBubble : styles.victimBubble)}>
+    <div
+      className={cx(
+        styles.bubble,
+        fromPlayer ? styles.playerBubble : styles.victimBubble,
+        skippable && styles.skippable,
+      )}
+      onClick={skippable ? onBubbleClick : undefined}
+    >
       <span className={styles.tags}>
         <span className={styles.tag}>{fromPlayer ? "You" : callerName}</span>
         {scripted && (
@@ -375,8 +415,34 @@ function Bubble({
             SCRIPTED
           </span>
         )}
+        {skippable && (
+          <button
+            type="button"
+            className={cx(styles.tag, styles.skip)}
+            aria-label={`Skip ${callerName}'s line`}
+            onClick={(event) => {
+              // The bubble would skip it too.
+              event.stopPropagation();
+              skip();
+            }}
+          >
+            SKIP ⏭
+          </button>
+        )}
       </span>
-      <span>{message.text}</span>
+      {spoken ? (
+        <span>
+          {/* Screen readers get the whole line once, not again with every letter. */}
+          <span className={styles.screenReaderOnly}>{message.text}</span>
+          <span aria-hidden="true">
+            {spoken.said}
+            {/* Takes its space already, so the words don't jump about as they type out. */}
+            <span className={styles.unsaid}>{spoken.unsaid}</span>
+          </span>
+        </span>
+      ) : (
+        <span>{message.text}</span>
+      )}
     </div>
   );
 }

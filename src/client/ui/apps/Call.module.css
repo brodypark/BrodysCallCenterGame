@@ -419,3 +419,29 @@
 .scripted {
   background: var(--call-action-off);
 }
+
+/* The line the victim is saying: clicking it (or its SKIP tag) skips to the end. */
+.skippable {
+  cursor: pointer;
+}
+
+.skip {
+  border: none;
+  background: var(--call-action-off);
+  cursor: pointer;
+}
+
+/* Read out by screen readers but not shown. */
+.screenReaderOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* The words they haven't said yet. */
+.unsaid {
+  visibility: hidden;
+}

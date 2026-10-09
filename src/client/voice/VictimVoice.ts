@@ -1,7 +1,9 @@
 // Says the victim's lines, and tells the server when each one has been said so the turn
 // can move on. Each line's audio is fetched once from the server (which voices it with
 // ElevenLabs) and played on one page-wide audio element, so it plays whether or not the
-// Call window is open. The victim's turn only ends when the audio really finishes.
+// Call window is open. The victim's turn only ends when the audio really finishes, or the
+// player skips the line (skipVictimLine). How far through the line they are
+// (victimLineProgress) types out its subtitle letter by letter.
 //
 // Each line's loudness is measured from its audio once it's downloaded (voice/loudness), so
 // the face's mouth follows the words, muted or not.
@@ -288,4 +290,30 @@ export function victimLoudness(): number | null {
     return 0;
   }
   return loudnessAt(speaking.loudness, player.currentTime);
+}
+
+/** How far through saying line `lineId` the victim is, from 0 to 1, for its subtitle: 0
+ * while its audio loads, and 1 once it's been said (or skipped). Lines without audio go at
+ * the speed they're timed at. */
+export function victimLineProgress(lineId: number): number {
+  if (speaking?.line.lineId !== lineId) {
+    return 1;
+  }
+  if (speaking.subtitles) {
+    const elapsedSeconds = (Date.now() - speaking.startedAt) / MsPerSecond;
+    return Math.min(1, elapsedSeconds / fakeSpeakingSeconds(speaking.line.text));
+  }
+  if (speaking.audioUrl === null || player === null) {
+    return 0;
+  }
+  const { currentTime, duration } = player;
+  return Number.isFinite(duration) && duration > 0 ? Math.min(1, currentTime / duration) : 0;
+}
+
+/** Skips to the end of line `lineId` if it's the one being said: the voice stops and the
+ * server is told it's done (which still keeps it up for Config.Turn.MinSpeakingSeconds). */
+export function skipVictimLine(lineId: number): void {
+  if (speaking?.line.lineId === lineId) {
+    finish(speaking);
+  }
 }

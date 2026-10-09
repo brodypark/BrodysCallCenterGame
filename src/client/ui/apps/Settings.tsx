@@ -1,6 +1,6 @@
-// Settings app (also shown from the title menu): the master volume over everything, the
-// background music (which song, or none, and how loud), and sound effects (on or off, and
-// how loud). Saved in this browser.
+// Settings app (also shown from the title menu): full screen, the master volume over
+// everything, the background music (which song, or none, and how loud), and sound effects
+// (on or off, and how loud). The sound settings are saved in this browser.
 
 import { type KeyboardEvent, type ReactElement, useId } from "react";
 import {
@@ -13,6 +13,7 @@ import {
 } from "@client/ui/audioSettingsStore";
 import type { AppProps } from "@client/ui/apps/index";
 import { cx } from "@client/ui/classNames";
+import { fullscreenSupported, setFullscreen, useFullscreen } from "@client/ui/fullscreen";
 import { playSound } from "@client/ui/sounds";
 import { Songs } from "@client/ui/songs";
 import appStyles from "@client/ui/apps/appStyles.module.css";
@@ -78,9 +79,24 @@ export function SettingsContent(): ReactElement {
   const choices = [{ id: null, title: "No music" }, ...Songs];
   // Unique per copy: the Settings window and the title menu's can both be open.
   const songGroup = useId();
+  const fullscreen = useFullscreen();
 
   return (
     <div className={styles.root}>
+      {fullscreenSupported() && (
+        <div className={styles.section}>
+          <div className={styles.heading}>DISPLAY</div>
+          <label className={styles.song}>
+            <input
+              type="checkbox"
+              checked={fullscreen}
+              onChange={(event) => void setFullscreen(event.target.checked)}
+            />
+            Full screen
+          </label>
+        </div>
+      )}
+
       <div className={styles.section}>
         <div className={styles.heading}>MASTER VOLUME</div>
         <VolumeSlider

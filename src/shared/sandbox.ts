@@ -37,7 +37,7 @@ export const SandboxSettingsChangeSchema = z.strictObject({
 export type SandboxSettingsChange = z.output<typeof SandboxSettingsChangeSchema>;
 
 /** What the control panel can make the victim do during a call, on the player's turn. */
-export const SandboxCheats = ["readCode", "readCard", "hangUp"] as const;
+export const SandboxCheats = ["readCode", "readCard", "hangUp", "audit"] as const;
 export type SandboxCheat = (typeof SandboxCheats)[number];
 
 /** Everything the control panel shows. Sent in Sandbox whenever it changes. */

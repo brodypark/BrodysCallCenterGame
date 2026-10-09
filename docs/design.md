@@ -212,8 +212,8 @@ Graded when the call ends; being hung up on always fails. **Pass:** +$25 to the 
 earnings and +20 XP. **Fail:** the shift's quota goes up $25. Skibidi emails the result, and
 the shift report counts audits passed and failed. A call cut off by the shift ending isn't
 graded. Numbers live in ServerConfig.Audit. Dev test word: `!audit` or `!audit <objective>`.
-In Sandbox, audits only start from the test word; they're graded and emailed the same way, but
-nothing is paid out or raised.
+In Sandbox, audits only start from the Control Panel's Trigger audit button (or the test word);
+they're graded and emailed the same way, but nothing is paid out or raised.
 
 ## Upgrades (bought with money)
 

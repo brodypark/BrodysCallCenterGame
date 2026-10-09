@@ -165,7 +165,7 @@ export interface CallOverrides {
 }
 
 /** What the Sandbox control panel can make a victim do on the player's turn. */
-export type CallCheat = SandboxCheat;
+export type CallCheat = Exclude<SandboxCheat, "audit">;
 
 export class CallService {
   private readonly calls = new Map<string, PlayerCall>();

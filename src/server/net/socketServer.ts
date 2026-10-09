@@ -217,6 +217,12 @@ export function startGameServer(httpServer: HttpServer, options: GameServerOptio
     stats,
     isSandbox: (playerId) => saves.modeOf(playerId) === "sandbox",
     aiAvailable: options.replies !== undefined,
+    // On the player's turn, like the other live cheats.
+    startAudit: (playerId) => {
+      if (calls.isPlayerTurn(playerId)) {
+        audits.force(playerId, null);
+      }
+    },
     send: (playerId, snapshot) => toPlayer(playerId)?.emit("sandbox:snapshot", snapshot),
   });
   const calls = new CallService({

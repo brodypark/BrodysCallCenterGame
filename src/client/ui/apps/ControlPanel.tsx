@@ -39,6 +39,7 @@ const CheatButtons: readonly { cheat: SandboxCheat; label: string }[] = [
   { cheat: "readCode", label: "Read the code" },
   { cheat: "readCard", label: "Read the card" },
   { cheat: "hangUp", label: "Make them hang up" },
+  { cheat: "audit", label: "Trigger audit" },
 ];
 
 /** A cosmetic's shop name, or its id if the shop doesn't list it (the defaults). */
@@ -126,7 +127,7 @@ export function ControlPanel(): ReactElement {
           >
             Ring now
           </button>
-          <span style={{ opacity: 0.7, fontSize: '1.4cqh' }}>Calls only ring when you ask.</span>
+          <span style={{ opacity: 0.7, fontSize: "1.4cqh" }}>Calls only ring when you ask.</span>
         </div>
       </fieldset>
 
@@ -160,7 +161,7 @@ export function ControlPanel(): ReactElement {
             </button>
           ))}
         </div>
-        <p style={{ opacity: 0.7, fontSize: '1.4cqh', margin: 0 }}>
+        <p style={{ opacity: 0.7, fontSize: "1.4cqh", margin: 0 }}>
           {inCall ? "Works on your turn." : "Answer a call to use these."}
         </p>
       </fieldset>
@@ -181,7 +182,7 @@ export function ControlPanel(): ReactElement {
             </label>
           ))}
         </div>
-        <p style={{ opacity: 0.7, fontSize: '1.4cqh', margin: 0 }}>
+        <p style={{ opacity: 0.7, fontSize: "1.4cqh", margin: 0 }}>
           {panel.aiAvailable
             ? "Daily AI and voice limits still apply."
             : "The AI is off on this server, so replies are scripted either way."}
@@ -223,7 +224,7 @@ export function ControlPanel(): ReactElement {
         <div className={styles.buttons}>
           {confirmReset ? (
             <>
-              <span style={{ fontSize: '1.4cqh' }}>Clear purchases & settings?</span>
+              <span style={{ fontSize: "1.4cqh" }}>Clear purchases & settings?</span>
               <button
                 type="button"
                 className={styles.button}

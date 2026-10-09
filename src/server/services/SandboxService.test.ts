@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { Config } from "@shared/Config";
-import type { SandboxCheat, SandboxSnapshot } from "@shared/sandbox";
+import type { SandboxSnapshot } from "@shared/sandbox";
 import { AllScenarios } from "@server/scenarios/all";
 import { createScenarioRegistry } from "@server/scenarios/ScenarioRegistry";
 import type { Scenario } from "@server/scenarios/scenarioSchema";
@@ -28,6 +28,7 @@ beforeEach(() => {
     stats,
     isSandbox: () => inSandbox,
     aiAvailable: true,
+    startAudit: () => actions.push("audit"),
     send: (_playerId, snapshot) => sent.push(snapshot),
     random: () => 0,
   });
@@ -36,7 +37,7 @@ beforeEach(() => {
     stopCalls: () => actions.push("stop"),
     ringNow: () => actions.push("ring"),
     setSuspicion: (_playerId, suspicion) => actions.push(`suspicion ${suspicion}`),
-    cheat: (_playerId, cheat: SandboxCheat) => actions.push(cheat),
+    cheat: (_playerId, cheat) => actions.push(cheat),
     forceHangUp: () => {
       actions.push("hang up");
       return true;
@@ -52,6 +53,7 @@ describe("SandboxService: outside Sandbox", () => {
     sandbox.update(PlayerId, { nextCaller: "hudson" });
     sandbox.ringNow(PlayerId);
     sandbox.cheat(PlayerId, "readCode");
+    sandbox.cheat(PlayerId, "audit");
     sandbox.wear(PlayerId, "darkMode");
     sandbox.reset(PlayerId);
     expect(actions).toEqual([]);
@@ -118,8 +120,9 @@ describe("SandboxService", () => {
 
   it("passes cheats on, and stops calls when leaving", () => {
     sandbox.cheat(PlayerId, "readCard");
+    sandbox.cheat(PlayerId, "audit");
     sandbox.leave(PlayerId);
-    expect(actions).toEqual(["readCard", "stop", "hang up"]);
+    expect(actions).toEqual(["readCard", "audit", "stop", "hang up"]);
   });
 
   it("wears any cosmetic, owned or not, but not made-up ones", () => {

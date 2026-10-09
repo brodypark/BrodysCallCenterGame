@@ -24,7 +24,7 @@ export interface SandboxCalls {
   stopCalls: (playerId: string) => void;
   ringNow: (playerId: string) => void;
   setSuspicion: (playerId: string, suspicion: number) => void;
-  cheat: (playerId: string, cheat: SandboxCheat) => void;
+  cheat: (playerId: string, cheat: Exclude<SandboxCheat, "audit">) => void;
   forceHangUp: (playerId: string, reason: "playerHungUp") => boolean;
   // The scenario on the line (or ringing), for turning the trust slider into suspicion.
   currentScenario: (playerId: string) => Scenario | null;
@@ -37,6 +37,8 @@ export interface SandboxServiceOptions {
   isSandbox: (playerId: string) => boolean;
   // Whether the server can use the AI at all (shown on the panel).
   aiAvailable: boolean;
+  // Has Skibidi audit the call in progress (the panel's Trigger audit button).
+  startAudit: (playerId: string) => void;
   send: (playerId: string, snapshot: SandboxSnapshot) => void;
   random?: () => number;
 }
@@ -132,7 +134,12 @@ export class SandboxService implements CallOverrides {
   }
 
   cheat(playerId: string, cheat: SandboxCheat): void {
-    if (this.options.isSandbox(playerId)) {
+    if (!this.options.isSandbox(playerId)) {
+      return;
+    }
+    if (cheat === "audit") {
+      this.options.startAudit(playerId);
+    } else {
       this.calls?.cheat(playerId, cheat);
     }
   }

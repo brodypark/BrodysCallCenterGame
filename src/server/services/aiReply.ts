@@ -26,8 +26,9 @@ export const AIReplyJsonSchema = {
     suspicionChange: { type: "integer", description: "How much your suspicion changes." },
     revealsCode: { type: "boolean", description: "True when you read out the gift card." },
     revealsCard: { type: "boolean", description: "True when you read out the Wobblebucks Card." },
+    hangsUp: { type: "boolean", description: "True when you end the call with this reply." },
   },
-  required: ["reply", "suspicionChange", "revealsCode", "revealsCard"],
+  required: ["reply", "suspicionChange", "revealsCode", "revealsCard", "hangsUp"],
 } as const;
 
 // What the model sent, checked loosely: the text and number are cleaned up afterwards, and
@@ -38,6 +39,8 @@ const RawReplySchema = z.object({
   revealsCode: z.boolean(),
   // A reply without it just doesn't pay for anything.
   revealsCard: z.boolean().optional(),
+  // A reply without it doesn't end the call.
+  hangsUp: z.boolean().optional(),
 });
 
 // Any dash, including the typographic ones a model likes to use.
@@ -158,5 +161,6 @@ export function parseAIReply(text: string, codePrefix: string): AIReply | null {
     suspicionChange: clampSuspicionChange(parsed.data.suspicionChange),
     revealsCode: parsed.data.revealsCode,
     revealsCard: parsed.data.revealsCard ?? false,
+    hangsUp: parsed.data.hangsUp ?? false,
   };
 }

@@ -79,6 +79,8 @@ export const AIReplySchema = z.strictObject({
   revealsCode: z.boolean(),
   // They agreed to pay for their side problem with their Wobblebucks Card.
   revealsCard: z.boolean().optional(),
+  // They said goodbye: the call ends after this line, even below the hang-up threshold.
+  hangsUp: z.boolean().optional(),
 });
 
 const LinesSchema = z.strictObject({

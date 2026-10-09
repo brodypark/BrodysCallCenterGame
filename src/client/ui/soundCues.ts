@@ -36,6 +36,9 @@ function onCallChanged(): void {
     } else if (lastStatus === "inCall" && call.lastOutcome === "victimHungUp") {
       playSound("dial-tone");
       shakeDesktop();
+    } else if (lastStatus === "inCall" && call.lastOutcome === "victimSaidGoodbye") {
+      // The line goes quiet, without the angry shake.
+      playSound("dial-tone");
     }
     lastStatus = call.status;
   } else if (call.status === "inCall" && call.playerTurns > lastPlayerTurns) {

@@ -29,9 +29,10 @@ export interface VictimMessage {
 
 export type ChatMessage = PlayerMessage | VictimMessage;
 
-// victimHungUp: suspicion reached the scenario's threshold. shiftEnded: cut off in
-// overtime for staying quiet too long.
-export type CallEndReason = "playerHungUp" | "victimHungUp" | "shiftEnded" | "declined" | "missed";
+// victimHungUp: suspicion reached the scenario's threshold. victimSaidGoodbye: they ended the
+// call on friendly terms. shiftEnded: cut off in overtime for staying quiet too long.
+export type CallEndReason =
+  "playerHungUp" | "victimHungUp" | "victimSaidGoodbye" | "shiftEnded" | "declined" | "missed";
 
 export type Difficulty = "Easy" | "Medium" | "Hard";
 

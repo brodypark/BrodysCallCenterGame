@@ -17,6 +17,7 @@ import { useDesktop } from "@client/ui/DesktopContext";
 const OutcomeText: Record<CallEndReason, string> = {
   playerHungUp: "CALL ENDED",
   victimHungUp: "THEY HUNG UP",
+  victimSaidGoodbye: "THEY SAID BYE",
   shiftEnded: "SHIFT OVER",
   declined: "CALL DECLINED",
   missed: "MISSED CALL",

@@ -90,6 +90,7 @@ describe("AIService", () => {
       suspicionChange: -5,
       revealsCode: false,
       revealsCard: false,
+      hangsUp: false,
     });
     const sent = generate.mock.calls[0]?.[0];
     expect(sent?.model).toBe(Config.AI.Model);

@@ -50,6 +50,7 @@ import styles from "@client/ui/apps/Call.module.css";
 const OutcomeText: Record<CallEndReason, string> = {
   playerHungUp: "You hung up",
   victimHungUp: "They hung up on you",
+  victimSaidGoodbye: "They said goodbye",
   shiftEnded: "Cut off: the shift is over",
   declined: "Call declined",
   missed: "Missed call",

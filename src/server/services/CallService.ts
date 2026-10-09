@@ -618,7 +618,8 @@ export class CallService {
   /** Applies a reply's suspicion change and decides what the victim says: the reply, plus
    * the code and/or Wobblebucks Card, an angry hang-up or a "not yet". The server makes
    * every one of these calls; a reply can only suggest a reveal. Test words skip
-   * Config.Call.MinTurnsBeforeReveal, and !card works on a call without a side problem. */
+   * Config.Call.MinTurnsBeforeReveal, and !card works on a call without a side problem.
+   * A reply that says goodbye (hangsUp) ends the call after the line, whatever the trust. */
   private decideLine(
     playerId: string,
     call: PlayerCall,
@@ -626,12 +627,24 @@ export class CallService {
     reply: AIReply,
     isTest: boolean,
   ): Line {
-    const { lines } = scenario;
     // Clamped to the per-turn limits and the range inside.
     call.suspicion = applySuspicionChange(call.suspicion, reply.suspicionChange);
     if (call.suspicion >= scenario.suspicionThreshold) {
-      return { text: `${reply.reply} ${lines.hangUpLine}`, endAfter: "victimHungUp" };
+      return { text: `${reply.reply} ${scenario.lines.hangUpLine}`, endAfter: "victimHungUp" };
     }
+    const line = this.decideReveals(playerId, call, scenario, reply, isTest);
+    return reply.hangsUp === true ? { ...line, endAfter: "victimSaidGoodbye" } : line;
+  }
+
+  /** The reply below the hang-up threshold, plus any card the server lets them read. */
+  private decideReveals(
+    playerId: string,
+    call: PlayerCall,
+    scenario: Scenario,
+    reply: AIReply,
+    isTest: boolean,
+  ): Line {
+    const { lines } = scenario;
     // Only a victim with a side problem (and a card for it) has anything to pay with.
     const sideProblem = scenario.sideProblem;
     const offersCard =

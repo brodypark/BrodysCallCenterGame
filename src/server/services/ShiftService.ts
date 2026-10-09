@@ -29,6 +29,7 @@ import type { StatsService } from "@server/services/StatsService";
 const AnsweredReasons: ReadonlySet<CallEndReason> = new Set([
   "playerHungUp",
   "victimHungUp",
+  "victimSaidGoodbye",
   "shiftEnded",
 ]);
 

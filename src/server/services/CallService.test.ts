@@ -422,6 +422,55 @@ describe("CallService: suspicion", () => {
       transcript: { endReason: "victimHungUp" },
     });
   });
+
+  it("hangs up after a goodbye line, even while trusting", () => {
+    const { service, latest, finishLine } = playerTurn({
+      registry: grandmaAlwaysSaying({
+        reply: "Oh, my show's on! Bye now, dear.",
+        suspicionChange: -Config.Suspicion.MaxDropPerTurn,
+        revealsCode: false,
+        hangsUp: true,
+      }),
+    });
+    service.sendMessage(PlayerId, "hello");
+    advanceSeconds(Config.Turn.ThinkingSeconds);
+    const line = latest().transcript?.messages.at(-1)?.text ?? "";
+    expect(line).toBe("Oh, my show's on! Bye now, dear.");
+    expect(latest().status).toBe("inCall");
+
+    finishLine();
+    expect(latest()).toMatchObject({ status: "idle", lastOutcome: "victimSaidGoodbye" });
+  });
+
+  it("still reads the code out in a goodbye line, and it stays redeemable", () => {
+    const calm: AIReply = {
+      reply: "Oh, lovely.",
+      suspicionChange: -Config.Suspicion.MaxDropPerTurn,
+      revealsCode: false,
+    };
+    const goodbye: AIReply = {
+      ...calm,
+      reply: "Here you go. Bye!",
+      revealsCode: true,
+      hangsUp: true,
+    };
+    const fallbackReplies = [
+      ...Array.from({ length: Config.Call.MinTurnsBeforeReveal - 1 }, () => calm),
+      goodbye,
+    ];
+    const registry = createScenarioRegistry([
+      { ...grandma, lines: { ...grandma.lines, fallbackReplies } },
+    ]);
+    const { latest, say, redeem } = playerTurn({ registry });
+    for (let turn = 1; turn <= Config.Call.MinTurnsBeforeReveal; turn++) {
+      say(`turn ${turn}`);
+    }
+    expect(latest()).toMatchObject({ status: "idle", lastOutcome: "victimSaidGoodbye" });
+    const line = latest().transcript?.messages.at(-1)?.text ?? "";
+    const code = CodeShape.exec(line)?.[0] ?? "";
+    expect(code).not.toBe("");
+    expect(redeem.redeem(PlayerId, code).success).toBe(true);
+  });
 });
 
 const CardShape = new RegExp(
@@ -1044,5 +1093,35 @@ describe("CallService: Sandbox", () => {
     expect(latest().transcript?.messages.at(-1)?.text).toBe(grandma.lines.hangUpLine);
     finishLine();
     expect(latest()).toMatchObject({ status: "idle", lastOutcome: "victimHungUp" });
+  });
+
+  it("still reads the code out in a goodbye line, and it stays redeemable", () => {
+    const calm: AIReply = {
+      reply: "Oh, lovely.",
+      suspicionChange: -Config.Suspicion.MaxDropPerTurn,
+      revealsCode: false,
+    };
+    const goodbye: AIReply = {
+      ...calm,
+      reply: "Here you go. Bye!",
+      revealsCode: true,
+      hangsUp: true,
+    };
+    const fallbackReplies = [
+      ...Array.from({ length: Config.Call.MinTurnsBeforeReveal - 1 }, () => calm),
+      goodbye,
+    ];
+    const registry = createScenarioRegistry([
+      { ...grandma, lines: { ...grandma.lines, fallbackReplies } },
+    ]);
+    const { latest, say, redeem } = playerTurn({ registry });
+    for (let turn = 1; turn <= Config.Call.MinTurnsBeforeReveal; turn++) {
+      say(`turn ${turn}`);
+    }
+    expect(latest()).toMatchObject({ status: "idle", lastOutcome: "victimSaidGoodbye" });
+    const line = latest().transcript?.messages.at(-1)?.text ?? "";
+    const code = CodeShape.exec(line)?.[0] ?? "";
+    expect(code).not.toBe("");
+    expect(redeem.redeem(PlayerId, code).success).toBe(true);
   });
 });

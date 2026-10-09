@@ -51,7 +51,12 @@ describe("parseAIReply", () => {
       suspicionChange: -5,
       revealsCode: false,
       revealsCard: false,
+      hangsUp: false,
     });
+  });
+
+  it("reads a goodbye that ends the call", () => {
+    expect(parseAIReply(reply("Bye now!", { hangsUp: true }), "GMA")?.hangsUp).toBe(true);
   });
 
   it("copes with a code fence around the JSON", () => {
@@ -68,13 +73,14 @@ describe("parseAIReply", () => {
     expect(parseAIReply(reply("Hi", { suspicionChange: 2.6 }), "GMA")?.suspicionChange).toBe(3);
   });
 
-  it("treats a missing revealsCard as false and ignores extra fields", () => {
+  it("treats a missing revealsCard or hangsUp as false and ignores extra fields", () => {
     const text = json({ reply: "Hi", suspicionChange: 0, revealsCode: true, extra: 1 });
     expect(parseAIReply(text, "GMA")).toEqual({
       reply: "Hi",
       suspicionChange: 0,
       revealsCode: true,
       revealsCard: false,
+      hangsUp: false,
     });
   });
 

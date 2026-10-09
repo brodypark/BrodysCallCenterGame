@@ -4,9 +4,11 @@
 
 import { z } from "zod";
 import {
+  DefaultPet,
   DefaultRingtone,
   DefaultTheme,
   DefaultWallpaper,
+  PetIds,
   RingtoneIds,
   ThemeIds,
   WallpaperIds,
@@ -59,13 +61,15 @@ export const PlayerStatsSchema = z.object({
   shiftsPassed: count,
   shiftsFailed: count,
   // Upgrades bought, by id (Upgrades.ts): a perk's tier, or 1 for a cosmetic. Missing means
-  // not bought; the default wallpaper, theme and ringtone are owned without being listed.
+  // not bought; the default wallpaper, theme, ringtone and pet are owned without being
+  // listed.
   upgrades: z.record(z.string(), z.number().int().min(0)).default({}),
-  // The wallpaper, window theme and ringtone in use. An unknown id (e.g. one that was
+  // The wallpaper, window theme, ringtone and desktop pet in use. An unknown id (e.g. one that was
   // removed) falls back to the default instead of breaking the save.
   wallpaper: z.enum(WallpaperIds).catch(DefaultWallpaper).default(DefaultWallpaper),
   theme: z.enum(ThemeIds).catch(DefaultTheme).default(DefaultTheme),
   ringtone: z.enum(RingtoneIds).catch(DefaultRingtone).default(DefaultRingtone),
+  pet: z.enum(PetIds).catch(DefaultPet).default(DefaultPet),
   // Per caller, by scenario id. Missing means nothing done to them yet. If it can't be read,
   // it starts over rather than breaking the save.
   callers: z.record(z.string(), CallerRecordSchema).catch({}),

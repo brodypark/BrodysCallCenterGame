@@ -1,5 +1,5 @@
 // The upgrades shop (docs/design.md "Upgrades"): buying perks and cosmetics with banked
-// money, and equipping owned wallpapers, themes and ringtones. Only between shifts. The server checks
+// money, and equipping owned wallpapers, themes, ringtones and pets. Only between shifts. The server checks
 // every purchase; the client only asks. In Sandbox, money is unlimited: everything is free.
 
 import type { ShopResult } from "@shared/types";
@@ -72,7 +72,7 @@ export class ShopService {
       : result(true, `Bought ${upgrade.name}.`);
   }
 
-  /** Equips an owned wallpaper, theme or ringtone. Free. */
+  /** Equips an owned wallpaper, theme, ringtone or pet. Free. */
   equip(playerId: string, id: string): ShopResult {
     const upgrade = getUpgrade(id);
     if (!upgrade || upgrade.kind === "perk") {

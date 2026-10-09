@@ -1,5 +1,5 @@
 // Shop app: spend banked money on shift perks and cosmetics, with a tab each for Perks,
-// Wallpapers, Themes and Ringtones (which can be previewed). Only open between shifts. The
+// Wallpapers, Themes, Ringtones (which can be previewed) and Pets. Only open between shifts. The
 // server checks and applies every purchase; this only asks and shows the answer.
 
 import { type ReactElement, useEffect, useState } from "react";
@@ -31,6 +31,7 @@ const Tabs: readonly { kind: UpgradeKind; title: string }[] = [
   { kind: "wallpaper", title: "Wallpapers" },
   { kind: "theme", title: "Themes" },
   { kind: "ringtone", title: "Ringtones" },
+  { kind: "pet", title: "Pets" },
 ];
 
 const OpenStatus = "Spend your banked money. Everything you buy is yours to keep.";

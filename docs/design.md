@@ -289,7 +289,12 @@ forever. Prices are in `Config.Shop`.
   previewed in the Shop: Classic Bell (default, free), 8-Bit Chiptune $150, Airhorn $250,
   Dial-Up Modem $350, Yo Phone Linging $400 (the one recorded clip, in `public/sounds`).
 
-  Later: desktop pets, cursor styles, and office cosmetics (chair, desk items).
+  **Pets** (pixel art, `Config.Pets`) live along the bottom of the desktop, in front of the
+  icons and windows: they sit, wander and nap, and react when clicked. No Pet (default,
+  free), Pet Rock $100 (never moves), Pixel Cat $300 (naps), Gizmo the Desk Buddy $500
+  (floats and hands out unasked-for advice). They stay still under reduced motion.
+
+  Later: cursor styles, and office cosmetics (chair, desk items).
 
 ## Scenarios
 

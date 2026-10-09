@@ -4,7 +4,18 @@
 // value, suspicion start/threshold/trust level, unlock level) live in each scenario module.
 // Sections are added as the build steps need them.
 
-import type { BuyableCosmeticId } from "@shared/cosmetics";
+import type { BuyableCosmeticId, VisiblePetId } from "@shared/cosmetics";
+
+/** How a desktop pet moves (Config.Pets.Behaviors). */
+export interface PetBehavior {
+  // Desktop widths per second. 0 never moves.
+  speed: number;
+  // How long it sits between walks, [min, max] seconds.
+  sitSeconds: readonly [number, number];
+  // The chance (0 to 1) that a rest is a nap instead, and how long naps last.
+  napChance: number;
+  napSeconds: readonly [number, number];
+}
 
 export const Config = {
   Saves: {
@@ -84,8 +95,8 @@ export const Config = {
     RouterOvertimeExtraSeconds: 15,
     // VPN Subscription: how much of the bait caller's fine it saves.
     VpnFineCutPercent: 50,
-    // Cosmetics, by id. The default wallpaper (teal), theme (classic) and ringtone (classic
-    // bell) are free.
+    // Cosmetics, by id. The default wallpaper (teal), theme (classic), ringtone (classic
+    // bell) and pet (none) are free.
     CosmeticPrices: {
       midnightBlue: 100,
       sunsetGradient: 200,
@@ -98,6 +109,9 @@ export const Config = {
       airhorn: 250,
       dialUp: 350,
       yoPhone: 400,
+      petRock: 100,
+      pixelCat: 300,
+      deskBuddy: 500,
     } satisfies Record<BuyableCosmeticId, number>,
   },
 
@@ -398,6 +412,31 @@ export const Config = {
     DuckLevel: 0.25,
     // Volume changes (ducking) fade over this long.
     FadeSeconds: 0.4,
+  },
+
+  // Desktop pets (ui/DesktopPet, ui/petRules): they sit, wander along the bottom of the
+  // desktop and nap. Distances are fractions of the desktop's width; seconds are [min, max]
+  // ranges picked at random. A pet with a speed of 0 never moves.
+  Pets: {
+    // How tall a pet is, as a fraction of the desktop's height.
+    Height: 0.085,
+    // How far from each edge a pet may wander.
+    EdgeMargin: 0.05,
+    // The shortest walk worth taking.
+    MinWalkDistance: 0.08,
+    // A walking pet swaps its step this often.
+    StepSeconds: 0.2,
+    // A speech bubble (a click reaction or the Desk Buddy's advice) stays up this long.
+    BubbleSeconds: 4,
+    // The Desk Buddy offers advice nobody asked for this often.
+    AdviceSeconds: [25, 50],
+    // The longest frame a pet steps, so coming back to a hidden tab doesn't teleport it.
+    MaxFrameSeconds: 0.1,
+    Behaviors: {
+      petRock: { speed: 0, sitSeconds: [60, 120], napChance: 0, napSeconds: [0, 0] },
+      pixelCat: { speed: 0.06, sitSeconds: [3, 9], napChance: 0.25, napSeconds: [10, 25] },
+      deskBuddy: { speed: 0.04, sitSeconds: [4, 10], napChance: 0, napSeconds: [0, 0] },
+    } satisfies Record<VisiblePetId, PetBehavior>,
   },
 
   // The facecam (client/facecam): the player's webcam with a call-center headset drawn on,

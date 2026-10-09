@@ -1,19 +1,21 @@
 // What the Shop sells (docs/design.md "Upgrades"). Perks change gameplay and are applied by
-// the server; wallpapers, themes and ringtones only change the look and sound and are
+// the server; wallpapers, themes, ringtones and pets only change the look and sound and are
 // applied by the client.
 
 import { Config } from "@shared/Config";
 import {
+  DefaultPet,
   DefaultRingtone,
   DefaultTheme,
   DefaultWallpaper,
+  type PetId,
   type RingtoneId,
   type ThemeId,
   type WallpaperId,
 } from "@shared/cosmetics";
 import type { PlayerStats } from "@shared/stats";
 
-export type UpgradeKind = "perk" | "wallpaper" | "theme" | "ringtone";
+export type UpgradeKind = "perk" | "wallpaper" | "theme" | "ringtone" | "pet";
 export type CosmeticKind = Exclude<UpgradeKind, "perk">;
 type TieredPerkId =
   | "extraCoffee"
@@ -24,7 +26,7 @@ type TieredPerkId =
   | "wobblebucksGold";
 type OneTierPerkId = keyof typeof Config.Shop.OneTierPerkPrices;
 export type PerkId = TieredPerkId | OneTierPerkId;
-export type CosmeticId = WallpaperId | ThemeId | RingtoneId;
+export type CosmeticId = WallpaperId | ThemeId | RingtoneId | PetId;
 export type UpgradeId = PerkId | CosmeticId;
 
 interface UpgradeDetails {
@@ -38,7 +40,8 @@ export type Upgrade =
   | (UpgradeDetails & { kind: "perk"; id: PerkId })
   | (UpgradeDetails & { kind: "wallpaper"; id: WallpaperId })
   | (UpgradeDetails & { kind: "theme"; id: ThemeId })
-  | (UpgradeDetails & { kind: "ringtone"; id: RingtoneId });
+  | (UpgradeDetails & { kind: "ringtone"; id: RingtoneId })
+  | (UpgradeDetails & { kind: "pet"; id: PetId });
 
 function perk(id: TieredPerkId, name: string, description: string): Upgrade {
   return { id, kind: "perk", name, description, prices: Config.Shop.PerkTierPrices };
@@ -53,11 +56,14 @@ function withBonus(value: number, percent: number): number {
   return Math.round((value * (100 + percent)) / 100);
 }
 
-type DefaultCosmeticId = typeof DefaultWallpaper | typeof DefaultTheme | typeof DefaultRingtone;
+type DefaultCosmeticId =
+  typeof DefaultWallpaper | typeof DefaultTheme | typeof DefaultRingtone | typeof DefaultPet;
 
 /** Whether `id` is a cosmetic every save owns without buying it. */
 function isDefault(id: UpgradeId): id is DefaultCosmeticId {
-  return id === DefaultWallpaper || id === DefaultTheme || id === DefaultRingtone;
+  return (
+    id === DefaultWallpaper || id === DefaultTheme || id === DefaultRingtone || id === DefaultPet
+  );
 }
 
 function cosmeticPrice(id: CosmeticId): number {
@@ -74,6 +80,10 @@ function theme(id: ThemeId, name: string, description: string): Upgrade {
 
 function ringtone(id: RingtoneId, name: string, description: string): Upgrade {
   return { id, kind: "ringtone", name, description, prices: [cosmeticPrice(id)] };
+}
+
+function pet(id: PetId, name: string, description: string): Upgrade {
+  return { id, kind: "pet", name, description, prices: [cosmeticPrice(id)] };
 }
 
 /** Everything in the shop, in shop order. */
@@ -137,6 +147,10 @@ export const AllUpgrades: readonly Upgrade[] = [
   ringtone("airhorn", "Airhorn", "Wakes the whole office. And the next one."),
   ringtone("dialUp", "Dial-Up Modem", "Connecting... connecting... connected?"),
   ringtone("yoPhone", "Yo Phone Linging", "Hey! Yo phone linging! Pick it up!"),
+  pet("noPet", "No Pet", "Just you and the paperwork."),
+  pet("petRock", "Pet Rock", "Very low maintenance. Very loyal. Very rock."),
+  pet("pixelCat", "Pixel Cat", "Wanders your desktop, naps on the job. Relatable."),
+  pet("deskBuddy", "Gizmo the Desk Buddy", "Gives free advice. Definitely not spyware."),
 ];
 
 const byId = new Map<string, Upgrade>(AllUpgrades.map((upgrade) => [upgrade.id, upgrade]));
@@ -166,6 +180,8 @@ export function equippedCosmetic(stats: PlayerStats, kind: CosmeticKind): Cosmet
       return stats.theme;
     case "ringtone":
       return stats.ringtone;
+    case "pet":
+      return stats.pet;
   }
 }
 
@@ -185,6 +201,9 @@ export function equipInto(stats: PlayerStats, upgrade: Upgrade): void {
       break;
     case "ringtone":
       stats.ringtone = upgrade.id;
+      break;
+    case "pet":
+      stats.pet = upgrade.id;
       break;
     case "perk":
       break;

@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { Config } from "@shared/Config";
-import type { PlayerStats } from "@shared/stats";
+import { type PlayerStats, PlayerStatsSchema } from "@shared/stats";
 import {
   baitFine,
   chargePayout,
@@ -154,6 +154,20 @@ describe("ShopService: cosmetics", () => {
     expect(shop.equip(PlayerId, "classicBell").success).toBe(true);
     expect(current().ringtone).toBe("classicBell");
     expect(shop.equip(PlayerId, "dialUp").success).toBe(false);
+  });
+
+  it("sells and equips pets, and No Pet is always owned", () => {
+    expect(current().pet).toBe("noPet");
+    expect(shop.buy(PlayerId, "pixelCat").success).toBe(true);
+    expect(current()).toMatchObject({
+      pet: "pixelCat",
+      money: 2000 - Config.Shop.CosmeticPrices.pixelCat,
+    });
+    expect(shop.equip(PlayerId, "noPet").success).toBe(true);
+    expect(current().pet).toBe("noPet");
+    expect(shop.equip(PlayerId, "deskBuddy").success).toBe(false);
+    // A save with a pet that no longer exists loads with none.
+    expect(PlayerStatsSchema.parse({ pet: "dragon" }).pet).toBe("noPet");
   });
 
   it("won't equip what isn't owned, or a perk", () => {

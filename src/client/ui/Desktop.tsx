@@ -1,5 +1,5 @@
-// The whole computer screen: wallpaper, desktop icons, app windows, taskbar, start menu,
-// new-mail notifications, the title menu between shifts, and the hacked screen.
+// The whole computer screen: wallpaper, desktop icons, the desktop pet, app windows, taskbar,
+// start menu, new-mail notifications, the title menu between shifts, and the hacked screen.
 // It renders inside whatever element it's given (the full page today, a monitor in a shared
 // office later): a 16:9 screen sized to that element, never to the browser window, with
 // black bars around it. Everything inside scales with the screen.
@@ -13,6 +13,7 @@ import { clockIn } from "@client/net/shiftActions";
 import { formatClock } from "@shared/time";
 import { DesktopContext, type DesktopContextValue } from "@client/ui/DesktopContext";
 import { DesktopIcons } from "@client/ui/DesktopIcons";
+import { DesktopPet } from "@client/ui/DesktopPet";
 import { HackOverlay } from "@client/ui/HackOverlay";
 import { IntroVideo } from "@client/ui/IntroVideo";
 import { useIntroShown } from "@client/ui/introPlayer";
@@ -116,6 +117,8 @@ export function Desktop(): ReactElement {
 
               <DesktopIcons />
               <Windows />
+              {/* After the windows, so the pet walks in front of them. */}
+              <DesktopPet />
               <Taskbar />
               <StartMenu />
               <Toasts />

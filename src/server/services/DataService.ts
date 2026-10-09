@@ -123,6 +123,13 @@ export class DataService {
     );
   }
 
+  /** Copies the whole database to `file` with SQLite's online backup, so the copy is
+   * complete and consistent while the game keeps saving (the database file alone can miss
+   * recent saves still in its write-ahead log). */
+  async backup(file: string): Promise<void> {
+    await this.db.backup(file);
+  }
+
   close(): void {
     this.db.close();
   }

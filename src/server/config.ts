@@ -6,6 +6,18 @@ export const ServerConfig = {
   // server forwards /socket.io here.
   DefaultPort: 3000,
   DefaultHost: "localhost",
+  // In production the host's proxy forwards to the server from outside, so it listens on
+  // every network interface unless HOST says otherwise.
+  DefaultProductionHost: "0.0.0.0",
+  // How production finds a player's IP behind the host's proxies (net/clientIp). Render puts
+  // Cloudflare in front of every service, and Cloudflare sets this header to the visitor's
+  // address itself, overwriting any the browser sent. On a host without Cloudflare in front,
+  // set it to null, or players could send their own.
+  ClientIpHeader: "cf-connecting-ip" as string | null,
+  // Without that header: how many proxies append to X-Forwarded-For. A player's IP is read
+  // that many entries from the right; entries further left come from the client and can be
+  // forged. Also how many hops Fastify trusts.
+  TrustedProxyHops: 1,
   // The built client, relative to the built server (dist/server). Served in production only;
   // in development Vite serves the client.
   ClientBuildDir: "../client",
@@ -14,6 +26,10 @@ export const ServerConfig = {
   // The biggest Socket.IO message a client may send. Game events are tiny; voice clips go
   // over HTTP instead (step 10).
   MaxSocketMessageBytes: 16 * 1024,
+  // Most game connections open at once from one IP address, against bots making endless
+  // anonymous players. A household or office shares one address, so it's well above a
+  // family's worth. A connection over it is turned away and the client keeps retrying.
+  MaxConnectionsPerIp: 20,
 
   // The Email app (MailService). Mail is written out on the server, so these stay here.
   Mail: {

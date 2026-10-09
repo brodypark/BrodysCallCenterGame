@@ -89,4 +89,16 @@ describe("DataService: saves written some other way", () => {
     fileData = new DataService(file);
     expect(fileData.readSlot(PlayerId, 2)).toMatchObject({ stats: { money: 10 } });
   });
+
+  it("backs up every save, including ones still in the write-ahead log", async () => {
+    fileData.writeSlot(PlayerId, 1, { ...defaultStats(), money: 42 });
+    const copyFile = path.join(folder, "backup.sqlite");
+    await fileData.backup(copyFile);
+    const copy = new DataService(copyFile);
+    try {
+      expect(copy.readSlot(PlayerId, 1)).toMatchObject({ stats: { money: 42 } });
+    } finally {
+      copy.close();
+    }
+  });
 });

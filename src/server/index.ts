@@ -9,6 +9,7 @@ import Fastify from "fastify";
 import { z } from "zod";
 import { ServerConfig } from "@server/config";
 import { loadServerEnv } from "@server/env";
+import { registerBackupRoute } from "@server/net/backupRoute";
 import { playerIdFromCookieHeader, registerSessionRoute } from "@server/net/playerSession";
 import { startGameServer } from "@server/net/socketServer";
 import { AllScenarios } from "@server/scenarios/all";
@@ -22,7 +23,15 @@ import { ApiRoutes } from "@shared/api";
 import { Config } from "@shared/Config";
 
 const env = loadServerEnv();
-const app = Fastify({ logger: true, trustProxy: env.isProduction });
+// Behind the host's proxy in production (0 trusts none). A hop count rather than `true`, so
+// a forged X-Forwarded-For can't change what Fastify thinks the client's IP is.
+const trustedProxyHops = env.isProduction ? ServerConfig.TrustedProxyHops : 0;
+const app = Fastify({
+  logger: true,
+  // Trusts the nearest `trustedProxyHops` addresses (hop 0 is the connection's own), as a
+  // number would; Fastify's types only take a function for that.
+  trustProxy: (_address, hop) => hop < trustedProxyHops,
+});
 
 if (env.usingDevCookieSecret) {
   app.log.warn("COOKIE_SECRET isn't set, so the development fallback is signing cookies.");
@@ -82,6 +91,9 @@ const game = startGameServer(app.server, {
   scenarios,
   data,
   readPlayerId: (cookieHeader) => playerIdFromCookieHeader(app, cookieHeader),
+  clientIpRule: env.isProduction
+    ? { header: ServerConfig.ClientIpHeader, trustedHops: trustedProxyHops }
+    : null,
   allowTestWords: false,
   shiftSecondsOverride: env.shiftSecondsOverride,
   replies,
@@ -107,7 +119,10 @@ if (Config.Voice.TypedOnly) {
     allowLine: (playerId, characters) => {
       const allowed = limiter.tryTake(playerId, characters);
       if (allowed) {
-        app.log.info({ type: "usage", service: "elevenlabs", playerId, amount: characters }, "Voice generated");
+        app.log.info(
+          { type: "usage", service: "elevenlabs", playerId, amount: characters },
+          "Voice generated",
+        );
       }
       return allowed;
     },
@@ -119,27 +134,14 @@ if (Config.Voice.TypedOnly) {
 const voiceParamsSchema = z.strictObject({ lineId: z.coerce.number().int().positive() });
 
 // Lightweight health check for hosting providers (Render, Fly.io).
-app.get("/health", async (request, reply) => {
+app.get("/health", async (_request, reply) => {
   return reply.status(200).send({ status: "ok" });
 });
 
-import { createReadStream } from "node:fs";
-
-// Admin-only backup route to download the SQLite database.
-app.get("/backup", async (request, reply) => {
-  if (!env.adminSecret) {
-    return reply.status(404).send({ error: "Backups not configured." });
-  }
-  const auth = request.headers.authorization;
-  if (auth !== `Bearer ${env.adminSecret}`) {
-    return reply.status(401).send({ error: "Unauthorized" });
-  }
-  const dbPath = path.resolve(import.meta.dirname, ServerConfig.Database.Path);
-  return reply
-    .header("Content-Type", "application/vnd.sqlite3")
-    .header("Content-Disposition", 'attachment; filename="scamgpt.sqlite"')
-    .send(createReadStream(dbPath));
-});
+// Admin-only download of the saves database. Only there when ADMIN_SECRET is set.
+if (env.adminSecret !== undefined) {
+  registerBackupRoute(app, { adminSecret: env.adminSecret, data });
+}
 
 // The audio for the victim line the player's call is on right now, streamed as it's made
 // (the client waits for all of it before playing; the fast model makes it in well under the

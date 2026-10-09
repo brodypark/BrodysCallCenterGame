@@ -48,6 +48,7 @@ describe("readServerEnv", () => {
     });
     expect(env.isProduction).toBe(true);
     expect(env.port).toBe(4000);
+    expect(env.host).toBe(ServerConfig.DefaultProductionHost);
     expect(env.cookieSecret).toBe(secret);
     expect(env.usingDevCookieSecret).toBe(false);
     expect(env.geminiApiKey).toBe("gemini-test");
@@ -60,6 +61,20 @@ describe("readServerEnv", () => {
     expect(() => readServerEnv({ NODE_ENV: "production", COOKIE_SECRET: "short" })).toThrow(
       /COOKIE_SECRET/,
     );
+  });
+
+  it("refuses to run production with a short admin secret, but allows none", () => {
+    const secret = "s".repeat(ServerConfig.PlayerCookie.MinSecretLength);
+    expect(() =>
+      readServerEnv({ NODE_ENV: "production", COOKIE_SECRET: secret, ADMIN_SECRET: "admin" }),
+    ).toThrow(/ADMIN_SECRET/);
+    expect(
+      readServerEnv({ NODE_ENV: "production", COOKIE_SECRET: secret, ADMIN_SECRET: secret })
+        .adminSecret,
+    ).toBe(secret);
+    expect(
+      readServerEnv({ NODE_ENV: "production", COOKIE_SECRET: secret }).adminSecret,
+    ).toBeUndefined();
   });
 
   it("takes a shorter shift for testing, but never in production", () => {

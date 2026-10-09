@@ -64,9 +64,19 @@ export function readServerEnv(env: NodeJS.ProcessEnv): ServerEnv {
   if (isProduction && (cookieSecret === undefined || cookieSecret.length < MinSecretLength)) {
     throw new Error(`COOKIE_SECRET must be set to at least ${MinSecretLength} characters.`);
   }
+  // It unlocks a download of every save, from anywhere, so it must be hard to guess.
+  const adminSecret = optionalString(env.ADMIN_SECRET);
+  if (isProduction && adminSecret !== undefined && adminSecret.length < MinSecretLength) {
+    throw new Error(
+      `ADMIN_SECRET must be at least ${MinSecretLength} characters, or left empty to turn ` +
+        "off the backup route.",
+    );
+  }
   return {
     port: parsePort(env.PORT, ServerConfig.DefaultPort),
-    host: optionalString(env.HOST) ?? ServerConfig.DefaultHost,
+    host:
+      optionalString(env.HOST) ??
+      (isProduction ? ServerConfig.DefaultProductionHost : ServerConfig.DefaultHost),
     isProduction,
     cookieSecret: cookieSecret ?? DevSecret,
     usingDevCookieSecret: cookieSecret === undefined,
@@ -76,7 +86,7 @@ export function readServerEnv(env: NodeJS.ProcessEnv): ServerEnv {
     geminiApiKey: optionalString(env.GEMINI_API_KEY),
     geminiBackupApiKey: optionalString(env.GEMINI_API_KEY_BACKUP),
     elevenLabsApiKey: optionalString(env.ELEVENLABS_API_KEY),
-    adminSecret: optionalString(env.ADMIN_SECRET),
+    adminSecret,
   };
 }
 

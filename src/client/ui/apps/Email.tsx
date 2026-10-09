@@ -9,7 +9,6 @@ import { useConnection } from "@client/state/connectionStore";
 import { mailStore, unreadCount, useMail } from "@client/state/mailStore";
 import { useGameMode } from "@client/state/savesStore";
 import { cx } from "@client/ui/classNames";
-import controls from "@client/ui/controls.module.css";
 import app from "@client/ui/apps/appStyles.module.css";
 import styles from "@client/ui/apps/Email.module.css";
 

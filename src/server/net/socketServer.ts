@@ -18,6 +18,7 @@ import {
   type ServerToClientEvents,
 } from "@shared/events";
 import { ServerConfig } from "@server/config";
+import { type ClientIpRule, clientIp } from "@server/net/clientIp";
 import { isAllowedOrigin } from "@server/net/origin";
 import type { ScenarioRegistry } from "@server/scenarios/ScenarioRegistry";
 import type { VictimReplySource } from "@server/services/AIService";
@@ -38,6 +39,8 @@ import { StatsService } from "@server/services/StatsService";
 
 interface SocketData {
   playerId: string;
+  // Where the connection comes from, for the per-IP connection limit.
+  ip: string;
   // The inbox and Characters pages last sent on this connection, as JSON, so they're only
   // sent again when they change (they're rebuilt on every stats change).
   mailSent?: string;
@@ -56,6 +59,9 @@ export interface GameServerOptions {
   data: DataService;
   // The player id in a request's Cookie header, if it's there and correctly signed.
   readPlayerId: (cookieHeader: string | undefined) => string | undefined;
+  // How to find a connection's IP behind the host's proxies (production), whose own address
+  // is the same for every player. null with no proxy in front (development).
+  clientIpRule: ClientIpRule | null;
   // Whether the test words (!reveal, !sus, !calm) work. Never in production.
   allowTestWords: boolean;
   // A shorter shift for testing (development only).
@@ -305,31 +311,33 @@ export function startGameServer(httpServer: HttpServer, options: GameServerOptio
     turnChanged: (playerId) => shifts.turnChanged(playerId),
   });
 
+  // Open connections per IP address (ServerConfig.MaxConnectionsPerIp).
+  const connectionsPerIp = new Map<string, number>();
+
   // No valid player cookie, no connection. The client gets a new cookie and tries again.
+  // Too many connections from one address are turned away here too, so the client keeps
+  // retrying until one closes.
   io.use((socket, next) => {
     const playerId = options.readPlayerId(socket.request.headers.cookie);
     if (playerId === undefined) {
       next(new Error("No valid player cookie."));
       return;
     }
+    const { headers, address } = socket.handshake;
+    const ip = clientIp(headers, address, options.clientIpRule);
+    if ((connectionsPerIp.get(ip) ?? 0) >= ServerConfig.MaxConnectionsPerIp) {
+      log.warn({ ip, playerId }, "Too many connections from one IP; turned one away");
+      next(new Error("Too many connections from this network."));
+      return;
+    }
     socket.data.playerId = playerId;
+    socket.data.ip = ip;
     next();
   });
 
-  const connectionsPerIp = new Map<string, number>();
-  const MAX_CONNECTIONS_PER_IP = 10;
-
   io.on("connection", (socket) => {
-    const ip = socket.handshake.address;
-    const currentConnections = connectionsPerIp.get(ip) ?? 0;
-    if (currentConnections >= MAX_CONNECTIONS_PER_IP) {
-      log.warn({ ip }, "Too many connections from IP, disconnecting");
-      socket.disconnect(true);
-      return;
-    }
-    connectionsPerIp.set(ip, currentConnections + 1);
-
-    const { playerId } = socket.data;
+    const { playerId, ip } = socket.data;
+    connectionsPerIp.set(ip, (connectionsPerIp.get(ip) ?? 0) + 1);
     log.info({ playerId, socketId: socket.id, ip }, "Player connected");
     players.connect(playerId, socket);
     // Does nothing if they're coming back within the grace period: their call carries on.
@@ -420,14 +428,11 @@ export function startGameServer(httpServer: HttpServer, options: GameServerOptio
     socket.on("disconnect", (reason) => {
       log.info({ playerId, socketId: socket.id, reason, ip }, "Player disconnected");
       players.disconnect(playerId, socket);
-      
-      const count = connectionsPerIp.get(ip);
-      if (count !== undefined) {
-        if (count <= 1) {
-          connectionsPerIp.delete(ip);
-        } else {
-          connectionsPerIp.set(ip, count - 1);
-        }
+      const count = connectionsPerIp.get(ip) ?? 0;
+      if (count <= 1) {
+        connectionsPerIp.delete(ip);
+      } else {
+        connectionsPerIp.set(ip, count - 1);
       }
     });
   });

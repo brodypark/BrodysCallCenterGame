@@ -11,9 +11,9 @@ export interface Song {
 export const Songs: readonly Song[] = [
   { id: "memememew", title: "Memememew", file: "sounds/music/memememew.mp3" },
   {
-    id: "indian-music-meme",
-    title: "Indian Music Meme",
-    file: "sounds/music/indian-music-meme.mp3",
+    id: "skibidi-toilet",
+    title: "Skibidi Toilet",
+    file: "sounds/music/skibidi-toilet.mp3",
   },
   {
     id: "patapim",

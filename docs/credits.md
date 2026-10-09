@@ -15,9 +15,8 @@ Looped background music, picked in the Settings app (`src/client/ui/songs.ts`).
 - **Memememew**: `public/sounds/music/memememew.mp3`. A meme clip downloaded from Voicy
   ("Indian Memememew Memew"). **License unconfirmed**: fine for local testing; confirm the
   rights (or replace it) before deploying.
-- **Indian Music Meme**: `public/sounds/music/indian-music-meme.mp3`. A meme clip made with
-  Voicemod ("indian-music-meme-original"). **License unconfirmed**: fine for local testing;
-  confirm the rights (or replace it) before deploying.
+- **Skibidi Toilet**: `public/sounds/music/skibidi-toilet.mp3`. "Skibidi Toilet" by Lil Big
+  Stack, downloaded from APLMate. **License unconfirmed**: confirm the rights (or replace it).
 - **Patapim**: `public/sounds/music/patapim.mp3`. A user-uploaded meme clip. **License unconfirmed**: fine for local testing; confirm the rights before deploying.
 
 ## Facecam

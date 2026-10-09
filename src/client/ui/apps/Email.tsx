@@ -1,14 +1,22 @@
 // Email: the player's inbox, newest first, with the open email beside it. The server writes
 // every email and decides when they arrive (MailService); opening one marks it read. It
-// opens by itself on the boss's welcome (useMailPopup), starting on that email.
+// opens by itself on the boss's welcome (useMailPopup), starting on that email, and jumps to
+// an email whose notification was clicked (requestMail).
 
 import { type ReactElement, useEffect, useState } from "react";
 import type { MailMessage, MailSnapshot } from "@shared/types";
 import { readMail } from "@client/net/mailActions";
 import { useConnection } from "@client/state/connectionStore";
-import { mailStore, unreadCount, useMail } from "@client/state/mailStore";
+import {
+  clearMailRequest,
+  mailStore,
+  unreadCount,
+  useMail,
+  useMailRequest,
+} from "@client/state/mailStore";
 import { useGameMode } from "@client/state/savesStore";
 import { cx } from "@client/ui/classNames";
+import { senderName } from "@client/ui/mailRules";
 import app from "@client/ui/apps/appStyles.module.css";
 import styles from "@client/ui/apps/Email.module.css";
 
@@ -19,11 +27,6 @@ const dateFormat = new Intl.DateTimeFormat(undefined, {
   hour: "numeric",
   minute: "2-digit",
 });
-
-/** The sender's name without their job title, for the list. */
-function shortName(from: string): string {
-  return from.split(" (")[0] ?? from;
-}
 
 /** The email to open first: the one that opened the app by itself, else the newest unread
  * one, else the newest. */
@@ -57,9 +60,23 @@ export function Email(): ReactElement {
   const snapshot = useMail();
   const { messages } = snapshot;
   const sandbox = useGameMode() === "sandbox";
-  // Picked once when the window opens; after that, only clicking changes it, so emails that
-  // arrive while it's open don't get marked read without being seen.
-  const [selectedId, setSelectedId] = useState<number | null>(() => firstToOpen(mailStore.get()));
+  // Picked once when the window opens; after that, only clicking (here or on a notification)
+  // changes it, so emails that arrive while it's open don't get marked read without being
+  // seen.
+  const request = useMailRequest();
+  const [selectedId, setSelectedId] = useState<number | null>(
+    () => request?.id ?? firstToOpen(mailStore.get()),
+  );
+  const [followedSeq, setFollowedSeq] = useState(request?.seq ?? null);
+  if (request && request.seq !== followedSeq) {
+    setFollowedSeq(request.seq);
+    setSelectedId(request.id);
+  }
+  useEffect(() => {
+    if (request) {
+      clearMailRequest();
+    }
+  }, [request]);
   const selected = messages.find((each) => each.id === selectedId) ?? null;
   const unreadSelected = selected && !selected.read ? selected.id : null;
   // Tried again on reconnecting, in case it was dropped while offline.
@@ -103,7 +120,7 @@ export function Email(): ReactElement {
                 onClick={() => setSelectedId(message.id)}
               >
                 <span className={styles.itemTop}>
-                  <span className={styles.sender}>{shortName(message.from)}</span>
+                  <span className={styles.sender}>{senderName(message.from)}</span>
                   <span className={styles.date}>{dateFormat.format(message.sentAt)}</span>
                 </span>
                 <span className={styles.itemSubject}>{message.subject}</span>

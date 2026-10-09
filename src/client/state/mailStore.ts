@@ -40,3 +40,32 @@ export function useMail(): MailSnapshot {
 export function useUnreadMail(): number {
   return unreadCount(useMail());
 }
+
+/** A request for the Email app to show one email (e.g. a notification was clicked). `seq`
+ * goes up with every request, so asking for the same email twice still counts. */
+export interface MailRequest {
+  id: number;
+  seq: number;
+}
+
+const mailRequest = createStore<MailRequest | null>(null);
+// Never reset (clearing a request doesn't), so every request gets a new seq.
+let lastSeq = 0;
+
+/** Asks the Email app to show email `id` (open the app too). */
+export function requestMail(id: number): void {
+  lastSeq += 1;
+  mailRequest.set({ id, seq: lastSeq });
+}
+
+/** Called by the Email app once it has followed the request. */
+export function clearMailRequest(): void {
+  if (mailRequest.get() !== null) {
+    mailRequest.set(null);
+  }
+}
+
+/** The email the Email app has been asked to show, if any. */
+export function useMailRequest(): MailRequest | null {
+  return useStore(mailRequest);
+}

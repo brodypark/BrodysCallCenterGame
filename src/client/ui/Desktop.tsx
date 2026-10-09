@@ -1,5 +1,5 @@
-// The whole computer screen: wallpaper, desktop icons, app windows, taskbar, start menu and
-// the title menu between shifts.
+// The whole computer screen: wallpaper, desktop icons, app windows, taskbar, start menu,
+// new-mail notifications and the title menu between shifts.
 // It renders inside whatever element it's given (the full page today, a monitor in a shared
 // office later): a 16:9 screen sized to that element, never to the browser window, with
 // black bars around it. Everything inside scales with the screen.
@@ -22,6 +22,7 @@ import { SessionOverlay } from "@client/ui/SessionOverlay";
 import { ShiftResults } from "@client/ui/ShiftResults";
 import { StartMenu } from "@client/ui/StartMenu";
 import { Taskbar } from "@client/ui/Taskbar";
+import { Toasts } from "@client/ui/Toasts";
 import { TitleMenu } from "@client/ui/TitleMenu";
 import { useStats } from "@client/state/statsStore";
 import { useDesktopShake } from "@client/ui/desktopShake";
@@ -113,6 +114,7 @@ export function Desktop(): ReactElement {
               <Windows />
               <Taskbar />
               <StartMenu />
+              <Toasts />
             </div>
             {/* Under the intro until the new save has loaded, and if it never does. */}
             <div className={styles.menus} inert={introShown}>

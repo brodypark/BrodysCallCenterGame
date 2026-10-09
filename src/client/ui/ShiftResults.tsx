@@ -1,4 +1,5 @@
-// The report card when a shift ends: calls taken, earnings against the quota, XP, and a
+// The report card when a shift ends: calls taken, earnings against the quota (raised by any
+// failed audits), Skibidi's audits if there were any, XP, and a
 // PROMOTED or FIRED stamp that slams down a moment after it opens, with a jingle (and
 // another if the player levelled up). Closing it goes back to the title menu.
 
@@ -44,13 +45,19 @@ export function ShiftResults(): ReactElement | null {
     return null;
   }
 
-  const rows: readonly [string, string][] = [
+  const rows: [string, string][] = [
     ["Calls taken", String(result.callsTaken)],
     ["Cards cashed in", String(result.successfulCalls)],
     ["Earnings", `$${result.earnings} / $${result.quota}`],
     [result.passed ? "Banked" : "Lost", `$${result.earnings}`],
     ["XP earned", `+${result.xpEarned}`],
   ];
+  if (result.auditsPassed + result.auditsFailed > 0) {
+    rows.splice(2, 0, [
+      "QA audits",
+      `${result.auditsPassed} passed, ${result.auditsFailed} failed`,
+    ]);
+  }
 
   return (
     <div className={styles.shade}>

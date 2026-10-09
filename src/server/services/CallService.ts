@@ -40,6 +40,7 @@ import type { SandboxCheat } from "@shared/sandbox";
 import { matchTestWord } from "@server/prompts/DebugReplies";
 import type { ScenarioRegistry } from "@server/scenarios/ScenarioRegistry";
 import type { HistoryLine } from "@server/prompts/VictimPrompt";
+import type { CallProgress } from "@server/audits/AuditObjectives";
 import type { AIReply, Scenario } from "@server/scenarios/scenarioSchema";
 import type { VictimReplySource } from "@server/services/AIService";
 import { maskCodes } from "@server/services/aiReply";
@@ -102,12 +103,18 @@ export interface CodeIssuer {
   registerWobblebucksCard: (playerId: string, card: string, info: WobblebucksCardInfo) => void;
 }
 
-/** Told about calls as they happen. Set by the shift. */
+/** Told about calls as they happen. Set by the socket server, for the shift and the audits. */
 export interface CallListener {
   // A call ended, for any reason.
   callEnded: (playerId: string, reason: CallEndReason) => void;
   // Whose turn it is changed during a call.
   turnChanged: (playerId: string) => void;
+  // The player answered a call.
+  callStarted?: (playerId: string) => void;
+  // The player said `text` (already counted in progress().playerTurns).
+  playerSaid?: (playerId: string, text: string) => void;
+  // The victim started saying a line (the code, card or trust may have changed with it).
+  victimSpoke?: (playerId: string) => void;
 }
 
 // What the victim says next, and how the call ends after it (if it does). `heard` is the
@@ -344,6 +351,24 @@ export class CallService {
     return call?.status === "inCall" && call.turn === "playerTurn";
   }
 
+  /** Where the player's call in progress is, for Skibidi's audits, or null if there isn't
+   * one. */
+  progress(playerId: string): CallProgress | null {
+    const call = this.calls.get(playerId);
+    if (call?.status !== "inCall" || !call.scenario) {
+      return null;
+    }
+    return {
+      callId: call.callId,
+      playerTurns: call.playerTurns,
+      codeRevealed: call.code !== null,
+      cardRevealed: call.card !== null,
+      hasSideProblem: call.hasSideProblem,
+      trust: trustMeter(call.suspicion, call.scenario.suspicionThreshold, call.scenario.trustLevel)
+        .word,
+    };
+  }
+
   /** The victim line `lineId` and the voice to say it in, if it's the line being said right
    * now and its voice hasn't been asked for yet. Each line is handed out once, so a client
    * can't make the server pay to voice the same line twice. */
@@ -412,6 +437,7 @@ export class CallService {
     call.playerTurns = 0;
     call.transcript = { callerName: call.scenario.persona.name, messages: [], endReason: null };
     call.aiHistory = [];
+    this.listener?.callStarted?.(playerId);
     this.speak(playerId, call, { text: greeting, endAfter: null });
   }
 
@@ -450,6 +476,7 @@ export class CallService {
     this.remember(call, { speaker: "player", text: maskCodes(cleaned, scenario.codePrefix) });
     call.turn = "processing";
     this.publish(playerId, call);
+    this.listener?.playerSaid?.(playerId, cleaned);
     this.listener?.turnChanged(playerId);
 
     const useAI = this.overrides?.useAI(playerId) ?? true;
@@ -714,6 +741,7 @@ export class CallService {
       this.finishVictimTurn(playerId, call, lineId),
     );
     this.publish(playerId, call);
+    this.listener?.victimSpoke?.(playerId);
     this.listener?.turnChanged(playerId);
   }
 

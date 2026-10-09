@@ -5,6 +5,7 @@ import { createRoot } from "react-dom/client";
 import { App } from "@client/App";
 import { startConnection } from "@client/net/session";
 import { startIntroVideo } from "@client/ui/introPlayer";
+import { startMailToasts } from "@client/ui/mailToasts";
 import { startMusic } from "@client/ui/music";
 import { startSoundCues } from "@client/ui/soundCues";
 import { startPlayerVoice } from "@client/voice/PlayerVoice";
@@ -25,6 +26,7 @@ createRoot(rootElement).render(
 startVictimVoice();
 startPlayerVoice();
 startSoundCues();
+startMailToasts();
 startMusic();
 startIntroVideo();
 startConnection();

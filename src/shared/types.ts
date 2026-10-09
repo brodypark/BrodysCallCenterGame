@@ -144,6 +144,9 @@ export interface ShiftResult {
   newLevel: number | null;
   // Names of the callers that going up unlocked. Empty if none did.
   unlockedCallers: string[];
+  // Skibidi's live audits this shift: passed (bonus paid) and failed (quota raised).
+  auditsPassed: number;
+  auditsFailed: number;
 }
 
 // What a hint on a caller's page is about: what wins them over, what makes them angry, their
@@ -209,6 +212,19 @@ export interface MailSnapshot {
   messages: MailMessage[];
   // An unread email that opens the Email app by itself (the boss's welcome), or null.
   autoOpenId: number | null;
+}
+
+// active: still going. passed / failed: graded when the call ended (or lost for sure early).
+export type AuditStatus = "active" | "passed" | "failed";
+
+/** Skibidi's live audit on the current call, for the Call window. Kept after the call ends
+ * (with its result) until the next one is answered. */
+export interface AuditSnapshot {
+  // What to do, short, e.g. 'Say "thank you for choosing us" 2 times'.
+  task: string;
+  // How it's going, e.g. "1/2" or "3 turns left".
+  progress: string;
+  status: AuditStatus;
 }
 
 /** The server's answer to buying or equipping something in the Shop. */

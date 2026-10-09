@@ -5,7 +5,8 @@
 // (outside the message box) or the talk button talks; the words show as a "Listening..."
 // bubble and send when it's let go. The caller's face shows their mood and talks with
 // their voice; big trust swings flash the bar and make it react, and a victim hanging up
-// slams a CALL ENDED stamp on the window.
+// slams a CALL ENDED stamp on the window. When Skibidi is auditing the call, a QA AUDIT strip
+// under the trust bar shows the task and how it's going.
 
 import {
   type CSSProperties,
@@ -20,6 +21,8 @@ import {
 import { Config } from "@shared/Config";
 import { cleanMessage } from "@shared/messageText";
 import type {
+  AuditSnapshot,
+  AuditStatus,
   CallEndReason,
   CallSnapshot,
   ChatMessage,
@@ -27,6 +30,7 @@ import type {
   TrustMeter,
 } from "@shared/types";
 import { hangUp, sendMessage } from "@client/net/callActions";
+import { useAudit } from "@client/state/auditStore";
 import { useCall } from "@client/state/callStore";
 import { useConnection } from "@client/state/connectionStore";
 import { useGameMode } from "@client/state/savesStore";
@@ -103,6 +107,7 @@ export function Call(): ReactElement {
   const inputRef = useRef<HTMLInputElement>(null);
   const talkRef = useRef<HTMLButtonElement>(null);
   const voice = usePlayerVoice();
+  const audit = useAudit();
 
   const inCall = call.status === "inCall";
   // Only usable while connected: anything sent offline would be dropped.
@@ -202,6 +207,7 @@ export function Call(): ReactElement {
   return (
     <div className={styles.call}>
       <TrustBar trust={call.trust} swing={reaction.swing} />
+      {audit && <AuditStrip audit={audit} />}
 
       <section className={cx(styles.panel, styles.caller)} aria-label="Caller">
         <div className={styles.nameBand}>{callerName}</div>
@@ -320,6 +326,33 @@ export function Call(): ReactElement {
         </div>
       )}
     </div>
+  );
+}
+
+const AuditStatusText: Record<AuditStatus, string> = {
+  active: "QA AUDIT",
+  passed: "AUDIT PASSED",
+  failed: "AUDIT FAILED",
+};
+
+const AuditStatusClass: Record<AuditStatus, string | undefined> = {
+  active: styles.auditActive,
+  passed: styles.auditPassed,
+  failed: styles.auditFailed,
+};
+
+/** Skibidi's live audit: what to do, how it's going, and the result once it's graded. */
+function AuditStrip({ audit }: { audit: AuditSnapshot }): ReactElement {
+  return (
+    <section
+      className={cx(styles.panel, styles.audit, AuditStatusClass[audit.status])}
+      aria-label="Quality assurance audit"
+      aria-live="polite"
+    >
+      <span className={styles.auditTitle}>🎧 {AuditStatusText[audit.status]}</span>
+      <span className={styles.auditTask}>{audit.task}</span>
+      <span className={styles.auditProgress}>{audit.progress}</span>
+    </section>
   );
 }
 

@@ -22,6 +22,8 @@ import { type ClientIpRule, clientIp } from "@server/net/clientIp";
 import { isAllowedOrigin } from "@server/net/origin";
 import type { ScenarioRegistry } from "@server/scenarios/ScenarioRegistry";
 import type { VictimReplySource } from "@server/services/AIService";
+import { matchAuditTestWord } from "@server/audits/AuditObjectives";
+import { AuditService } from "@server/services/AuditService";
 import { CallService } from "@server/services/CallService";
 import { CharacterService } from "@server/services/CharacterService";
 import { MailService } from "@server/services/MailService";
@@ -225,6 +227,12 @@ export function startGameServer(httpServer: HttpServer, options: GameServerOptio
     devCommand: !options.allowTestWords
       ? undefined
       : (playerId, text) => {
+          // "!audit" (or "!audit <objective>") makes Skibidi audit this call now.
+          const auditId = matchAuditTestWord(text);
+          if (auditId !== undefined) {
+            audits.force(playerId, auditId);
+            return true;
+          }
           const change = matchDevCommand(text);
           if (change) {
             stats.update(playerId, change);
@@ -264,6 +272,8 @@ export function startGameServer(httpServer: HttpServer, options: GameServerOptio
       // Leaving Sandbox stops its calls; its cards (no shift to clear them) go too.
       sandbox.leave(playerId);
       redeem.clearCards(playerId);
+      // The last call's audit result belonged to that save.
+      audits.clear(playerId);
     },
     send: (playerId, snapshot) => toPlayer(playerId)?.emit("saves:snapshot", snapshot),
   });
@@ -304,11 +314,25 @@ export function startGameServer(httpServer: HttpServer, options: GameServerOptio
     },
     isFree: (playerId) => saves.modeOf(playerId) === "sandbox",
   });
+  const audits: AuditService = new AuditService({
+    callProgress: (playerId) => calls.progress(playerId),
+    modeOf: (playerId) => saves.modeOf(playerId),
+    shift: shifts,
+    mail: (playerId, draft) => mail.deliverNow(playerId, [draft]),
+    send: (playerId, snapshot) => toPlayer(playerId)?.emit("audit:snapshot", snapshot),
+  });
   sandbox.setCalls(calls);
-  const exitServices = { shifts, calls, cards: redeem, stats, saves };
+  const exitServices = { shifts, calls, cards: redeem, stats, saves, audits };
   calls.setListener({
-    callEnded: (playerId, reason) => shifts.callEnded(playerId, reason),
+    // The audit first, so its bonus counts if this call ending also ends the shift.
+    callEnded: (playerId, reason) => {
+      audits.callEnded(playerId, reason);
+      shifts.callEnded(playerId, reason);
+    },
     turnChanged: (playerId) => shifts.turnChanged(playerId),
+    callStarted: (playerId) => audits.callStarted(playerId),
+    playerSaid: (playerId, text) => audits.playerSaid(playerId, text),
+    victimSpoke: (playerId) => audits.victimSpoke(playerId),
   });
 
   // Open connections per IP address (ServerConfig.MaxConnectionsPerIp).
@@ -347,6 +371,7 @@ export function startGameServer(httpServer: HttpServer, options: GameServerOptio
       socket.emit("call:snapshot", snapshot);
     }
     socket.emit("shift:snapshot", shifts.snapshot(playerId));
+    socket.emit("audit:snapshot", audits.snapshot(playerId));
     socket.emit("stats:snapshot", stats.get(playerId));
     characters.publish(playerId);
     mail.publish(playerId);
@@ -452,6 +477,7 @@ export function startGameServer(httpServer: HttpServer, options: GameServerOptio
       shifts.removeAll();
       saves.removeAll();
       calls.removeAll();
+      audits.removeAll();
       redeem.removeAll();
       stats.removeAll();
       players.shutdown();

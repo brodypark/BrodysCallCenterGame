@@ -236,6 +236,8 @@ describe("ShiftService: the end of a shift", () => {
         // 55 XP: not yet level 2 (75).
         newLevel: null,
         unlockedCallers: [],
+        auditsPassed: 0,
+        auditsFailed: 0,
       },
     ]);
     expect(game.stats.get(PlayerId)).toMatchObject({
@@ -508,5 +510,51 @@ describe("ShiftService: cleanup", () => {
     expect(vi.getTimerCount()).toBe(0);
     advanceSeconds(ShiftSeconds * 2);
     expect(game.results).toHaveLength(0);
+  });
+});
+
+describe("ShiftService: Skibidi's audits", () => {
+  it("adds a passed audit's bonus to the earnings and XP, and counts it", () => {
+    const game = createGame();
+    clockInAndRing(game);
+    game.shifts.auditPassed(PlayerId, 25, 20);
+    expect(game.shift().earnings).toBe(25);
+    advanceSeconds(ShiftSeconds);
+    expect(game.results[0]).toMatchObject({ earnings: 25, auditsPassed: 1, auditsFailed: 0 });
+    expect(game.results[0]?.xpEarned).toBe(20);
+  });
+
+  it("raises this shift's quota for a failed audit, then goes back to normal", () => {
+    const game = createGame();
+    clockInAndRing(game);
+    expect(game.shifts.auditFailed(PlayerId, 25)).toBe(Config.Shift.Quota + 25);
+    expect(game.shift().quota).toBe(Config.Shift.Quota + 25);
+    advanceSeconds(ShiftSeconds);
+    expect(game.results[0]).toMatchObject({ quota: Config.Shift.Quota + 25, auditsFailed: 1 });
+    expect(game.shift().quota).toBe(Config.Shift.Quota);
+  });
+
+  it("won't clock out early until the raised quota is met", () => {
+    const game = createGame();
+    clockInAndRing(game);
+    game.shifts.auditFailed(PlayerId, 25);
+    game.shifts.auditPassed(PlayerId, Config.Shift.Quota, 0);
+    game.shifts.clockOut(PlayerId);
+    expect(game.shift().status).toBe("onShift");
+    game.shifts.auditPassed(PlayerId, 25, 0);
+    game.shifts.clockOut(PlayerId);
+    expect(game.results[0]?.passed).toBe(true);
+  });
+
+  it("only takes audits before the timer runs out", () => {
+    const game = createGame();
+    expect(game.shifts.claimAudit(PlayerId, true)).toBe(false);
+    expect(game.shifts.auditFailed(PlayerId, 25)).toBeNull();
+    clockInAndRing(game);
+    expect(game.shifts.claimAudit(PlayerId, false)).toBe(true);
+    game.calls.answer(PlayerId);
+    advanceSeconds(ShiftSeconds);
+    expect(game.shift().status).toBe("overtime");
+    expect(game.shifts.claimAudit(PlayerId, true)).toBe(false);
   });
 });

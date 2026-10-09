@@ -326,6 +326,22 @@ export const Config = {
     LevelUpJingleDelaySeconds: 2.5,
   },
 
+  // New-mail notifications (ui/Toasts): a card slides in at the bottom right of the desk with
+  // the sender and the start of the email. Clicking it opens the email.
+  Toasts: {
+    // How long each one stays up once it's on screen (the timer waits while the desk is
+    // covered, e.g. by the shift report).
+    ShowSeconds: 6,
+    // Most shown at once; the rest wait their turn.
+    MaxShown: 3,
+    // Most waiting; the oldest are dropped (they're still in the inbox).
+    MaxQueued: 10,
+    // How much of the email's text it shows, in characters.
+    SnippetLength: 90,
+    // How long it takes to slide in.
+    SlideSeconds: 0.3,
+  },
+
   // The intro video that plays when a new Campaign save starts (ui/introPlayer).
   Intro: {
     // When it ends (or is skipped), it fades into the desk over this long.

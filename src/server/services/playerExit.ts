@@ -9,12 +9,14 @@ export interface ExitServices {
   cards: { clearCards: (playerId: string) => void };
   stats: { removePlayer: (playerId: string) => void };
   saves: { removePlayer: (playerId: string) => void };
+  audits: { removePlayer: (playerId: string) => void };
 }
 
 export function endPlayerSession(services: ExitServices, playerId: string): void {
   services.shifts.abandon(playerId);
   services.shifts.removePlayer(playerId);
   services.calls.removePlayer(playerId);
+  services.audits.removePlayer(playerId);
   services.cards.clearCards(playerId);
   services.stats.removePlayer(playerId);
   services.saves.removePlayer(playerId);

@@ -163,6 +163,7 @@ A bonus way to earn on top of the gift card.
 - **Payout = the scenario's card value.** Each scenario sets its own value, from $50 (Grandma)
   to $250 (The Villain). Harder scenarios have bigger cards.
 - **Quota:** fixed per shift. Starting value: **$150** (3 Grandma successes out of ~4–5 calls).
+  A failed live audit raises it for the rest of that shift.
 - **Shift earnings vs. bank:** money earned during a shift is held as shift earnings. It moves to
   the bank only if the shift is passed. Upgrades are paid from the bank.
 
@@ -192,6 +193,27 @@ A bonus way to earn on top of the gift card.
   level 3, Hard from level 4. Each
   scenario module sets its own `unlockLevel` to follow this. Scenarios are unlocked **only**
   through XP, never bought.
+
+## Live audits (Skibidi, Quality Assurance)
+
+Skibidi listens in on calls from a van in the parking lot. On a Campaign call, right after the
+player's 2nd message, there's a 30% chance he emails a side objective (at most 2 per shift, and
+only before the shift timer runs out). The email pops up as a notification at the bottom right;
+the Call window shows the task and progress under the trust bar. Objectives (all checked on the
+server):
+
+- **Say it:** say "thank you for choosing us" twice (case and punctuation ignored).
+- **Forbidden word:** get the code without saying "scam" (or any word starting with it).
+- **Speed run:** get the code within the next 4 messages.
+- **Upsell:** get the Wobblebucks Card read out too (only on calls with a side problem).
+- **Smooth talker:** get the code without the trust bar ever hitting ANGRY.
+
+Graded when the call ends; being hung up on always fails. **Pass:** +$25 to the shift's
+earnings and +20 XP. **Fail:** the shift's quota goes up $25. Skibidi emails the result, and
+the shift report counts audits passed and failed. A call cut off by the shift ending isn't
+graded. Numbers live in ServerConfig.Audit. Dev test word: `!audit` or `!audit <objective>`.
+In Sandbox, audits only start from the test word; they're graded and emailed the same way, but
+nothing is paid out or raised.
 
 ## Upgrades (bought with money)
 

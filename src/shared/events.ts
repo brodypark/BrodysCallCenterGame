@@ -7,6 +7,7 @@ import { Config } from "@shared/Config";
 import { MaxUnitsPerCharacter } from "@shared/messageText";
 import { SandboxCheats, SandboxSettingsChangeSchema, type SandboxSnapshot } from "@shared/sandbox";
 import type {
+  AuditSnapshot,
   CallSnapshot,
   CharactersSnapshot,
   MailSnapshot,
@@ -156,6 +157,8 @@ export interface ServerToClientEvents {
   "sandbox:snapshot": (snapshot: SandboxSnapshot) => void;
   "characters:snapshot": (snapshot: CharactersSnapshot) => void;
   "mail:snapshot": (snapshot: MailSnapshot) => void;
+  // Skibidi's live audit on the current call (or the last one's result), or null for none.
+  "audit:snapshot": (snapshot: AuditSnapshot | null) => void;
   // The player opened the game in another tab, which took over. This tab is disconnected
   // and doesn't reconnect by itself.
   "session:replaced": () => void;

@@ -11,6 +11,9 @@
 //
 // Once the quota is met the player may clock out early: that runs out the timer now, so the
 // same overtime rules finish any call and open code.
+//
+// Skibidi's live audits (AuditService) change a shift: a pass adds a bonus to its earnings
+// and XP, a fail raises its quota.
 
 import { Config } from "@shared/Config";
 import { secondsToMs } from "@shared/time";
@@ -23,6 +26,7 @@ import type {
 } from "@shared/types";
 import { levelOf } from "@shared/Levels";
 import { extraShiftSeconds } from "@shared/Upgrades";
+import { ServerConfig } from "@server/config";
 import type { StatsService } from "@server/services/StatsService";
 
 // Calls that were answered, so they count as calls taken.
@@ -82,11 +86,17 @@ interface PlayerShift {
   // True once the overtime redeem window has opened (the last call is over).
   redeemWindowOpen: boolean;
   earnings: number;
+  // Config.Shift.Quota, plus any raises from failed audits.
+  quota: number;
   xpEarned: number;
   callsTaken: number;
   successfulCalls: number;
   // How many of the shift's calls ended each way.
   endings: Partial<Record<CallEndReason, number>>;
+  // Skibidi's audits this shift: started, passed and failed.
+  auditsStarted: number;
+  auditsPassed: number;
+  auditsFailed: number;
   // The last shift's report, kept until the player closes it, so one that ends while they're
   // reconnecting isn't lost.
   unseenResult: ShiftResult | null;
@@ -101,10 +111,14 @@ function newShift(): PlayerShift {
     overtimeEndsAt: null,
     redeemWindowOpen: false,
     earnings: 0,
+    quota: Config.Shift.Quota,
     xpEarned: 0,
     callsTaken: 0,
     successfulCalls: 0,
     endings: {},
+    auditsStarted: 0,
+    auditsPassed: 0,
+    auditsFailed: 0,
     unseenResult: null,
     timer: null,
   };
@@ -160,7 +174,7 @@ export class ShiftService {
    * call in progress finishes and an open code gets the redeem window. */
   clockOut(playerId: string): void {
     const shift = this.shifts.get(playerId);
-    if (!shift || shift.status !== "onShift" || shift.earnings < Config.Shift.Quota) {
+    if (!shift || shift.status !== "onShift" || shift.earnings < shift.quota) {
       return;
     }
     // So a call still ringing counts as cut off, not missed (see callEnded).
@@ -223,6 +237,46 @@ export class ShiftService {
     shift.xpEarned += Config.XP.PerCharge;
     this.publish(playerId, shift);
     this.checkOvertime(playerId, shift);
+  }
+
+  /** Whether the shift takes another of Skibidi's audits, counting it if so: only before the
+   * timer runs out, and at most ServerConfig.Audit.MaxPerShift unless `force`d. */
+  claimAudit(playerId: string, force: boolean): boolean {
+    const shift = this.shifts.get(playerId);
+    if (shift?.status !== "onShift") {
+      return false;
+    }
+    if (!force && shift.auditsStarted >= ServerConfig.Audit.MaxPerShift) {
+      return false;
+    }
+    shift.auditsStarted += 1;
+    return true;
+  }
+
+  /** An audit was passed: `money` goes into the shift's earnings, plus `xp`. Called just
+   * before callEnded for the same call, which then checks whether overtime is done. */
+  auditPassed(playerId: string, money: number, xp: number): void {
+    const shift = this.shifts.get(playerId);
+    if (!shift || shift.status === "offShift") {
+      return;
+    }
+    shift.auditsPassed += 1;
+    shift.earnings += money;
+    shift.xpEarned += xp;
+    this.publish(playerId, shift);
+  }
+
+  /** An audit was failed: the shift's quota goes up by `raise`. Returns the new quota, or
+   * null off shift. */
+  auditFailed(playerId: string, raise: number): number | null {
+    const shift = this.shifts.get(playerId);
+    if (!shift || shift.status === "offShift") {
+      return null;
+    }
+    shift.auditsFailed += 1;
+    shift.quota += raise;
+    this.publish(playerId, shift);
+    return shift.quota;
   }
 
   /** A card ran out of tries: in overtime, that may be the last thing left to finish. */
@@ -331,7 +385,7 @@ export class ShiftService {
     }
     this.options.cards.clearCards(playerId);
 
-    const quota = Config.Shift.Quota;
+    const quota = shift.quota;
     const passed = shift.earnings >= quota;
     const xpEarned = shift.xpEarned + (passed ? Config.XP.ShiftPassBonus : 0);
     const before = this.options.stats.get(playerId);
@@ -346,6 +400,8 @@ export class ShiftService {
       xpEarned,
       newLevel: levelAfter > levelBefore ? levelAfter : null,
       unlockedCallers: this.options.unlockedBetween(levelBefore, levelAfter),
+      auditsPassed: shift.auditsPassed,
+      auditsFailed: shift.auditsFailed,
     };
     // Passing banks the earnings; failing loses them. XP is kept either way.
     this.options.stats.update(playerId, (stats) => {
@@ -363,6 +419,8 @@ export class ShiftService {
     shift.endsAt = null;
     shift.overtimeEndsAt = null;
     shift.earnings = 0;
+    // The next shift starts from the usual quota (Clock In shows it).
+    shift.quota = Config.Shift.Quota;
     shift.unseenResult = quiet ? null : result;
     if (!quiet) {
       this.options.sendResult(playerId, result);
@@ -399,7 +457,7 @@ export class ShiftService {
     return {
       status: shift.status,
       earnings: shift.earnings,
-      quota: Config.Shift.Quota,
+      quota: shift.quota,
       lengthSeconds: this.lengthSeconds(playerId),
       endsAt: shift.endsAt,
       overtimeEndsAt: shift.overtimeEndsAt,

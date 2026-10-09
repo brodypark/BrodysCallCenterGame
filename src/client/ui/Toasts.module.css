@@ -1,0 +1,103 @@
+/* New-mail notifications, stacked up from the bottom right corner above the taskbar. The
+   newest is at the bottom, nearest the tray. Colors come from the window theme. */
+.toasts {
+  position: absolute;
+  right: 1.2cqh;
+  bottom: calc(var(--taskbar-height) * 100cqh + 1.2cqh);
+  /* Over the windows, like the start menu (which is on the other side). */
+  z-index: var(--layer-start-menu);
+  display: flex;
+  flex-direction: column;
+  gap: 1cqh;
+  width: 22cqw;
+  pointer-events: none;
+}
+
+.toast {
+  position: relative;
+  pointer-events: auto;
+  border: 1px solid var(--bevel-shadow);
+  border-left: 0.6cqh solid var(--title-active);
+  border-radius: 6px;
+  background: var(--face);
+  box-shadow: 0 0.6cqh 1.6cqh rgba(0, 0, 0, 0.35);
+  animation: slide-in var(--slide-seconds) ease-out;
+}
+
+.open {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3cqh;
+  width: 100%;
+  padding: 1cqh 3.4cqh 1cqh 1.2cqh;
+  border: none;
+  background: none;
+  font: inherit;
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+}
+
+.open:hover .subject {
+  text-decoration: underline;
+}
+
+.header {
+  display: flex;
+  gap: 0.6cqh;
+  align-items: center;
+  font-size: 1.5cqh;
+  font-weight: bold;
+}
+
+.sender {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.subject {
+  overflow: hidden;
+  font-size: 1.6cqh;
+  font-weight: bold;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.snippet {
+  font-size: 1.4cqh;
+  opacity: 0.8;
+}
+
+.close {
+  position: absolute;
+  top: 0.4cqh;
+  right: 0.4cqh;
+  width: 2.6cqh;
+  height: 2.6cqh;
+  padding: 0;
+  border: none;
+  border-radius: 4px;
+  background: none;
+  font-size: 2cqh;
+  line-height: 1;
+  color: var(--text);
+  cursor: pointer;
+}
+
+.close:hover {
+  background: var(--bevel-shadow);
+}
+
+@keyframes slide-in {
+  from {
+    opacity: 0;
+    transform: translateX(110%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .toast {
+    animation: none;
+  }
+}

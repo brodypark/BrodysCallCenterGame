@@ -66,7 +66,8 @@ function createGame(): {
     turnChanged: (playerId) => shifts.turnChanged(playerId),
   });
   calls.addPlayer(PlayerId);
-  return { services: { shifts, calls, cards: redeem, stats, saves }, shifts, saves, calls };
+  const audits = { removePlayer: () => undefined };
+  return { services: { shifts, calls, cards: redeem, stats, saves, audits }, shifts, saves, calls };
 }
 
 describe("endPlayerSession", () => {

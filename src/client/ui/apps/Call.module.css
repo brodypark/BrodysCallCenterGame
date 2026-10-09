@@ -314,6 +314,45 @@
   font-style: italic;
 }
 
+/* Skibidi's live audit, under the trust bar. */
+.audit {
+  display: flex;
+  flex: none;
+  flex-wrap: wrap;
+  gap: 0.3cqh 1cqh;
+  align-items: baseline;
+  padding: 0.6cqh 1.2cqh;
+  border-color: var(--audit-color);
+  font-size: 1.5cqh;
+}
+
+.auditActive {
+  --audit-color: var(--call-status);
+}
+
+.auditPassed {
+  --audit-color: var(--call-trusting);
+}
+
+.auditFailed {
+  --audit-color: var(--call-angry);
+}
+
+.auditTitle {
+  font-weight: bold;
+  color: var(--audit-color);
+}
+
+.auditTask {
+  flex: 1;
+  font-family: var(--font-ui);
+}
+
+.auditProgress {
+  font-weight: bold;
+  color: var(--audit-color);
+}
+
 /* A short message about voice, e.g. that the mic is blocked. */
 .notice {
   flex: none;

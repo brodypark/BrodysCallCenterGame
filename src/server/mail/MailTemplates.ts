@@ -3,12 +3,15 @@
 // can't be read in the client's code.
 //
 // The cast: Chad Thunderbuck (the boss), Linda from HR, Gary (the whole Research Department,
-// in a supply closet), Agent Pemberton (an auditor) and the Founder, who nobody has ever
-// seen. The newsletter tells the story, one issue every other level; the twist is that the
-// Founder is Grandma Gertrude's cat.
+// in a supply closet), Skibidi (Quality Assurance, who listens in on calls from a van in the
+// parking lot and sends live audits mid-call), Agent Pemberton (an auditor) and the Founder,
+// who nobody has ever seen. The newsletter tells the story, one issue every other level; the
+// twist is that the Founder is Grandma Gertrude's cat.
 
 import type { MailEntry } from "@shared/stats";
 import type { ScenarioRegistry } from "@server/scenarios/ScenarioRegistry";
+import { ServerConfig } from "@server/config";
+import { type AuditObjectiveId, isAuditObjectiveId } from "@server/audits/AuditObjectives";
 
 export type MailVars = Readonly<MailEntry["vars"]>;
 
@@ -25,7 +28,10 @@ export type MailTemplateId =
   | "intel"
   | "newLead"
   | "story"
-  | "promotion";
+  | "promotion"
+  | "auditAssigned"
+  | "auditPassed"
+  | "auditFailed";
 
 export interface WrittenMail {
   from: string;
@@ -41,9 +47,54 @@ const Chad = "Chad Thunderbuck (Regional VP of Customer Trust)";
 const Linda = "Linda (Human Resources and Recovered Funds)";
 const Gary = "Gary (Research Department)";
 const Newsletter = "The Trust Fall (company newsletter)";
+const Skibidi = "Skibidi (Quality Assurance)";
 
 const ChadSignOff = "Trust the process,\nChad";
 const LindaSignOff = "Kind regards,\nLinda\nHuman Resources (and Recovered Funds)";
+const SkibidiSignOff = "Stay audited,\nSkibidi\nQuality Assurance (the van in the parking lot)";
+
+// What each audit asks for, in Skibidi's words.
+const AuditOrders: Readonly<Record<AuditObjectiveId, () => string>> = {
+  sayPhrase: () => {
+    const { Phrase, PhraseTimes } = ServerConfig.Audit;
+    return (
+      `You MUST say "${Phrase}" at least ${PhraseTimes} times before this call ends. ` +
+      "Out loud. To the customer. Corporate tested it on a focus group and the focus group " +
+      "didn't leave, so it works."
+    );
+  },
+  forbiddenWord: () => {
+    const word = ServerConfig.Audit.ForbiddenWord;
+    return (
+      `Get their code WITHOUT saying the word "${word}". Not once. Not "${word}s", not ` +
+      `"${word}mer", not "${word}pi". Legal is sitting in the van with me and he is sweating.`
+    );
+  },
+  speedRun: () =>
+    `Get their gift card code within your next ${ServerConfig.Audit.SpeedRunTurns} ` +
+    "messages. Chad has a bet going with the vending machine. Do not let Chad lose to the " +
+    "vending machine again.",
+  upsell: () =>
+    "My headphones picked up a side problem on this one. UPSELL. Get their Wobblebucks Card " +
+    "read out before this call ends. We don't do one-card calls in this economy.",
+  smoothTalker: () =>
+    "Get their code without their Trust bar EVER hitting ANGRY. We're measuring customer " +
+    "satisfaction today. I have a clipboard and everything.",
+};
+
+// A Sandbox audit: graded, but nothing is riding on it.
+const SandboxStakes =
+  "You're in Sandbox, so there's no money or quota riding on this one. I'm grading you " +
+  "anyway. It's what I live for.";
+
+function isSandboxAudit(vars: MailVars): boolean {
+  return int(vars, "sandbox") === 1;
+}
+
+function auditObjective(vars: MailVars): AuditObjectiveId | null {
+  const id = text(vars, "objective");
+  return id !== null && isAuditObjectiveId(id) ? id : null;
+}
 
 /** Paragraphs with a blank line between them. */
 function paragraphs(...lines: string[]): string {
@@ -218,6 +269,83 @@ export const StoryChapters: readonly StoryChapter[] = [
 export function hasChapterAt(level: number): boolean {
   return StoryChapters.some((chapter) => chapter.level === level);
 }
+
+// Skibidi's live audits: the order mid-call, then the result when it ends.
+const AuditWriters = {
+  auditAssigned: (vars: MailVars): WrittenMail | null => {
+    const objective = auditObjective(vars);
+    const money = int(vars, "money");
+    const xp = int(vars, "xp");
+    const raise = int(vars, "raise");
+    if (objective === null) {
+      return null;
+    }
+    let stakes: string;
+    if (isSandboxAudit(vars)) {
+      stakes = SandboxStakes;
+    } else if (money !== null && xp !== null && raise !== null) {
+      stakes =
+        `Pull it off and I'll put +$${money} on this shift and ${xp} XP on your record. Blow ` +
+        `it and your quota goes up $${raise}. Getting hung up on counts as blowing it.`;
+    } else {
+      return null;
+    }
+    return {
+      from: Skibidi,
+      subject: "LIVE AUDIT: this call is being monitored",
+      body: paragraphs(
+        "QA is listening. Don't look at the van.",
+        AuditOrders[objective](),
+        stakes,
+        "This email will not self-destruct. We can't afford that feature.",
+        SkibidiSignOff,
+      ),
+    };
+  },
+
+  auditPassed: (vars: MailVars): WrittenMail | null => {
+    const money = int(vars, "money");
+    const xp = int(vars, "xp");
+    const sandbox = isSandboxAudit(vars);
+    if (auditObjective(vars) === null || (!sandbox && (money === null || xp === null))) {
+      return null;
+    }
+    return {
+      from: Skibidi,
+      subject: "Audit result: PASSED",
+      body: paragraphs(
+        "Audit complete. You passed. I took my headphones off and gave you a standing ovation " +
+          "in the van. I hit my head on the roof. Worth it.",
+        sandbox
+          ? "Sandbox audit, so no bonus. But the ovation was real."
+          : `+$${money} has been added to this shift's earnings and +${xp} XP to your record.`,
+        SkibidiSignOff,
+      ),
+    };
+  },
+
+  auditFailed: (vars: MailVars): WrittenMail | null => {
+    const raise = int(vars, "raise");
+    const quota = int(vars, "quota");
+    const sandbox = isSandboxAudit(vars);
+    if (auditObjective(vars) === null || (!sandbox && (raise === null || quota === null))) {
+      return null;
+    }
+    return {
+      from: Skibidi,
+      subject: "Audit result: FAILED",
+      body: paragraphs(
+        "Audit complete. You failed. I wrote it down on the clipboard. In pen.",
+        sandbox
+          ? "Sandbox audit, so your quota is safe. My clipboard remembers, though."
+          : `Your quota for this shift just went up $${raise}. It's $${quota} now. Chad says ` +
+              'it\'s "a growth opportunity".',
+        "Better luck on the next one. There's always a next one. I live in this van.",
+        SkibidiSignOff,
+      ),
+    };
+  },
+} satisfies Partial<Record<MailTemplateId, Writer>>;
 
 const Writers: Record<MailTemplateId, Writer> = {
   welcome: () => ({
@@ -458,6 +586,8 @@ const Writers: Record<MailTemplateId, Writer> = {
       ),
     };
   },
+
+  ...AuditWriters,
 };
 
 function isTemplateId(id: string): id is MailTemplateId {

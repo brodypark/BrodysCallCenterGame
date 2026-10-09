@@ -29,6 +29,8 @@ function result(passed: boolean, newLevel: number | null = null): ShiftResult {
     xpEarned: 0,
     newLevel,
     unlockedCallers: [],
+    auditsPassed: 0,
+    auditsFailed: 0,
   };
 }
 
@@ -279,5 +281,39 @@ describe("MailTemplates", () => {
 
   it("doesn't trip over template names that are Object properties", () => {
     expect(writeMail("toString", {}, scenarios)).toBeNull();
+  });
+
+  it("writes Skibidi's audit emails, and drops ones it can't make sense of", () => {
+    const assigned = writeMail(
+      "auditAssigned",
+      { objective: "sayPhrase", money: 25, xp: 20, raise: 25 },
+      scenarios,
+    );
+    expect(assigned?.from).toContain("Skibidi");
+    expect(assigned?.body).toContain(ServerConfig.Audit.Phrase);
+    expect(
+      writeMail("auditFailed", { objective: "speedRun", raise: 25, quota: 175 }, scenarios)?.body,
+    ).toContain("$175");
+    expect(
+      writeMail("auditPassed", { objective: "upsell", money: 25, xp: 20 }, scenarios)?.subject,
+    ).toContain("PASSED");
+    expect(
+      writeMail("auditAssigned", { objective: "nope", money: 1, xp: 1, raise: 1 }, scenarios),
+    ).toBeNull();
+    expect(writeMail("auditPassed", { objective: "upsell" }, scenarios)).toBeNull();
+    expect(
+      writeMail("auditFailed", { objective: "upsell", sandbox: 1 }, scenarios)?.body,
+    ).toContain("Sandbox");
+  });
+});
+
+describe("MailService: sending right away", () => {
+  it("delivers in Sandbox too (Skibidi's test-word audits)", () => {
+    campaign = false;
+    mail.deliverNow(PlayerId, [
+      { template: "auditPassed", vars: { objective: "upsell", sandbox: 1 } },
+    ]);
+    expect(templates()).toEqual(["auditPassed"]);
+    expect(subjects()[0]).toContain("PASSED");
   });
 });

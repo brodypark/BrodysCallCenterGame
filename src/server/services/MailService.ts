@@ -2,7 +2,8 @@
 // save the first time it's played. When a shift ends, the boss, HR and the Research
 // Department have their say: the shift's result, warnings about hang-ups and ignored calls,
 // new notes in the case files, and an email for each level gained (a new lead, the next
-// newsletter issue, or a high five). Emails are saved as a template id and a few values;
+// newsletter issue, or a high five). Skibidi from Quality Assurance emails live audits during
+// calls, and their results (AuditService). Emails are saved as a template id and a few values;
 // server/mail/MailTemplates writes them out. Sandbox gets no mail.
 
 import type { MailEntry, PlayerStats } from "@shared/stats";
@@ -220,6 +221,15 @@ export class MailService {
       mail.pendingIntel = [];
       this.deliver(stats, drafts);
     });
+  }
+
+  /** Sends `drafts` right away, e.g. Skibidi's audits mid-call. Unlike the rest of the mail,
+   * Sandbox gets these too (AuditService decides when). */
+  deliverNow(playerId: string, drafts: readonly MailDraft[]): void {
+    if (drafts.length === 0) {
+      return;
+    }
+    this.options.stats.update(playerId, (stats) => this.deliver(stats, drafts));
   }
 
   /** Puts `drafts` in the inbox, dropping the oldest emails past ServerConfig.Mail.MaxInbox. */

@@ -42,6 +42,29 @@ export const ServerConfig = {
     IgnoredCallsWarning: 3,
   },
 
+  // Skibidi's live audits (AuditService): mid-call side objectives, emailed during a Campaign
+  // call. The objectives are checked on the server, so their rules stay here.
+  Audit: {
+    // The chance (0 to 1) that a call gets an audit, rolled once per call, right after the
+    // player's AfterPlayerTurn-th message.
+    Chance: 0.3,
+    AfterPlayerTurn: 2,
+    // Most audits in one shift.
+    MaxPerShift: 2,
+    // Passing adds this to the shift's earnings, plus this much XP.
+    PassMoney: 25,
+    PassXP: 20,
+    // Failing raises this shift's quota by this much.
+    FailQuotaRaise: 25,
+    // "Say it": the phrase, and how many times.
+    Phrase: "thank you for choosing us",
+    PhraseTimes: 2,
+    // "Forbidden word": any word starting with this ("scams", "scammer") counts.
+    ForbiddenWord: "scam",
+    // "Speed run": get the code within this many of the player's messages.
+    SpeedRunTurns: 4,
+  },
+
   Database: {
     // The SQLite file with everyone's saves, relative to the server's own folder (src/server
     // in development, dist/server when built), so both use the project's gitignored data/

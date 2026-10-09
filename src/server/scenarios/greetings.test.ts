@@ -6,6 +6,8 @@ import { AllScenarios } from "@server/scenarios/all";
 const ObsessionWords: Readonly<Record<string, RegExp>> = {
   grandma: /Sir Fluffington/,
   grandpa: /Old Whiskers|catfish/i,
+  boen: /China|Mandarin|panda|Great Wall/i,
+  drump: /golf/i,
   hubble: /Gerald|router|screen|firmware|diagnostic|gadget/i,
   hudson: /popcorn/i,
   sarah: /boba|milk tea/i,

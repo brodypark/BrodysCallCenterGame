@@ -1,8 +1,10 @@
 // Every scam scenario. Adding a scam = adding its module and one line here; nothing else
 // changes. (The built server can't search this folder at runtime, so they're listed.)
 
+import { boen } from "@server/scenarios/boen";
 import { brody } from "@server/scenarios/brody";
 import { cj } from "@server/scenarios/cj";
+import { drump } from "@server/scenarios/drump";
 import { evan } from "@server/scenarios/evan";
 import { grandma } from "@server/scenarios/grandma";
 import { grandpa } from "@server/scenarios/grandpa";
@@ -18,6 +20,8 @@ import { villain } from "@server/scenarios/villain";
 export const AllScenarios: readonly ScenarioInput[] = [
   grandma,
   grandpa,
+  boen,
+  drump,
   hubble,
   hudson,
   sarah,

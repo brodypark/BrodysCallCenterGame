@@ -134,7 +134,7 @@ A bonus way to earn on top of the gift card.
 
 - **Side problem:** on about **35%** of calls (`Config.Card.SideProblemChance`), the victim also
   has a second problem at home, and mentions it early in passing. Grandma's computer box is full
-  of pop-ups, Grandpa Gus's hearing aid only plays polka, Hubble's smart lights are stuck in disco mode, Hudson's microwave popcorn button sets off the smoke alarm, Sarah's laptop
+  of pop-ups, Grandpa Gus's hearing aid only plays polka, Boen's language app panda won't stop nagging him, Tonald Drump's big red desk phone only calls a pizza place, Hubble's smart lights are stuck in disco mode, Hudson's microwave popcorn button sets off the smoke alarm, Sarah's laptop
   autocorrects everything to "boba", Pete's smart scale says he weighs three pounds, Brody's smart
   fridge locks itself at night, Uncle Mike's smart TV only shows Georgia's worst losses, Evan's phone sends
   his half-written texts to CJ's sister, CJ's PC fans sound like a jet engine on stream, and
@@ -148,7 +148,7 @@ A bonus way to earn on top of the gift card.
   decides the reveal with the same rules as the gift card code (suspicion below the trust
   level, not too early).
 - **Wobblebucks Machine app:** type the card and an amount to charge. Each victim's card has a
-  hidden **spending limit** (Grandma $40, Grandpa Gus $45, Hubble $45, Hudson $50, Sarah $70, Pete $80, Brody $100,
+  hidden **spending limit** (Grandma $40, Grandpa Gus $45, Boen $45, Tonald Drump $50, Hubble $45, Hudson $50, Sarah $70, Pete $80, Brody $100,
   Uncle Mike $120, Evan $140, CJ $160, Jordan $180, The Villain $200), kept on the server. Charging within it pays that amount; charging over
   it is **declined** and uses a try. **2 tries per card**, then it's frozen. Each card can be
   charged once.
@@ -186,7 +186,8 @@ A bonus way to earn on top of the gift card.
 
   A passed Grandma shift earns about 55 XP, so level 5 takes about 8 passed shifts (~1 hour)
   and level 10 about 29 (~4 hours). Harder scenarios pay more XP, which speeds later levels up.
-- **Scenario unlocks:** **two new scenarios every level**: Grandma and Grandpa Gus at level 1,
+- **Scenario unlocks:** **two new scenarios every level**: Grandma, Grandpa Gus, Boen and Tonald
+  Drump at level 1 (four, as an exception),
   then two more each level up to Jordan and The Villain at 6. Easy ones come first, Medium at
   level 3, Hard from level 4. Each
   scenario module sets its own `unlockLevel` to follow this. Scenarios are unlocked **only**
@@ -260,6 +261,8 @@ gap and shrink the second, and pay more.
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | 1 | Grandma Gertrude | Easy | $50 | `GMA` | 40 | 100 | 30 | 10 | 60 |
 | 1 | Grandpa Gus | Easy | $55 | `GPZ` | 40 | 100 | 30 | 10 | 60 |
+| 1 | Boen | Easy | $55 | `BNZ` | 40 | 100 | 30 | 10 | 60 |
+| 1 | Tonald Drump | Easy | $60 | `TDZ` | 35 | 100 | 25 | 10 | 65 |
 | 2 | Hubble | Easy | $55 | `HBL` | 40 | 100 | 30 | 10 | 60 |
 | 2 | Hudson | Easy | $60 | `HDS` | 35 | 100 | 25 | 10 | 65 |
 | 3 | Sarah | Medium | $80 | `SRH` | 45 | 90 | 25 | 20 | 45 |
@@ -272,8 +275,9 @@ gap and shrink the second, and pay more.
 | 6 | The Villain | Hard | $250 | `VLN` | 60 | 90 | 20 | 40 | 30 |
 
 Prefixes are never real words, since the AI's replies are cleaned of anything shaped like a code
-with the scenario's prefix. Grandma is ported from the Roblox version; the other eleven are new to
-the browser version. Two callers are unlocked from the start (Grandma and Grandpa Gus), so
+with the scenario's prefix. Grandma is ported from the Roblox version; the other thirteen are new to
+the browser version. Four callers are unlocked from the start (Grandma, Grandpa Gus, Boen and
+Tonald Drump), so
 early shifts aren't all one voice.
 
 **Grandma Gertrude (Easy, level 1):** a sweet, confused grandma who can't figure out how to
@@ -288,6 +292,19 @@ that got away in 1974 (she's the size of a canoe now). Calls the internet "the w
 wire". Likes respect ("sir"), patience and his fishing stories; hates being rushed, long
 explanations, computer words, being called old and anyone doubting Old Whiskers. Bald under an olive cap,
 glasses and a white mustache. As forgiving as Grandma.
+
+**Boen (Easy, level 1):** a super friendly guy three weeks into learning Mandarin and counting
+down to his dream trip, whose Jade Dragon Dumpling House card says "card not activated".
+Obsession: China (the pandas in Chengdu, the Great Wall, dumplings, his Mandarin lessons); it's
+all fandom, never accents or impressions. Rates things out of ten dumplings. Likes patience and
+getting excited about his trip; hates being rushed or talked down to, the "visible from space"
+myth and "dumplings are basically ravioli". Short black hair.
+
+**Tonald Drump (Easy, level 1):** a boastful man who never lets you forget he's the President of
+the United States of America, whose Golden Fairway Pro Shop card got declined ("a first for any
+president"). Obsession: golf (eighteen holes-in-one in one round, he says). Everything is
+"tremendous". Likes flattery and "Mr. President"; hates being corrected, doubted or put on hold,
+and long explanations. Kept silly: no real politics, people or news. Golden hair and a deep tan.
 
 **Hubble (Easy, level 2):** a gadget-obsessed tech geek whose Gadget Gulch card won't scan with
 the card reader he built out of a webcam and a toaster. Obsession: technology (his seven-screen

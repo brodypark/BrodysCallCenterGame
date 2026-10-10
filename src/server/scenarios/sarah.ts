@@ -66,7 +66,7 @@ export const sarah: ScenarioInput = {
   suspicionThreshold: 90,
   trustLevel: 25,
   voice: {
-    voiceId: "EXAVITQu4vr4xnSDxMaL", // Sarah: young, warm American female (ElevenLabs default)
+    voiceId: "C1qAV86a9AbbPyEfe5d5", // Sarah: young, warm American female (ElevenLabs default)
     stability: 0.4,
     similarityBoost: 0.75,
     style: 0.3,
